@@ -74,7 +74,7 @@ if mostrar_pagos:
         Banco: ITAÚ
         Titular: Ricardo Blanco
         Alias: RUC 1911221-1
-        RUC: 1911221
+        C.I: 1911221
         Nro. de Cuenta: 320595209
         """, language="text")
         

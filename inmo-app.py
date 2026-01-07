@@ -1,119 +1,106 @@
 import streamlit as st
-import google.generativeai as genai
 from PIL import Image
-import os
+import base64
+import io
+from openai import OpenAI
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(
-    page_title="Inmo-Redactor IA",
-    page_icon="🏠",
-    layout="centered"
-)
+# Configuración de la página
+st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏠")
 
-# --- GESTIÓN DE LA CLAVE DE SUSCRIPCIÓN ---
-# Esta es la contraseña que le darás a tus clientes que paguen.
-# Cámbiala cada mes (ej. "FEBRERO2026")
-CLAVE_MAESTRA = "INICIO2025" 
+# Título y Subtítulo
+st.title("🏠 Inmo-Redactor IA (Versión OpenAI)")
+st.write("Sube una foto y deja que la Inteligencia Artificial escriba el anuncio perfecto.")
 
-def verificar_acceso():
-    """Función para bloquear la app con contraseña"""
-    if "acceso_concedido" not in st.session_state:
-        st.session_state["acceso_concedido"] = False
+# --- BARRA LATERAL (Clave API) ---
+# Intentamos obtener la clave de los secretos de Streamlit
+api_key = st.secrets.get("OPENAI_API_KEY")
 
-    if not st.session_state["acceso_concedido"]:
-        st.markdown("## 🔒 Acceso Privado para Agentes")
-        clave_ingresada = st.text_input("Introduce tu Clave de Suscriptor:", type="password")
-        
-        if st.button("Ingresar"):
-            if clave_ingresada == CLAVE_MAESTRA:
-                st.session_state["acceso_concedido"] = True
-                st.rerun() # Recarga la página para mostrar la app
-            else:
-                st.error("🚫 Clave incorrecta. Contacta a soporte para renovar tu suscripción.")
-        return False
-    else:
-        return True
+if not api_key:
+    st.error("⚠️ No se detectó la clave de OpenAI. Configúrala en 'Secrets'.")
+    st.stop()
 
-# --- LÓGICA DE LA APLICACIÓN ---
-if verificar_acceso():
+client = OpenAI(api_key=api_key)
+
+# --- PASO 1: CARGA DE IMAGEN ---
+st.header("1. 📸 Sube la foto del inmueble")
+uploaded_file = st.file_uploader("Elige una imagen (JPG o PNG)", type=["jpg", "jpeg", "png"])
+
+# Función para convertir imagen a base64 (necesario para OpenAI)
+def encode_image(image):
+    buffered = io.BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+if uploaded_file is not None:
+    # Mostrar la imagen
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Imagen cargada", use_container_width=True)
     
-    # Título y Cabecera
-    st.title("🏠 Inmo-Redactor IA")
-    st.markdown("""
-    **Transforma fotos en dinero.** Sube la imagen de tu propiedad y obtén 
-    descripciones persuasivas en segundos.
-    """)
-    st.markdown("---")
+    # Procesar imagen para OpenAI
+    base64_image = encode_image(image)
 
-    # Intentamos obtener la API Key de los "Secretos" de Streamlit
-    # Si estás probando en tu PC, asegúrate de configurar esto.
-    try:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        genai.configure(api_key=api_key)
-        api_lista = True
-    except:
-        st.error("⚠️ Error de Configuración: No se encontró la API Key en el sistema.")
-        st.info("Nota para el dueño: Configura 'GOOGLE_API_KEY' en los Secrets de Streamlit Cloud.")
-        api_lista = False
+    # --- PASO 2: DATOS BÁSICOS ---
+    st.divider()
+    st.header("2. 📝 Datos Básicos")
 
-    if api_lista:
-        # COLUMNA 1: LA FOTO
-        st.subheader("1. 📸 La Propiedad")
-        archivo_foto = st.file_uploader("Sube la foto aquí (JPG/PNG)", type=["jpg", "jpeg", "png"])
+    col1, col2 = st.columns(2)
+    with col1:
+        ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: Villa Morra, Asunción")
+        precio = st.text_input("💰 Precio", placeholder="Ej: 750.000.000 Gs")
+    with col2:
+        tipo_inmueble = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Oficina", "Duplex"])
+        objetivo = st.radio("🎯 Objetivo del Texto", ["Venta Rápida (Urgente)", "Lujo/Prestigio", "Oportunidad de Inversión"])
+
+    # --- PASO 3: GENERAR ---
+    st.divider()
+    if st.button("✨ Generar Descripción Vendedora"):
         
-        if archivo_foto:
-            imagen = Image.open(archivo_foto)
-            st.image(imagen, caption="Imagen cargada", use_column_width=True)
+        if not ubicacion or not precio:
+            st.warning("⚠️ Por favor completa la ubicación y el precio.")
+        else:
+            with st.spinner('🤖 Analizando la foto con GPT-4o...'):
+                try:
+                    # El Prompt Maestro
+                    prompt_text = f"""
+                    Actúa como un experto copywriter inmobiliario en Paraguay.
+                    Tu tarea es escribir un anuncio persuasivo para redes sociales basado en la imagen que ves y estos datos:
+                    
+                    - Tipo: {tipo_inmueble}
+                    - Ubicación: {ubicacion}
+                    - Precio: {precio}
+                    - Enfoque: {objetivo}
 
-        st.markdown("---")
+                    INSTRUCCIONES:
+                    1. Analiza visualmente la imagen (luz, piso, espacios) y úsalo en la descripción.
+                    2. Usa un tono cercano pero profesional.
+                    3. Estructura: Gancho atractivo, Características clave (visuales + datos), y Llamada a la acción.
+                    4. Usa emojis estratégicos y hashtags relevantes para Paraguay.
+                    """
 
-        # COLUMNA 2: LOS DATOS
-        st.subheader("2. 📝 Datos Básicos")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: Villa Morra, Asunción")
-            precio = st.text_input("💰 Precio", placeholder="Ej: 150.000 USD")
-        
-        with col2:
-            tipo = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Oficina/Comercial"])
-            objetivo = st.radio("🎯 Objetivo del Texto", ["Venta Rápida (Urgente)", "Lujo/Prestigio", "Oportunidad de Inversión"])
+                    response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": prompt_text},
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_image}"
+                                        },
+                                    },
+                                ],
+                            }
+                        ],
+                        max_tokens=500,
+                    )
 
-        # BOTÓN DE ACCIÓN
-        st.markdown("###")
-        if st.button("✨ Generar Descripción Vendedora", type="primary"):
-            if not archivo_foto:
-                st.warning("✋ Por favor sube una foto primero.")
-            else:
-                with st.spinner('🤖 La IA está analizando la foto y escribiendo el copy...'):
-                    try:
-                        # Configuración del modelo (Gemini 1.5 Flash es rápido y barato)
-                        model = genai.GenerativeModel('gemini-pro')
-                        
-                        prompt = f"""
-                        Eres un experto copywriter inmobiliario con 20 años de experiencia.
-                        Tu objetivo es escribir un anuncio para redes sociales (Instagram/Facebook) y portales web.
-
-                        DATOS DEL INMUEBLE:
-                        - Tipo: {tipo}
-                        - Ubicación: {ubicacion}
-                        - Precio: {precio}
-                        - Enfoque de venta: {objetivo}
-
-                        INSTRUCCIONES:
-                        1. Analiza la imagen adjunta visualmente. Describe lo que ves (iluminación, suelo, espacios, calidad).
-                        2. Combina lo visual con los datos proporcionados.
-                        3. Usa un tono persuasivo, profesional pero cercano.
-                        4. Usa emojis estratégicos.
-                        5. Incluye 3 hashtags relevantes para Paraguay.
-                        6. El texto debe estar listo para copiar y pegar.
-                        """
-                        
-                        response = model.generate_content([prompt, imagen])
-                        
-                        st.success("✅ ¡Descripción Generada con Éxito!")
-                        st.text_area("Copia tu texto aquí:", value=response.text, height=350)
-                        
-                    except Exception as e:
-                        st.error(f"Ocurrió un error al conectar con Google: {e}")
-
+                    # Resultado
+                    generated_text = response.choices[0].message.content
+                    st.success("¡Descripción generada con éxito!")
+                    st.text_area("Copia tu texto aquí:", value=generated_text, height=400)
+                
+                except Exception as e:
+                    st.error(f"Ocurrió un error: {e}")
+                    st.info("Nota: Verifica que tengas saldo/créditos en tu cuenta de OpenAI (Billing).")

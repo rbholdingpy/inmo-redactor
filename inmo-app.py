@@ -53,6 +53,20 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
+    /* NUEVO ESTILO PARA NOTIFICACIÓN DE LÍMITE DE FOTOS */
+    .photo-limit-box {
+        background-color: #E0F2FE; /* Azul claro muy visible */
+        border: 2px solid #0284C7; /* Borde azul fuerte */
+        color: #0369A1; /* Texto azul oscuro */
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
     """, unsafe_allow_html=True)
@@ -167,6 +181,7 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
         fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
         nombre_completo = f"{nombre} {apellido}"
+        # ORDEN: A:codigo|B:cliente|C:plan|D:limite|E:telefono|F:correo|G:estado|H:fecha
         nueva_fila = ["PENDIENTE", nombre_completo, plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
         sheet.append_row(nueva_fila)
         return True
@@ -210,7 +225,6 @@ with st.sidebar:
     
     else:
         user = st.session_state['usuario_activo']
-        # Lógica de CRÉDITOS (Disponible para gastar)
         creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
         
         st.success(f"✅ ¡Hola {user.get('cliente', 'Usuario')}!")
@@ -318,14 +332,13 @@ with c_title:
 es_pro = False
 plan_actual = "INVITADO"
 creditos_disponibles = 0
-cupo_fotos = 0 # Límite de fotos según plan
+cupo_fotos = 0
 
 if st.session_state['usuario_activo']:
     es_pro = True
     user = st.session_state['usuario_activo']
     plan_str = str(user.get('plan', '')).lower()
     
-    # --- LÓGICA DE CAPACIDAD DE FOTOS SEGÚN PLAN ---
     if 'agencia' in plan_str:
         cupo_fotos = 10
         plan_actual = "AGENCIA"
@@ -336,7 +349,7 @@ if st.session_state['usuario_activo']:
         cupo_fotos = 3
         plan_actual = "BÁSICO"
     else:
-        cupo_fotos = 3 # Por defecto si es PRO pero plan desconocido
+        cupo_fotos = 3
         plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
@@ -367,8 +380,12 @@ if es_pro:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
     
-    # Muestra el límite en pantalla
-    st.caption(f"📸 Tu plan {plan_actual} permite subir hasta **{cupo_fotos} fotos** por análisis.")
+    # --- NUEVO: NOTIFICACIÓN VISIBLE DEL LÍMITE DE FOTOS ---
+    st.markdown(f"""
+    <div class="photo-limit-box">
+        📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.
+    </div>
+    """, unsafe_allow_html=True)
     
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
     
@@ -430,7 +447,12 @@ with c2:
 st.divider()
 
 if es_pro:
-    st.info(f"🧠 **Neuro-Vision Activa:** Analizando {len(uploaded_files)} fotos con potencia {plan_actual}...")
+    # Verifica si subió fotos para mostrar el mensaje correcto
+    cant_fotos = len(uploaded_files) if uploaded_files else 0
+    if cant_fotos > 0:
+        st.info(f"🧠 **Neuro-Vision Activa:** Analizando {cant_fotos} fotos con potencia {plan_actual}... (Costo: 1 crédito)")
+    else:
+        st.info(f"🧠 **IA Activa (Solo Texto):** Generando sin fotos... (Costo: 1 crédito)")
 else:
     creditos_guest = st.session_state['guest_credits']
     if creditos_guest > 0:
@@ -463,9 +485,11 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 if es_pro:
                     full_prompt = base_prompt + f""" OPCIÓN 1: Storytelling ({enfoque}). OPCIÓN 2: Venta Directa. OPCIÓN 3: Instagram. WhatsApp: https://wa.me/595{whatsapp}. REGLAS: NO Markdown. Usa EMOJIS."""
                     content = [{"type": "text", "text": full_prompt}]
-                    for f in uploaded_files:
-                        f.seek(0)
-                        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}"}})
+                    # Solo añade fotos si se subieron y están dentro del límite
+                    if uploaded_files and len(uploaded_files) <= cupo_fotos:
+                        for f in uploaded_files:
+                            f.seek(0)
+                            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}"}})
                 else:
                     full_prompt = base_prompt + """ Genera 1 Descripción de Venta atractiva y básica. REGLAS: NO Markdown. Usa EMOJIS."""
                     content = [{"type": "text", "text": full_prompt}]
@@ -493,7 +517,8 @@ if st.button("✨ Generar Estrategia", type="primary"):
 if 'generated_result' in st.session_state:
     st.success("¡Estrategia lista! Copia el texto abajo.")
     st.write(st.session_state['generated_result'])
-    if es_pro and uploaded_files:
+    # Solo muestra fotos al final si es PRO y subió fotos válidas
+    if es_pro and uploaded_files and len(uploaded_files) <= cupo_fotos:
         st.divider()
         st.caption("📸 Fotos analizadas:")
         cols_out = st.columns(4)

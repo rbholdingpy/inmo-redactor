@@ -150,11 +150,7 @@ def descontar_credito(codigo_usuario):
         cell = sheet.find(str(codigo_usuario))
         if cell:
             headers = sheet.row_values(1)
-            try:
-                col_limite = headers.index('limite') + 1 
-            except ValueError:
-                return False
-            
+            col_limite = headers.index('limite') + 1 
             valor_actual = sheet.cell(cell.row, col_limite).value
             if valor_actual and int(valor_actual) > 0:
                 nuevo_saldo = int(valor_actual) - 1
@@ -164,30 +160,14 @@ def descontar_credito(codigo_usuario):
         return False
     return False
 
-# --- NUEVA FUNCIÓN CORREGIDA: REGISTRAR PEDIDO ---
 def registrar_pedido(nombre, apellido, email, telefono, plan):
-    """Guarda los datos respetando el orden EXACTO de tus columnas"""
+    """Guarda pedido en hoja"""
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
-        
         fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
         nombre_completo = f"{nombre} {apellido}"
-        
-        # ORDEN DE TU EXCEL:
-        # A: codigo | B: cliente | C: plan | D: limite | E: telefono | F: correo | G: estado | H: fecha (nuevo)
-        
-        nueva_fila = [
-            "PENDIENTE",      # A: codigo
-            nombre_completo,  # B: cliente
-            plan,             # C: plan
-            0,                # D: limite (inicia en 0)
-            telefono,         # E: telefono
-            email,            # F: correo
-            "NUEVO PEDIDO",   # G: estado
-            fecha             # H: fecha (agregado al final)
-        ]
-        
+        nueva_fila = ["PENDIENTE", nombre_completo, plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
         sheet.append_row(nueva_fila)
         return True
     except Exception as e:
@@ -230,13 +210,13 @@ with st.sidebar:
     
     else:
         user = st.session_state['usuario_activo']
-        limite_raw = user.get('limite', 1)
-        limite_fotos = int(limite_raw) if limite_raw != "" else 1
+        # Lógica de CRÉDITOS (Disponible para gastar)
+        creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
         
         st.success(f"✅ ¡Hola {user.get('cliente', 'Usuario')}!")
         
-        color_cred = "blue" if limite_fotos > 0 else "red"
-        st.markdown(f":{color_cred}[**🪙 Créditos: {limite_fotos}**]")
+        color_cred = "blue" if creditos_disponibles > 0 else "red"
+        st.markdown(f":{color_cred}[**🪙 Créditos: {creditos_disponibles}**]")
         
         st.markdown("---")
         st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary", on_click=ir_a_planes)
@@ -254,28 +234,25 @@ with st.sidebar:
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
     
-    # 1. SELECCIÓN DE PLAN
     if st.session_state.plan_seleccionado is None:
         st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p><p style="font-size:0.8em">Máx 3 Fotos</p></div>', unsafe_allow_html=True)
             st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
         with c2:
-            st.markdown('<div class="plan-standard"><h3>🥈 Estándar</h3><div class="price-tag" style="color:#2563EB;">35.000 Gs</div><p class="feature-text"><b>20 Estrategias</b></p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="plan-standard"><h3>🥈 Estándar</h3><div class="price-tag" style="color:#2563EB;">35.000 Gs</div><p class="feature-text"><b>20 Estrategias</b></p><p style="font-size:0.8em">Máx 6 Fotos</p></div>', unsafe_allow_html=True)
             st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
         with c3:
-            st.markdown('<div class="plan-agency"><div style="background:#F59E0B; color:white; font-size:0.7em; font-weight:bold; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">🔥 MEJOR OPCIÓN</div><h3 style="color:#B45309;">🥇 Agencia</h3><div class="price-tag" style="color:#D97706;">80.000 Gs</div><p class="feature-text"><b>200 Estrategias</b></p></div>', unsafe_allow_html=True)
+            st.markdown('<div class="plan-agency"><div style="background:#F59E0B; color:white; font-size:0.7em; font-weight:bold; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">🔥 MEJOR OPCIÓN</div><h3 style="color:#B45309;">🥇 Agencia</h3><div class="price-tag" style="color:#D97706;">80.000 Gs</div><p class="feature-text"><b>200 Estrategias</b></p><p style="font-size:0.8em">Máx 10 Fotos</p></div>', unsafe_allow_html=True)
             st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
         
         st.divider()
         st.button("⬅️ Volver a la App", on_click=volver_a_app)
 
-    # 2. REGISTRO DE DATOS Y PAGO
     else:
         st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
         
-        # Formulario de registro si no está registrado
         if not st.session_state.pedido_registrado:
             st.write("### 📝 Paso 1: Tus Datos")
             st.write("Necesitamos saber quién eres para generarte tu código de acceso.")
@@ -302,7 +279,6 @@ if st.session_state.ver_planes:
             
             st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
 
-        # Mostrar pago
         else:
             st.success("✅ **¡Datos recibidos!** Tu solicitud ha sido registrada.")
             st.write("### 💳 Paso 2: Realiza el Pago")
@@ -320,24 +296,15 @@ if st.session_state.ver_planes:
                 """, unsafe_allow_html=True)
             with col_wa:
                 st.write("Envía el comprobante para activar tu cuenta rápidamente.")
-                
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
                 mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos en la App y realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Quedo a la espera de mi código."
                 mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
                 link_wp = f"https://wa.me/595981000000?text={mensaje_wp_url}"
-                
-                st.markdown(f"""
-                <a href="{link_wp}" target="_blank" style="text-decoration:none;">
-                    <button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">
-                    📲 Enviar Comprobante por WhatsApp
-                    </button>
-                </a>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<a href="{link_wp}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">📲 Enviar Comprobante por WhatsApp</button></a>', unsafe_allow_html=True)
             
             st.divider()
             if st.button("🏁 Finalizar y Volver al Inicio"):
                 volver_a_app()
-
     st.stop()
 
 # =======================================================
@@ -350,15 +317,32 @@ with c_title:
 
 es_pro = False
 plan_actual = "INVITADO"
-limite_fotos = 0
+creditos_disponibles = 0
+cupo_fotos = 0 # Límite de fotos según plan
 
 if st.session_state['usuario_activo']:
     es_pro = True
     user = st.session_state['usuario_activo']
-    plan_actual = user.get('plan', 'GRATIS')
-    limite_fotos = int(user.get('limite', 1) if user.get('limite') != "" else 0)
+    plan_str = str(user.get('plan', '')).lower()
+    
+    # --- LÓGICA DE CAPACIDAD DE FOTOS SEGÚN PLAN ---
+    if 'agencia' in plan_str:
+        cupo_fotos = 10
+        plan_actual = "AGENCIA"
+    elif 'estándar' in plan_str or 'standar' in plan_str:
+        cupo_fotos = 6
+        plan_actual = "ESTÁNDAR"
+    elif 'básico' in plan_str or 'basico' in plan_str:
+        cupo_fotos = 3
+        plan_actual = "BÁSICO"
+    else:
+        cupo_fotos = 3 # Por defecto si es PRO pero plan desconocido
+        plan_actual = "MIEMBRO"
+
+    creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
+    
     with c_badge:
-        st.markdown(f'<div style="text-align:right"><span class="pro-badge">PLAN {plan_actual.upper()}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align:right"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
     with c_badge:
@@ -379,11 +363,21 @@ st.write("#### 1. 📸 Galería")
 uploaded_files = []
 
 if es_pro:
-    if limite_fotos <= 0:
+    if creditos_disponibles <= 0:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
+    
+    # Muestra el límite en pantalla
+    st.caption(f"📸 Tu plan {plan_actual} permite subir hasta **{cupo_fotos} fotos** por análisis.")
+    
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
+    
     if uploaded_files:
+        # VALIDACIÓN DEL LÍMITE DE FOTOS
+        if len(uploaded_files) > cupo_fotos:
+            st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes. Has subido {len(uploaded_files)}.")
+            st.stop()
+            
         with st.expander("👁️ Ver fotos cargadas", expanded=True):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
@@ -436,7 +430,7 @@ with c2:
 st.divider()
 
 if es_pro:
-    st.info(f"🧠 **Neuro-Vision Activa:** Analizando fotos... (Te costará 1 crédito)")
+    st.info(f"🧠 **Neuro-Vision Activa:** Analizando {len(uploaded_files)} fotos con potencia {plan_actual}...")
 else:
     creditos_guest = st.session_state['guest_credits']
     if creditos_guest > 0:
@@ -454,7 +448,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
         
     puede_generar = False
     if es_pro:
-        if limite_fotos > 0: puede_generar = True
+        if creditos_disponibles > 0: puede_generar = True
     else:
         if st.session_state['guest_credits'] > 0: puede_generar = True
         else:
@@ -485,7 +479,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 if es_pro:
                     exito = descontar_credito(user['codigo'])
                     if exito:
-                        st.session_state['usuario_activo']['limite'] = limite_fotos - 1
+                        st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
                         st.toast("✅ Crédito PRO descontado", icon="🪙")
                 else:
                     st.session_state['guest_credits'] = 0

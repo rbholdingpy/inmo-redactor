@@ -160,15 +160,19 @@ if uploaded_files:
     with c1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         
+        # --- NUEVA LÓGICA DE ALQUILER ---
         nombre_agencia = ""
         tipo_gestion = ""
+        
         if operacion == "Alquiler":
+            # 1. Quién gestiona
             tipo_gestion = st.radio("¿Quién alquila?", ["Propietario Directo", "Agencia/Inmobiliaria"], horizontal=True)
             if tipo_gestion == "Agencia/Inmobiliaria":
                 nombre_agencia = st.text_input("Nombre de la Agencia", placeholder="Ej: Century 21")
         
         tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"])
         
+        # Enfoque de Venta
         if opcion_plan != "GRATIS":
             enfoque = st.selectbox(
                 "🎯 Enfoque de Neuroventas", 
@@ -180,8 +184,18 @@ if uploaded_files:
             st.selectbox("🎯 Enfoque de Venta", ["🔒 Bloqueado (Solo PRO)"], disabled=True, help="Pásate a PRO para usar Neuroventas.")
         
         ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
-        precio = st.text_input("Precio", placeholder="Gs / USD")
         
+        # --- MEJORA: PRECIO + FRECUENCIA ---
+        if operacion == "Alquiler":
+            col_precio, col_frecuencia = st.columns([2, 1])
+            with col_precio:
+                precio = st.text_input("Precio", placeholder="Gs / USD")
+            with col_frecuencia:
+                frecuencia_pago = st.selectbox("Periodo", ["Mensual", "Semestral", "Anual"])
+        else:
+            precio = st.text_input("Precio", placeholder="Gs / USD")
+            frecuencia_pago = "" # No aplica en venta
+
         if opcion_plan != "GRATIS":
             whatsapp = st.text_input("WhatsApp", placeholder="0981...")
         else:
@@ -225,60 +239,61 @@ if uploaded_files:
         else:
             with st.spinner('🧠 Aplicando Neuroventas y Copywriting...'):
                 try:
-                    # GESTIÓN
+                    # GESTIÓN Y PRECIO COMPLETO
                     info_gestion = ""
+                    texto_precio = precio
+                    
                     if operacion == "Alquiler":
+                        # Agregar frecuencia al precio (Ej: 2.000.000 Mensual)
+                        texto_precio = f"{precio} ({frecuencia_pago})"
+                        
                         if tipo_gestion == "Propietario Directo": info_gestion = "Trato directo con el propietario (sin comisiones)."
                         elif tipo_gestion == "Agencia/Inmobiliaria" and nombre_agencia: info_gestion = f"Gestión profesional a cargo de {nombre_agencia}."
                         else: info_gestion = "Gestión profesional."
 
-                    # --- LÓGICA DE PROMPTS SEGÚN PLAN ---
-                    
+                    # --- LÓGICA DE PROMPTS ---
                     if opcion_plan == "GRATIS":
-                        # Prompt Básico (1 Opción)
+                        # Prompt Básico
                         prompt = f"""
                         Actúa como redactor inmobiliario estándar.
                         Crea 1 descripción para {operacion} de {tipo} en {ubicacion}.
-                        Datos: Precio {precio}, {habs} habs, {banos} baños. Extras: Piscina={piscina}, Quincho={quincho}.
+                        Datos: Precio {texto_precio}, {habs} habs, {banos} baños. Extras: Piscina={piscina}, Quincho={quincho}.
                         NO uses Markdown. Usa solo Emojis.
                         """
                     else:
-                        # Prompt PRO (3 Opciones Estratégicas + Neuroventas)
+                        # Prompt PRO (Neuroventas)
                         prompt = f"""
                         Actúa como EXPERTO EN NEUROVENTAS y Marketing Inmobiliario.
-                        Tu objetivo es detener el scroll en Facebook e Instagram.
+                        Objetivo: Detener el scroll y generar Clics.
                         
-                        Analiza las {cant} imágenes adjuntas: Detecta iluminación, calidad de materiales y sensaciones.
+                        VISION IA: Analiza las {cant} imágenes. Detecta iluminación, calidad y sensaciones para usarlas en el texto.
                         
-                        Genera 3 OPCIONES de copy distintas para {operacion} de {tipo} en {ubicacion}:
-                        
-                        ---
-                        OPCIÓN 1: STORYTELLING EMOCIONAL (Neuroventa)
-                        Enfócate en cómo se SENTIRÁ vivir ahí. Usa palabras sensoriales. Apela al deseo de {enfoque}.
+                        Genera 3 OPCIONES de copy para {operacion} de {tipo} en {ubicacion}:
                         
                         ---
-                        OPCIÓN 2: VENTA DIRECTA (Método AIDA)
-                        Atención (Gancho fuerte) -> Interés (Datos clave) -> Deseo (Beneficios) -> Acción (Cierre).
-                        Usa urgencia y autoridad.
+                        OPCIÓN 1: STORYTELLING (Neuroventa)
+                        Enfócate en cómo se SENTIRÁ vivir ahí. Apela al deseo de {enfoque}.
                         
                         ---
-                        OPCIÓN 3: FORMATO INSTAGRAM/TIKTOK (Visual y Rápido)
-                        Frases cortas, mucho aire, punteos con Emojis y Hashtags estratégicos al final.
+                        OPCIÓN 2: AIDA (Venta Directa)
+                        Atención -> Interés -> Deseo -> Acción. Urgencia.
+                        
+                        ---
+                        OPCIÓN 3: INSTAGRAM/TIKTOK (Visual)
+                        Frases cortas, Emojis, Hashtags.
                         
                         ---
                         
                         DATOS TÉCNICOS:
-                        Precio: {precio}
+                        Precio: {texto_precio}
                         {habs} Habs, {banos} Baños.
                         Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
                         {f'Servicios: {txt_servicios}' if operacion == 'Alquiler' else ''}
                         Gestión: {info_gestion}
                         
-                        CIERRE PARA TODAS: Link: https://wa.me/595{whatsapp}
+                        CIERRE: Link: https://wa.me/595{whatsapp}
                         
-                        REGLAS DE FORMATO:
-                        1. NO USES MARKDOWN (nada de # o **).
-                        2. Usa separadores claros entre las opciones.
+                        REGLAS: NO USES MARKDOWN. Usa separadores claros.
                         """
                     
                     content = [{"type": "text", "text": prompt}]
@@ -294,19 +309,18 @@ if uploaded_files:
                     st.success("¡Estrategia Generada!")
                     st.text_area("Resultados:", value=response.choices[0].message.content, height=600)
                     
-                    # --- MENSAJE DE CIERRE PARA EL PLAN GRATIS (UPSELL) ---
+                    # UPSELL GRATIS
                     if opcion_plan == "GRATIS":
                         st.markdown("""
                         <div class="upsell-box">
                             <h3>🚀 ¿Quieres vender 3x más rápido?</h3>
-                            <p>Esta descripción es básica. Los usuarios <strong>PRO</strong> reciben:</p>
-                            <ul style="text-align: left; margin: 0 auto; display: inline-block;">
-                                <li>✅ <strong>3 Variaciones Estratégicas</strong> (Storytelling, AIDA, Instagram).</li>
-                                <li>✅ <strong>Neuroventas</strong> aplicadas para atacar el cerebro del comprador.</li>
-                                <li>✅ <strong>Vision IA</strong> que describe los detalles de tus fotos.</li>
+                            <p>Los usuarios <strong>PRO</strong> reciben:</p>
+                            <ul style="text-align: left; display: inline-block;">
+                                <li>✅ 3 Variaciones (Storytelling, AIDA, Instagram).</li>
+                                <li>✅ Neuroventas y Vision IA.</li>
                             </ul>
                             <br><br>
-                            <strong>👉 Ve al menú lateral y activa un PACK desde 20.000 Gs.</strong>
+                            <strong>👉 Activa un PACK desde 20.000 Gs.</strong>
                         </div>
                         """, unsafe_allow_html=True)
 

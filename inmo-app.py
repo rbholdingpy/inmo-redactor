@@ -78,8 +78,12 @@ def obtener_usuarios_sheet():
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client_gs = gspread.authorize(creds)
         sheet = client_gs.open("Usuarios_InmoApp").sheet1
-        return sheet.get_all_records()
+        
+        # Leemos los datos y eliminamos filas vacías que puedan confundir a la IA
+        lista_usuarios = sheet.get_all_records()
+        return [u for u in lista_usuarios if str(u.get('codigo', '')).strip() != ""]
     except Exception as e:
+        st.error(f"Error crítico de conexión: {e}")
         return []
 
 with st.sidebar:
@@ -217,3 +221,4 @@ if uploaded_files:
                     st.text_area("Resultado:", value=res.choices[0].message.content, height=400)
                 except Exception as e:
                     st.error(f"Error: {e}")
+

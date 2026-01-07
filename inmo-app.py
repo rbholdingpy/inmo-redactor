@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ESTILOS CSS PERSONALIZADOS ---
+# --- ESTILOS CSS ---
 st.markdown("""
     <style>
     .main { background-color: #F3F4F6; }
@@ -127,18 +127,13 @@ if not st.session_state['tutorial_visto']:
         st.session_state['tutorial_visto'] = True
         st.rerun()
 
-# --- BARRA DE ESTADO (CORREGIDA PARA EVITAR ERROR DELTA) ---
-col_estado, col_limite = st.columns([3, 1])
-
-# Aquí estaba el error. Ahora lo hacemos paso a paso:
-with col_estado:
-    if opcion_plan != "GRATIS":
-        st.success(f"PLAN: {opcion_plan.upper()}")
-    else:
-        st.warning("PLAN: GRATIS")
-
-with col_limite:
-    st.metric("Límite", f"{limite_fotos} Fotos")
+# Estado
+c_st, c_lim = st.columns([3, 1])
+if opcion_plan != "GRATIS":
+    c_st.success(f"PLAN: {opcion_plan.upper()}")
+else:
+    c_st.warning("PLAN: GRATIS")
+c_lim.metric("Límite", f"{limite_fotos} Fotos")
 
 # 1. FOTOS
 st.write("#### 1. 📸 Galería")
@@ -214,39 +209,47 @@ if uploaded_files:
         else:
             with st.spinner('🤖 Redactando estrategia...'):
                 try:
-                    # PREPARAR INFORMACIÓN DE GESTIÓN
+                    # GESTIÓN
                     info_gestion = ""
                     if operacion == "Alquiler":
                         if tipo_gestion == "Propietario Directo":
-                            info_gestion = "Trato directo con el propietario (sin comisiones de intermediarios)."
+                            info_gestion = "Trato directo con el propietario (sin comisiones)."
                         elif tipo_gestion == "Agencia/Inmobiliaria" and nombre_agencia:
-                            info_gestion = f"Gestión profesional y segura a cargo de {nombre_agencia}."
+                            info_gestion = f"Gestión profesional a cargo de {nombre_agencia}."
                         else:
-                            info_gestion = "Gestión inmobiliaria profesional."
+                            info_gestion = "Gestión profesional."
 
-                    # PROMPT
+                    # PROMPT LIMPIO (SIN MARKDOWN, SOLO EMOJIS)
                     prompt = f"""
                     Actúa como copywriter inmobiliario senior.
                     
-                    ESTRATEGIA PSICOLÓGICA:
-                    El usuario quiere un anuncio con ENFOQUE: "{enfoque}".
+                    FORMATO DE SALIDA (ESTRICTO):
+                    1. NO USES MARKDOWN. Prohibido usar #, ##, ***, -. 
+                    2. USA SOLO EMOJIS como viñetas.
+                    3. El texto debe estar listo para copiar y pegar en WhatsApp/Instagram.
                     
-                    TAREA VISUAL: Analiza las {cant} imágenes. Describe lo que ves.
+                    ESTRUCTURA VISUAL DESEADA:
+                    [EMOJI DE CASA] TÍTULO EN MAYÚSCULAS
                     
-                    TAREA REDACCIÓN: Anuncio para {operacion} de {tipo} en {ubicacion}.
+                    [Párrafo de descripción emocional y visual]
                     
-                    DATOS DE GESTIÓN:
-                    {info_gestion}
+                    📍 Ubicación: {ubicacion}
+                    💰 Precio: {precio}
                     
-                    DATOS TÉCNICOS:
-                    - Precio {precio}. 
-                    - {habs} habs, {banos} baños. 
-                    - Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
-                    {f'- Servicios incluidos: {txt_servicios}' if operacion == 'Alquiler' else ''}
+                    📋 Características:
+                    ✅ {habs} Habitaciones
+                    ✅ {banos} Baños
+                    {f'✅ {txt_servicios}' if txt_servicios else ''}
                     
-                    CIERRE: 
-                    Llamado a la acción. 
-                    {f'Link: https://wa.me/595{whatsapp}' if whatsapp else ''}
+                    💎 Extras:
+                    {'🏊 Piscina' if piscina else ''} {'🍖 Quincho' if quincho else ''} {'🚗 Cochera' if cochera else ''}
+                    
+                    ℹ️ Gestión: {info_gestion}
+                    
+                    👇 Agendar visita:
+                    Link: https://wa.me/595{whatsapp}
+                    
+                    (Adapta el tono según el enfoque: "{enfoque}" y describe las fotos adjuntas).
                     """
                     
                     content = [{"type": "text", "text": prompt}]
@@ -258,8 +261,8 @@ if uploaded_files:
                     response = client.chat.completions.create(
                          model="gpt-4o-mini", messages=[{"role": "user", "content": content}], max_tokens=900
                     )
-                    st.success("¡Anuncio listo!")
-                    st.text_area("Resultado:", value=response.choices[0].message.content, height=600)
+                    st.success("¡Anuncio limpio y listo para WhatsApp!")
+                    st.text_area("Copia y pega:", value=response.choices[0].message.content, height=600)
 
                 except Exception as e:
                     st.error(f"Error: {e}")

@@ -23,8 +23,12 @@ st.markdown("""
     .stButton>button {
         background-color: #2563EB; color: white; border-radius: 8px; border: none;
         padding: 12px; font-weight: bold; width: 100%;
+        transition: transform 0.2s;
     }
-    .stButton>button:hover { background-color: #1D4ED8; }
+    .stButton>button:hover { 
+        background-color: #1D4ED8; 
+        transform: scale(1.02);
+    }
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     </style>
     """, unsafe_allow_html=True)
@@ -62,7 +66,7 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # =======================================================
-# === 🔐 CONEXIÓN GOOGLE SHEETS (LECTURA Y ESCRITURA) ===
+# === 🔐 CONEXIÓN GOOGLE SHEETS ===
 # =======================================================
 def get_gspread_client():
     creds_info = dict(st.secrets["gcp_service_account"])
@@ -87,32 +91,25 @@ def descontar_credito(codigo_usuario):
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
-        
-        # 1. Buscar la celda donde está el código del usuario
         cell = sheet.find(str(codigo_usuario))
-        
         if cell:
-            # 2. Encontrar la columna 'limite'
-            # (Asumimos que está en la fila 1, buscamos su índice)
             headers = sheet.row_values(1)
             try:
-                col_limite = headers.index('limite') + 1 # +1 porque gspread empieza en 1
+                col_limite = headers.index('limite') + 1 
             except ValueError:
-                return False # No encontró la columna limite
+                return False
             
-            # 3. Obtener valor actual y restar
             valor_actual = sheet.cell(cell.row, col_limite).value
             if valor_actual and int(valor_actual) > 0:
                 nuevo_saldo = int(valor_actual) - 1
                 sheet.update_cell(cell.row, col_limite, nuevo_saldo)
                 return True
     except Exception as e:
-        print(f"Error al descontar: {e}")
         return False
     return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (LOGIN CON BOTÓN) ===
+# === 🏗️ BARRA LATERAL (LOGIN Y BOTÓN UPGRADE) ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -136,36 +133,47 @@ with st.sidebar:
     else:
         user = st.session_state['usuario_activo']
         plan_actual = user.get('plan', 'GRATIS')
-        # Nos aseguramos de leer el límite actualizado si es posible, o usamos el de sesión
         limite_raw = user.get('limite', 1)
         limite_fotos = int(limite_raw) if limite_raw != "" else 1
         
         st.success(f"✅ ¡Hola {user.get('cliente', 'Usuario')}!")
         
-        # Color del badge según créditos
         color_cred = "blue" if limite_fotos > 0 else "red"
         st.markdown(f":{color_cred}[**🪙 Créditos: {limite_fotos}**]")
         
+        # --- NUEVO BOTÓN DE VENTA (CALL TO ACTION) ---
+        st.markdown("---")
+        if st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary"):
+            st.session_state.ver_planes = True
+            st.rerun()
+
+        st.markdown("---")
         if st.button("🔒 Cerrar Sesión"):
             cerrar_sesion()
 
-    st.divider()
-    if st.toggle("💎 Ver Planes y Precios", key="toggle_planes"):
-        st.session_state.ver_planes = True
-    else:
-        st.session_state.ver_planes = False
-        
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
 # === ZONA DE VENTAS (PLANES) ===
 # =======================================================
-if st.session_state.ver_planes and (not st.session_state['usuario_activo'] or st.session_state['usuario_activo'].get('plan') == 'GRATIS'):
+if st.session_state.ver_planes:
     st.title("💎 Desbloquea tu Potencial")
     c1, c2, c3 = st.columns(3)
     with c1: st.markdown('<div class="plan-card"><h3>🥉 Básico</h3><h2>20.000 Gs</h2><p>10 Anuncios</p></div>', unsafe_allow_html=True)
     with c2: st.markdown('<div class="plan-card highlight-card"><h3>🥈 Estándar</h3><h2>35.000 Gs</h2><p>20 Anuncios</p></div>', unsafe_allow_html=True)
     with c3: st.markdown('<div class="plan-card"><h3>🥇 Agencia</h3><h2>80.000 Gs</h2><p>200 Mensual</p></div>', unsafe_allow_html=True)
+    
+    st.divider()
+    st.write("### ¿Cómo activar más créditos?")
+    st.info("Envía el comprobante a nuestro WhatsApp indicando tu código de usuario.")
+    
+    link = "https://wa.me/595981000000?text=Hola,%20quiero%20recargar%20créditos"
+    st.markdown(f'<a href="{link}" target="_blank"><button style="background-color:#25D366;color:white;border:none;padding:12px;border-radius:8px;width:100%;font-weight:bold;cursor:pointer;">📲 Contactar Soporte</button></a>', unsafe_allow_html=True)
+
+    st.divider()
+    if st.button("⬅️ Volver a la App"):
+        st.session_state.ver_planes = False
+        st.rerun()
     st.stop()
 
 # =======================================================
@@ -194,14 +202,13 @@ limite_fotos = int(user.get('limite', 1) if user.get('limite') != "" else 0)
 # BLOQUEO SI NO HAY CRÉDITOS
 if limite_fotos <= 0:
     st.error("⛔ **¡Te has quedado sin créditos!**")
-    st.warning("Por favor contacta al administrador o recarga tu plan para seguir generando.")
+    st.warning("Pulsa el botón 'SUBE DE NIVEL' en la barra lateral para recargar.")
     st.stop()
 
 st.write("#### 1. 📸 Galería")
 uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
 
 if uploaded_files:
-    # (Opcional) Puedes limitar fotos por subida, pero aquí limitamos por crédito de generación
     pass 
     
     with st.expander("👁️ Ver fotos cargadas", expanded=True):
@@ -249,7 +256,6 @@ if uploaded_files:
         else:
             with st.spinner('🧠 Escribiendo y descontando crédito...'):
                 try:
-                    # 1. GENERAR CON IA
                     prompt = f"""Actúa como copywriter inmobiliario. 
                     OPCIÓN 1: Storytelling ({enfoque}).
                     OPCIÓN 2: Venta Directa (Sin AIDA).
@@ -266,27 +272,22 @@ if uploaded_files:
                     res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                     generated_text = res.choices[0].message.content
 
-                    # Limpieza
                     cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️").replace("#", "🚀")
                     cleaned_text = cleaned_text.replace("**", "").replace("* ", "▪️ ").replace("- ", "▪️ ")
                     
-                    # 2. DESCONTAR CRÉDITO EN GOOGLE SHEETS
                     exito_descuento = descontar_credito(user['codigo'])
                     
                     if exito_descuento:
-                        # Actualizamos la sesión local para que el usuario vea el cambio ya
                         st.session_state['usuario_activo']['limite'] = limite_fotos - 1
                         st.toast("✅ Crédito descontado correctamente", icon="🪙")
                     else:
                         st.warning("⚠️ Hubo un error actualizando tu saldo, pero aquí tienes tu texto.")
 
-                    # Guardamos resultado
                     st.session_state['generated_result'] = cleaned_text
                     
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-    # --- MOSTRAR RESULTADO ---
     if 'generated_result' in st.session_state:
         st.success("¡Estrategia lista! Copia el texto abajo.")
         st.write(st.session_state['generated_result'])

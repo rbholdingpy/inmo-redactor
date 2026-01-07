@@ -76,22 +76,25 @@ def obtener_usuarios_sheet():
         # 1. Cargamos los secretos
         creds_info = dict(st.secrets["gcp_service_account"])
         
-        # 2. LIMPIEZA AUTOMÁTICA (Crucial para que no de error de padding)
-        # Si la llave tiene "\\n" (escapados), los convertimos en saltos de línea reales
+        # Corrección de la llave (evita error de padding)
         if "private_key" in creds_info:
             creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
-        
-        # 3. Conectamos
+            
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_info, scope)
         client_gs = gspread.authorize(creds)
         
-        # 4. Abrimos la hoja (Verifica el nombre "Usuarios_InmoApp" en tu Drive)
-        sheet = client_gs.open("Usuarios_InmoApp").sheet1
+        # 2. Abrimos el archivo por su nombre EXACTO
+        archivo = client_gs.open("Usuarios_InmoApp")
+        
+        # 3. CORRECCIÓN IMPORTANTE:
+        # Usamos .get_worksheet(0) para tomar siempre la PRIMERA hoja (índice 0)
+        # Así funciona aunque se llame "Hoja 1", "Clientes" o "Sheet1".
+        sheet = archivo.get_worksheet(0)
+        
         return sheet.get_all_records()
 
     except Exception as e:
-        # Si falla, muestra el error exacto
         st.error(f"⚠️ Error de conexión: {str(e)}")
         return []
 with st.sidebar:
@@ -229,6 +232,7 @@ if uploaded_files:
                     st.text_area("Resultado:", value=res.choices[0].message.content, height=400)
                 except Exception as e:
                     st.error(f"Error: {e}")
+
 
 
 

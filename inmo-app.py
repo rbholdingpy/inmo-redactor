@@ -21,36 +21,38 @@ st.markdown("""
     .main { background-color: #F8FAFC; }
     h1 { color: #0F172A; font-family: 'Helvetica Neue', sans-serif; font-weight: 800; }
     
-    /* Botones generales */
+    /* ESTILO GENERAL DE BOTONES */
     .stButton>button {
         border-radius: 8px; border: none; padding: 12px; font-weight: bold; width: 100%; transition: all 0.2s;
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* TARJETA BÁSICA (Apagada) */
+    /* TARJETA BÁSICA (Gris Oscuro para que no se pierda) */
     .plan-basic {
-        background-color: #F1F5F9; border: 1px solid #CBD5E1; color: #64748B;
+        background-color: #F8FAFC; 
+        border: 2px solid #475569; /* Borde Gris Oscuro Solido */
+        color: #334155;
         padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
     }
     
-    /* TARJETA ESTÁNDAR (Segura) */
+    /* TARJETA ESTÁNDAR (Azul Corporativo) */
     .plan-standard {
         background-color: white; border: 2px solid #3B82F6; color: #0F172A;
         padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
         box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
     }
 
-    /* TARJETA AGENCIA (EL PROTAGONISTA) */
+    /* TARJETA AGENCIA (EL PROTAGONISTA - DORADO) */
     .plan-agency {
         background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%);
-        border: 2px solid #F59E0B; /* Dorado/Naranja */
+        border: 2px solid #F59E0B; /* Dorado/Naranja Intenso */
         color: #0F172A;
-        padding: 25px 20px; /* Un poco más alto */
+        padding: 25px 20px; 
         border-radius: 15px;
         text-align: center;
         margin-bottom: 10px;
         box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); /* Sombra dorada */
-        transform: scale(1.05); /* Efecto 3D: Sobresale */
+        transform: scale(1.05); /* Efecto 3D */
         position: relative;
         z-index: 10;
     }
@@ -59,6 +61,13 @@ st.markdown("""
     .feature-text { font-size: 0.9em; margin-bottom: 5px; }
     
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
+    
+    /* Estilo para los pasos de la guía */
+    .step-box {
+        background-color: white; padding: 15px; border-radius: 10px; 
+        border-left: 5px solid #2563EB; margin-bottom: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -81,7 +90,7 @@ def cerrar_sesion():
     st.session_state['plan_seleccionado'] = None
     st.session_state['ver_planes'] = False
 
-# --- FUNCIONES CALLBACK ---
+# --- CALLBACKS PARA FLUJO DE PANTALLAS ---
 def ir_a_planes():
     st.session_state.ver_planes = True
     st.session_state.plan_seleccionado = None
@@ -197,7 +206,7 @@ with st.sidebar:
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS (MARKETING VISUAL) ===
+# === 💎 ZONA DE VENTAS ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
@@ -206,7 +215,7 @@ if st.session_state.ver_planes:
     if st.session_state.plan_seleccionado is None:
         c1, c2, c3 = st.columns(3)
         
-        # --- PLAN BÁSICO (Débil) ---
+        # --- PLAN BÁSICO (Con Borde Gris Oscuro) ---
         with c1:
             st.markdown("""
             <div class="plan-basic">
@@ -216,10 +225,10 @@ if st.session_state.ver_planes:
                 <p style="font-size:0.8em; color:#94A3B8;">Ideal para probar</p>
             </div>
             """, unsafe_allow_html=True)
-            # Botón simple (secondary)
+            # El botón hereda el estilo general pero está dentro del cuadro gris
             st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico (20.000 Gs)",))
 
-        # --- PLAN ESTÁNDAR (Fuerte) ---
+        # --- PLAN ESTÁNDAR ---
         with c2:
             st.markdown("""
             <div class="plan-standard">
@@ -229,7 +238,6 @@ if st.session_state.ver_planes:
                 <p style="font-size:0.8em;">Para agentes activos</p>
             </div>
             """, unsafe_allow_html=True)
-            # Botón primario
             st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar (35.000 Gs)",))
 
         # --- PLAN AGENCIA (SOBRESALIENTE) ---
@@ -243,7 +251,6 @@ if st.session_state.ver_planes:
                 <p style="font-size:0.8em; font-weight:bold;">¡Domina el Mercado!</p>
             </div>
             """, unsafe_allow_html=True)
-            # Botón primario con texto de llamada a la acción
             st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia (80.000 Gs)",))
         
         st.divider()
@@ -310,6 +317,14 @@ with c_badge:
 
 if not st.session_state['usuario_activo']:
     st.info("👈 Ingresa tu código en la barra lateral y pulsa 'Entrar' para comenzar.")
+    
+    # --- GUÍA VISIBLE PARA NO LOGUEADOS ---
+    with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=True):
+        st.markdown("""
+        1. **Ingresa tu Código:** Escribe tu clave en la barra izquierda y dale a "Entrar".
+        2. **Sube Fotos:** Carga hasta 5 fotos de la propiedad.
+        3. **Genera:** Llena los datos y la IA creará el texto de venta perfecto.
+        """)
     st.stop()
 
 # --- DATOS DEL USUARIO LOGUEADO ---
@@ -320,6 +335,15 @@ if limite_fotos <= 0:
     st.error("⛔ **¡Te has quedado sin créditos!**")
     st.warning("Pulsa el botón 'SUBE DE NIVEL' en la barra lateral para recargar.")
     st.stop()
+
+# --- GUÍA DE USO (EXPANDIBLE) ---
+with st.expander("📘 ¿Cómo usar la App? (Guía Rápida)", expanded=False):
+    st.markdown("""
+    <div class="step-box"><b>1. Sube tus Fotos:</b> Carga las imágenes de la propiedad (máx 5).</div>
+    <div class="step-box"><b>2. Rellena Datos:</b> Indica precio, ubicación y características clave.</div>
+    <div class="step-box"><b>3. Elige Estrategia:</b> ¿Venta urgente? ¿Lujo? Selecciona el enfoque.</div>
+    <div class="step-box"><b>4. Genera y Vende:</b> Pulsa el botón azul y recibe tu texto listo para copiar.</div>
+    """, unsafe_allow_html=True)
 
 st.write("#### 1. 📸 Galería")
 uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")

@@ -73,24 +73,23 @@ client = OpenAI(api_key=api_key)
 @st.cache_data(ttl=10) 
 def obtener_usuarios_sheet():
     try:
-        # Cargamos los secretos como un diccionario puro
-        creds_dict = dict(st.secrets["gcp_service_account"])
+        # Convertimos los secretos a un diccionario real
+        creds_info = dict(st.secrets["gcp_service_account"])
         
-        # Definimos los permisos
+        # Definimos los permisos (alcance)
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         
-        # Autorizamos
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        # Generamos las credenciales desde el diccionario
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_info, scope)
         client_gs = gspread.authorize(creds)
         
-        # Abrimos la hoja. Asegúrate de que el nombre sea exacto en tu Drive.
+        # Abrimos la hoja. El nombre debe ser idéntico al de tu Google Drive.
         sheet = client_gs.open("Usuarios_InmoApp").sheet1
         return sheet.get_all_records()
     except Exception as e:
-        # Esto te mostrará el error exacto si falta compartir el archivo o la URL está mal
-        st.error(f"Fallo de acceso: {str(e)}")
+        # Esto mostrará el error real en la barra lateral
+        st.error(f"Error de acceso: {str(e)}")
         return []
-
 with st.sidebar:
     st.header("🔐 Área de Miembros")
     codigo_acceso = st.text_input("Código de Acceso:", type="password", placeholder="Ej: PRUEBA1", key="input_codigo")
@@ -226,5 +225,6 @@ if uploaded_files:
                     st.text_area("Resultado:", value=res.choices[0].message.content, height=400)
                 except Exception as e:
                     st.error(f"Error: {e}")
+
 
 

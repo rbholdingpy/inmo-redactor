@@ -49,7 +49,7 @@ if mostrar_pagos:
         col_qr1, col_qr2 = st.columns([1, 2])
         
         with col_qr1:
-            # Busca qr.jpg (Asegúrate de haberlo subido a GitHub)
+            # Busca qr.jpg
             if os.path.exists("qr.jpg"):
                 st.image("qr.jpg", caption="Escanea con tu App del Banco", use_container_width=True)
             else:
@@ -69,11 +69,13 @@ if mostrar_pagos:
         st.subheader("Datos para Transferencia (SIPAP)")
         st.write("Puedes transferir desde cualquier banco a esta cuenta:")
         
-        # DATOS ACTUALIZADOS DE RICARDO BLANCO
+        # --- DATOS ACTUALIZADOS DE RICARDO BLANCO ---
         st.code("""
         Banco: ITAÚ
         Titular: Ricardo Blanco
-        RUC: 1911221-1
+        Alias: RUC 1911221-1
+        RUC: 1911221
+        Nro. de Cuenta: 320595209
         """, language="text")
         
         st.info("Una vez realizada la transferencia, envía la captura al WhatsApp.")

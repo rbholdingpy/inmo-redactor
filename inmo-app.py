@@ -30,6 +30,7 @@ st.markdown("""
         transform: scale(1.02);
     }
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
+    .plan-container { text-align: center; padding: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -41,7 +42,6 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def limpiar_formulario():
-    # Borra los campos pero MANTIENE la sesión
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result']
     for key in keys_a_borrar:
         if key in st.session_state:
@@ -51,12 +51,14 @@ def limpiar_formulario():
 
 def cerrar_sesion():
     st.session_state['usuario_activo'] = None
+    st.session_state['plan_seleccionado'] = None # Limpiamos selección de plan
     st.rerun()
 
 # --- INICIALIZACIÓN DE ESTADO ---
 if 'uploader_key' not in st.session_state: st.session_state['uploader_key'] = 0
 if 'usuario_activo' not in st.session_state: st.session_state['usuario_activo'] = None
 if 'ver_planes' not in st.session_state: st.session_state['ver_planes'] = False
+if 'plan_seleccionado' not in st.session_state: st.session_state['plan_seleccionado'] = None
 
 # --- API KEY (OPENAI) ---
 api_key = st.secrets.get("OPENAI_API_KEY")
@@ -87,7 +89,6 @@ def obtener_usuarios_sheet():
         return []
 
 def descontar_credito(codigo_usuario):
-    """Busca al usuario en el Excel y resta 1 crédito"""
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
@@ -104,12 +105,12 @@ def descontar_credito(codigo_usuario):
                 nuevo_saldo = int(valor_actual) - 1
                 sheet.update_cell(cell.row, col_limite, nuevo_saldo)
                 return True
-    except Exception as e:
+    except Exception:
         return False
     return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (LOGIN Y BOTÓN UPGRADE) ===
+# === 🏗️ BARRA LATERAL ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -132,7 +133,6 @@ with st.sidebar:
     
     else:
         user = st.session_state['usuario_activo']
-        plan_actual = user.get('plan', 'GRATIS')
         limite_raw = user.get('limite', 1)
         limite_fotos = int(limite_raw) if limite_raw != "" else 1
         
@@ -141,10 +141,10 @@ with st.sidebar:
         color_cred = "blue" if limite_fotos > 0 else "red"
         st.markdown(f":{color_cred}[**🪙 Créditos: {limite_fotos}**]")
         
-        # --- NUEVO BOTÓN DE VENTA (CALL TO ACTION) ---
         st.markdown("---")
         if st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary"):
             st.session_state.ver_planes = True
+            st.session_state.plan_seleccionado = None # Reseteamos selección
             st.rerun()
 
         st.markdown("---")
@@ -154,27 +154,86 @@ with st.sidebar:
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
-# === ZONA DE VENTAS (PLANES) ===
+# === 💎 ZONA DE VENTAS (FLUJO COMPLETO) ===
 # =======================================================
 if st.session_state.ver_planes:
-    st.title("💎 Desbloquea tu Potencial")
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown('<div class="plan-card"><h3>🥉 Básico</h3><h2>20.000 Gs</h2><p>10 Anuncios</p></div>', unsafe_allow_html=True)
-    with c2: st.markdown('<div class="plan-card highlight-card"><h3>🥈 Estándar</h3><h2>35.000 Gs</h2><p>20 Anuncios</p></div>', unsafe_allow_html=True)
-    with c3: st.markdown('<div class="plan-card"><h3>🥇 Agencia</h3><h2>80.000 Gs</h2><p>200 Mensual</p></div>', unsafe_allow_html=True)
+    st.title("💎 Elige tu Nivel")
     
-    st.divider()
-    st.write("### ¿Cómo activar más créditos?")
-    st.info("Envía el comprobante a nuestro WhatsApp indicando tu código de usuario.")
-    
-    link = "https://wa.me/595981000000?text=Hola,%20quiero%20recargar%20créditos"
-    st.markdown(f'<a href="{link}" target="_blank"><button style="background-color:#25D366;color:white;border:none;padding:12px;border-radius:8px;width:100%;font-weight:bold;cursor:pointer;">📲 Contactar Soporte</button></a>', unsafe_allow_html=True)
+    # PASO 1: MOSTRAR PLANES SI NO SE HA SELECCIONADO NINGUNO
+    if st.session_state.plan_seleccionado is None:
+        c1, c2, c3 = st.columns(3)
+        
+        with c1:
+            st.markdown('<div class="plan-card"><h3>🥉 Básico</h3><h2>20.000 Gs</h2><p>10 Anuncios</p></div>', unsafe_allow_html=True)
+            if st.button("Elegir Básico", key="btn_basico"):
+                st.session_state.plan_seleccionado = "Básico (20.000 Gs)"
+                st.rerun()
 
-    st.divider()
-    if st.button("⬅️ Volver a la App"):
-        st.session_state.ver_planes = False
-        st.rerun()
-    st.stop()
+        with c2:
+            st.markdown('<div class="plan-card highlight-card"><h3>🥈 Estándar</h3><h2>35.000 Gs</h2><p>20 Anuncios</p></div>', unsafe_allow_html=True)
+            if st.button("Elegir Estándar", key="btn_estandar", type="primary"):
+                st.session_state.plan_seleccionado = "Estándar (35.000 Gs)"
+                st.rerun()
+
+        with c3:
+            st.markdown('<div class="plan-card"><h3>🥇 Agencia</h3><h2>80.000 Gs</h2><p>200 Mensual</p></div>', unsafe_allow_html=True)
+            if st.button("Elegir Agencia", key="btn_agencia"):
+                st.session_state.plan_seleccionado = "Agencia (80.000 Gs)"
+                st.rerun()
+        
+        st.divider()
+        if st.button("⬅️ Volver a la App"):
+            st.session_state.ver_planes = False
+            st.rerun()
+
+    # PASO 2: MOSTRAR DATOS DE PAGO Y CONFIRMACIÓN
+    else:
+        st.info(f"🚀 Has seleccionado: **Plan {st.session_state.plan_seleccionado}**")
+        
+        col_bank, col_wa = st.columns(2)
+        
+        with col_bank:
+            st.subheader("1. Transfiere Aquí")
+            st.markdown("""
+            <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd;">
+            <b>Banco:</b> ITAÚ <br>
+            <b>Titular:</b> Ricardo Blanco <br>
+            <b>C.I.:</b> 1911221 <br>
+            <b>Cuenta:</b> 320595209 <br>
+            <b>RUC:</b> 1911221-1
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col_wa:
+            st.subheader("2. Activa tu Plan")
+            st.write("Envía el comprobante para cargar tus créditos ahora mismo.")
+            
+            # Mensaje personalizado para WhatsApp
+            codigo_usuario = st.session_state['usuario_activo'].get('codigo', 'N/A') if st.session_state['usuario_activo'] else "Nuevo"
+            mensaje_wp = f"Hola, realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Mi código es: *{codigo_usuario}*."
+            link_wp = f"https://wa.me/595981000000?text={mensaje_wp}"
+            
+            st.markdown(f"""
+            <a href="{link_wp}" target="_blank">
+                <button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em;">
+                📲 Enviar Comprobante por WhatsApp
+                </button>
+            </a>
+            """, unsafe_allow_html=True)
+            
+        st.divider()
+        c_back, c_cancel = st.columns(2)
+        with c_back:
+            if st.button("🔙 Elegir otro plan"):
+                st.session_state.plan_seleccionado = None
+                st.rerun()
+        with c_cancel:
+            if st.button("❌ Cancelar y Volver a la App"):
+                st.session_state.ver_planes = False
+                st.session_state.plan_seleccionado = None
+                st.rerun()
+
+    st.stop() # Detiene la ejecución para que no se vea el resto de la app abajo
 
 # =======================================================
 # === APP PRINCIPAL ===
@@ -209,8 +268,6 @@ st.write("#### 1. 📸 Galería")
 uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
 
 if uploaded_files:
-    pass 
-    
     with st.expander("👁️ Ver fotos cargadas", expanded=True):
         cols = st.columns(4)
         for i, f in enumerate(uploaded_files):
@@ -256,6 +313,7 @@ if uploaded_files:
         else:
             with st.spinner('🧠 Escribiendo y descontando crédito...'):
                 try:
+                    # 1. GENERAR CON IA
                     prompt = f"""Actúa como copywriter inmobiliario. 
                     OPCIÓN 1: Storytelling ({enfoque}).
                     OPCIÓN 2: Venta Directa (Sin AIDA).

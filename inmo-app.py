@@ -2,21 +2,32 @@ import streamlit as st
 from PIL import Image
 import base64
 import io
+import os
 from openai import OpenAI
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏡", layout="centered")
 
-# --- BARRA LATERAL (SIMULADOR DE PLANES) ---
+# --- BARRA LATERAL (SIMULADOR DE PLANES Y PAGOS) ---
 with st.sidebar:
-    st.header("⚙️ Panel de Control")
-    tipo_plan = st.radio("Simular Plan del Usuario:", ["GRATIS (Free)", "PREMIUM (Pro)"])
+    st.header("⚙️ Tu Cuenta")
+    
+    # Selector simulado
+    tipo_plan = st.radio("Tu Plan Actual:", ["GRATIS (Free)", "PREMIUM (Pro)"])
     
     st.divider()
+    
+    # BOTÓN PARA SUSCRIBIRSE
     if tipo_plan == "GRATIS (Free)":
-        st.warning("🔒 Límite: 1 Foto. Sin análisis de servicios.")
+        st.warning("🔒 Estás en modo limitado.")
+        st.markdown("### 🚀 ¡Pásate a PRO!")
+        st.markdown("- Fotos ilimitadas\n- Análisis Visual IA\n- Link de WhatsApp\n- Soporte Prioritario")
+        
+        # Botón que abre la sección de pagos en el centro
+        mostrar_pagos = st.toggle("👉 Ver Formas de Pago", value=False)
     else:
-        st.success("🔓 Modo PRO: Galería de fotos + WhatsApp + Análisis Completo.")
+        st.success("✅ Eres usuario PRO")
+        mostrar_pagos = False
 
 # --- API KEY ---
 api_key = st.secrets.get("OPENAI_API_KEY")
@@ -24,6 +35,64 @@ if not api_key:
     st.error("⚠️ Falta la API Key en Secrets.")
     st.stop()
 client = OpenAI(api_key=api_key)
+
+# --- PANTALLA DE PAGOS (SOLO SI SE ACTIVA) ---
+if mostrar_pagos:
+    st.title("💎 Suscríbete al Plan PRO")
+    st.write("Elige tu método de pago favorito. La activación es en minutos.")
+    
+    # Pestañas para los métodos de pago
+    tab1, tab2, tab3 = st.tabs(["📲 Pagar con QR", "🏦 Transferencia", "💳 Tarjeta (Link)"])
+    
+    with tab1:
+        st.subheader("Escanea y Paga (Rápido)")
+        col_qr1, col_qr2 = st.columns([1, 2])
+        
+        with col_qr1:
+            # === CAMBIO REALIZADO AQUÍ: AHORA BUSCA qr.jpg ===
+            if os.path.exists("qr.jpg"):
+                st.image("qr.jpg", caption="Escanea con tu App del Banco", use_container_width=True)
+            else:
+                st.error("⚠️ No encuentro el archivo 'qr.jpg'")
+                st.info("Asegúrate de haber subido la foto a GitHub con ese nombre exacto.")
+
+        with col_qr2:
+            st.write("1. Abre la App de tu banco (Itaú, Ueno, Familiar, Tigo).")
+            st.write("2. Selecciona 'Cobrar/Pagar con QR'.")
+            st.write("3. Escanea el código de la pantalla.")
+            st.write("4. **Monto a pagar:** 35.000 Gs (Mensual)")
+            st.divider()
+            st.write("✅ **Una vez pagado:**")
+            st.markdown("[📲 Enviar Comprobante por WhatsApp](https://wa.me/595981000000?text=Hola,%20ya%20pagué%20el%20plan%20PRO,%20aquí%20mi%20comprobante)")
+
+    with tab2:
+        st.subheader("Datos para Transferencia (SIPAP)")
+        # RECUERDA: CAMBIA ESTOS DATOS POR LOS TUYOS REALES
+        st.code("""
+        Banco: TU BANCO AQUÍ
+        Titular: TU NOMBRE
+        C.I. / RUC: 1.234.567-8
+        Cuenta Nº: 000000000
+        """, language="text")
+        
+        st.info("Una vez realizada la transferencia, envía la captura al WhatsApp.")
+        st.markdown("[📲 Enviar Comprobante Ahora](https://wa.me/595981000000)")
+
+    with tab3:
+        st.subheader("Pago con Tarjeta de Crédito/Débito")
+        st.write("Si prefieres usar tarjeta, usa nuestro link seguro de pago:")
+        st.link_button("💳 Pedir Link de Pago", "https://wa.me/595981000000?text=Hola,%20quiero%20el%20link%20de%20pago%20con%20tarjeta")
+
+    st.divider()
+
+# --- LÓGICA DE LA APP (Si está pagando, ocultamos la app) ---
+if mostrar_pagos:
+    st.info("👆 Completa el pago arriba para desbloquear las funciones.")
+    st.stop() 
+
+# =======================================================
+# === APP PRINCIPAL ===
+# =======================================================
 
 # --- TÍTULO ---
 st.title("🏡 Inmo-Redactor IA")
@@ -39,7 +108,7 @@ def encode_image(image):
 st.write("#### 1. 📸 Fotos del Inmueble")
 
 if tipo_plan == "PREMIUM (Pro)":
-    uploaded_files = st.file_uploader("Sube la galería completa (Fachada, Interior, Patio)", type=["jpg", "png"], accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Sube la galería completa", type=["jpg", "png"], accept_multiple_files=True)
 else:
     uploaded_files = st.file_uploader("Sube la foto principal", type=["jpg", "png"], accept_multiple_files=False)
     if uploaded_files:
@@ -62,11 +131,10 @@ if uploaded_files:
 
     col1, col2 = st.columns(2)
     
-    # --- COLUMNA 1: DATOS GENERALES ---
+    # --- COLUMNA 1 ---
     with col1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         
-        # === LISTA DE TIPOS AMPLIADA ===
         lista_tipos = [
             "Casa", "Departamento", "Duplex", 
             "Terreno", "Quinta", "Estancia",
@@ -76,18 +144,16 @@ if uploaded_files:
         tipo = st.selectbox("Tipo de Propiedad", lista_tipos)
         
         ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
-        
         placeholder_precio = "Gs mensuales" if operacion == "Alquiler" else "Gs / USD"
         precio = st.text_input("Precio", placeholder=placeholder_precio)
         
-        # WhatsApp (Lógica Pro)
         st.write("---")
         if tipo_plan == "PREMIUM (Pro)":
             whatsapp = st.text_input("📞 WhatsApp (Link automático)", placeholder="0981...")
         else:
             whatsapp = st.text_input("📞 WhatsApp", placeholder="🔒 Solo PREMIUM", disabled=True)
 
-    # --- COLUMNA 2: AMENITIES Y SERVICIOS ---
+    # --- COLUMNA 2 ---
     with col2:
         habs = st.number_input("Habitaciones", 1)
         banos = st.number_input("Baños", 1)
@@ -97,7 +163,6 @@ if uploaded_files:
         piscina = st.checkbox("Piscina")
         cochera = st.checkbox("Cochera")
 
-        # --- SECCIÓN SERVICIOS DE ALQUILER ---
         inc_agua = False; inc_luz = False; inc_wifi = False; inc_aire = False; inc_ventilador = False
 
         if operacion == "Alquiler":
@@ -112,7 +177,6 @@ if uploaded_files:
                 inc_wifi = st.checkbox("📶 Wifi")
                 inc_ventilador = st.checkbox("💨 Ventilador")
         
-        # Visión IA info
         st.write("---")
         if tipo_plan == "PREMIUM (Pro)":
             st.caption("✅ **Visión PRO:** Analizando todas las fotos.")
@@ -125,11 +189,10 @@ if uploaded_files:
     
     if st.button(btn_text):
         if not ubicacion or not precio:
-            st.warning("⚠️ Faltan datos básicos (Ubicación o Precio).")
+            st.warning("⚠️ Faltan datos básicos.")
         else:
             with st.spinner('🤖 Analizando fotos y redactando...'):
                 try:
-                    # PREPARAR DATOS PARA EL PROMPT
                     extras_list = []
                     if quincho: extras_list.append("Quincho")
                     if piscina: extras_list.append("Piscina")
@@ -141,32 +204,20 @@ if uploaded_files:
                         if inc_agua: servicios_list.append("Agua")
                         if inc_luz: servicios_list.append("Luz")
                         if inc_wifi: servicios_list.append("Internet Wifi")
-                        if inc_aire: servicios_list.append("Aire Acondicionado (A.A.)")
+                        if inc_aire: servicios_list.append("Aire A.A.")
                         if inc_ventilador: servicios_list.append("Ventiladores")
                     txt_servicios = ", ".join(servicios_list) if servicios_list else "No especificado"
 
-                    # 1. TEXTO DEL PROMPT
                     prompt_text = f"""
-                    Actúa como experto copywriter inmobiliario en Paraguay.
-                    
-                    TAREA:
-                    1. Analiza TODAS las imágenes adjuntas. Describe estilo, pisos, iluminación y detalles visuales reales.
-                    2. Escribe un anuncio persuasivo para {operacion} de {tipo} en {ubicacion}.
-                    3. DATOS: Precio {precio}. {habs} habs, {banos} baños. Extras: {txt_extras}.
-                    4. { 'SERVICIOS INCLUIDOS / CLIMA: ' + txt_servicios if operacion == "Alquiler" else '' }
-                    5. { 'LINK WHATSAPP: https://wa.me/595' + whatsapp if tipo_plan == "PREMIUM (Pro)" else 'NO pongas link de WhatsApp.' }
-                    
-                    ESTRUCTURA:
-                    - Título Gancho con emojis.
-                    - Cuerpo del texto (Mezcla la descripción visual de las fotos con los datos técnicos).
-                    - { 'Si tiene A.A. o incluye luz/agua, ¡DESTÁCALO!' if operacion == "Alquiler" else '' }
-                    - { 'Si es PENTHOUSE o ESTANCIA, usa un tono de alto lujo/exclusividad.' if tipo in ["Penthouse", "Estancia"] else '' }
-                    - Cierre fuerte.
+                    Actúa como experto copywriter inmobiliario.
+                    TAREA: Analiza las imágenes. Escribe anuncio de {operacion} de {tipo} en {ubicacion}.
+                    Precio {precio}. {habs} habs, {banos} baños. Extras: {txt_extras}.
+                    { 'Servicios: ' + txt_servicios if operacion == "Alquiler" else '' }
+                    { 'LINK WHATSAPP: https://wa.me/595' + whatsapp if tipo_plan == "PREMIUM (Pro)" else '' }
+                    Estructura: Título, Descripción Emocional Visual, Datos, Cierre.
                     """
 
-                    # 2. CONSTRUIR MENSAJE (TEXTO + IMÁGENES)
                     content_content = [{"type": "text", "text": prompt_text}]
-                    
                     for file in uploaded_files:
                         img = Image.open(file)
                         b64 = encode_image(img)
@@ -175,7 +226,6 @@ if uploaded_files:
                             "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
                         })
 
-                    # 3. LLAMADA A LA API
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[{"role": "user", "content": content_content}],

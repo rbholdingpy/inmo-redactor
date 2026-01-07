@@ -35,9 +35,6 @@ st.markdown("""
     .highlight-card {
         border: 2px solid #2563EB; background-color: #EFF6FF;
     }
-    .vision-blocked {
-        background-color: #FEF3C7; border-left: 5px solid #D97706; padding: 15px; border-radius: 5px; color: #92400E; font-size: 0.9em; margin-bottom: 15px;
-    }
     .pro-badge {
         background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em;
     }
@@ -73,26 +70,16 @@ client = OpenAI(api_key=api_key)
 # === 🔐 SISTEMA DE ACCESO (GOOGLE SHEETS) ===
 # =======================================================
 
-@st.cache_data(ttl=60) 
-def obtener_usuarios_sheet():
-    try:
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-       @st.cache_data(ttl=10) # Bajamos a 10 segundos para que pruebes rápido
+@st.cache_data(ttl=10) 
 def obtener_usuarios_sheet():
     try:
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds_dict = st.secrets["gcp_service_account"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client_gs = gspread.authorize(creds)
-        # Abre la hoja
         sheet = client_gs.open("Usuarios_InmoApp").sheet1
-       # ESTO ES LO NUEVO: Lee todo el contenido y limpia espacios vacíos
-        data = sheet.get_all_records()
-        return data
+        return sheet.get_all_records()
     except Exception as e:
-        st.error(f"Error de conexión: {e}")
         return []
 
 with st.sidebar:
@@ -105,14 +92,14 @@ with st.sidebar:
     
     if codigo_acceso:
         usuarios_db = obtener_usuarios_sheet()
-        usuario_encontrado = next((u for u in usuarios_db if str(u['codigo']).strip() == codigo_acceso.strip()), None)
+        usuario_encontrado = next((u for u in usuarios_db if str(u.get('codigo', '')).strip() == codigo_acceso.strip()), None)
         
         if usuario_encontrado:
-            plan_actual = usuario_encontrado['plan']
-            limite_fotos = int(usuario_encontrado['limite'])
+            plan_actual = usuario_encontrado.get('plan', 'GRATIS')
+            limite_fotos = int(usuario_encontrado.get('limite', 1))
             es_pro = True
-            st.session_state.ver_planes = False # Oculta precios si ya es PRO
-            st.success(f"✅ ¡Hola {usuario_encontrado['cliente']}!")
+            st.session_state.ver_planes = False 
+            st.success(f"✅ ¡Hola {usuario_encontrado.get('cliente', 'Usuario')}!")
             if st.button("🔓 Cerrar Sesión"):
                 st.session_state.input_codigo = ""
                 st.rerun()
@@ -219,9 +206,7 @@ if uploaded_files:
         else:
             with st.spinner('Redactando...'):
                 try:
-                    prompt = f"""Experto en Neuroventas. Genera 3 opciones para {oper} de {tipo} en {ubicacion}.
-                    1. Storytelling emotivo ({enfoque}). 2. AIDA directo (sin etiquetas). 3. Instagram.
-                    Precio: {texto_precio}. Extras: Q={q}, P={p}, C={c}. Link: https://wa.me/595{whatsapp}. No Markdown.""" if es_pro else f"Redactor básico. 1 descripción para {oper} de {tipo} en {ubicacion}. Precio {texto_precio}."
+                    prompt = f"Experto en Neuroventas. Genera 3 opciones para {oper} de {tipo} en {ubicacion}. 1. Storytelling emotivo ({enfoque}). 2. AIDA directo. 3. Instagram. Precio: {texto_precio}. Extras: Q={q}, P={p}, C={c}. WhatsApp: {whatsapp}." if es_pro else f"Redactor básico. 1 descripción para {oper} de {tipo} en {ubicacion}. Precio {texto_precio}."
                     
                     content = [{"type": "text", "text": prompt}]
                     for f in uploaded_files:
@@ -232,4 +217,3 @@ if uploaded_files:
                     st.text_area("Resultado:", value=res.choices[0].message.content, height=400)
                 except Exception as e:
                     st.error(f"Error: {e}")
-

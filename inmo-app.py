@@ -160,7 +160,7 @@ if uploaded_files:
     with c1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         
-        # --- NUEVA LÓGICA DE ALQUILER ---
+        # --- LÓGICA DE ALQUILER ---
         nombre_agencia = ""
         tipo_gestion = ""
         
@@ -185,7 +185,7 @@ if uploaded_files:
         
         ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
         
-        # --- MEJORA: PRECIO + FRECUENCIA ---
+        # --- PRECIO + FRECUENCIA ---
         if operacion == "Alquiler":
             col_precio, col_frecuencia = st.columns([2, 1])
             with col_precio:
@@ -194,7 +194,7 @@ if uploaded_files:
                 frecuencia_pago = st.selectbox("Periodo", ["Mensual", "Semestral", "Anual"])
         else:
             precio = st.text_input("Precio", placeholder="Gs / USD")
-            frecuencia_pago = "" # No aplica en venta
+            frecuencia_pago = "" # No aplica
 
         if opcion_plan != "GRATIS":
             whatsapp = st.text_input("WhatsApp", placeholder="0981...")
@@ -244,9 +244,7 @@ if uploaded_files:
                     texto_precio = precio
                     
                     if operacion == "Alquiler":
-                        # Agregar frecuencia al precio (Ej: 2.000.000 Mensual)
                         texto_precio = f"{precio} ({frecuencia_pago})"
-                        
                         if tipo_gestion == "Propietario Directo": info_gestion = "Trato directo con el propietario (sin comisiones)."
                         elif tipo_gestion == "Agencia/Inmobiliaria" and nombre_agencia: info_gestion = f"Gestión profesional a cargo de {nombre_agencia}."
                         else: info_gestion = "Gestión profesional."
@@ -261,12 +259,12 @@ if uploaded_files:
                         NO uses Markdown. Usa solo Emojis.
                         """
                     else:
-                        # Prompt PRO (Neuroventas)
+                        # Prompt PRO (Neuroventas + AIDA LIMPIO)
                         prompt = f"""
                         Actúa como EXPERTO EN NEUROVENTAS y Marketing Inmobiliario.
                         Objetivo: Detener el scroll y generar Clics.
                         
-                        VISION IA: Analiza las {cant} imágenes. Detecta iluminación, calidad y sensaciones para usarlas en el texto.
+                        VISION IA: Analiza las {cant} imágenes. Usa los detalles visuales en los textos.
                         
                         Genera 3 OPCIONES de copy para {operacion} de {tipo} en {ubicacion}:
                         
@@ -275,8 +273,10 @@ if uploaded_files:
                         Enfócate en cómo se SENTIRÁ vivir ahí. Apela al deseo de {enfoque}.
                         
                         ---
-                        OPCIÓN 2: AIDA (Venta Directa)
-                        Atención -> Interés -> Deseo -> Acción. Urgencia.
+                        OPCIÓN 2: VENTA DIRECTA (Estructura AIDA Implícita)
+                        INSTRUCCIÓN IMPORTANTE: Aplica la estructura Atención -> Interés -> Deseo -> Acción, 
+                        pero **NO ESCRIBAS** las palabras "Atención", "Interés", "Deseo" ni "Acción".
+                        Escribe el texto de forma fluida y persuasiva, usando urgencia.
                         
                         ---
                         OPCIÓN 3: INSTAGRAM/TIKTOK (Visual)
@@ -291,9 +291,11 @@ if uploaded_files:
                         {f'Servicios: {txt_servicios}' if operacion == 'Alquiler' else ''}
                         Gestión: {info_gestion}
                         
-                        CIERRE: Link: https://wa.me/595{whatsapp}
+                        CIERRE PARA TODAS: Link: https://wa.me/595{whatsapp}
                         
-                        REGLAS: NO USES MARKDOWN. Usa separadores claros.
+                        REGLAS: 
+                        1. NO USES MARKDOWN (nada de # o **).
+                        2. Usa separadores claros.
                         """
                     
                     content = [{"type": "text", "text": prompt}]

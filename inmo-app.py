@@ -9,7 +9,7 @@ st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏡")
 
 # Título
 st.title("🏡 Inmo-Redactor IA (Pro)")
-st.write("Sube una foto y completa los datos para generar el anuncio.")
+st.write("Sube una foto y completa los datos para generar el anuncio perfecto.")
 
 # --- BARRA LATERAL (Clave API) ---
 api_key = st.secrets.get("OPENAI_API_KEY")
@@ -38,68 +38,93 @@ if uploaded_file is not None:
     st.divider()
     st.header("2. 📝 Detalles del Inmueble")
 
-    # NUEVO: Tipo de Operación (Venta o Alquiler)
+    # Selector principal
     tipo_operacion = st.radio("💼 ¿Es Venta o Alquiler?", ["Venta", "Alquiler"], horizontal=True)
 
     col1, col2 = st.columns(2)
 
     with col1:
-        # Agregamos "Quinta" a la lista
         tipo_inmueble = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Quinta", "Terreno", "Duplex", "Oficina", "Local Comercial"])
-        ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: San Bernardino, Zona Alta")
+        ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: Villa Morra / San Bernardino")
         
-        # El precio cambia el placeholder según si es venta o alquiler
-        placeholder_precio = "Ej: 750.000.000 Gs" if tipo_operacion == "Venta" else "Ej: 3.500.000 Gs mensuales"
+        # Placeholder dinámico según operación
+        placeholder_precio = "Ej: 750.000.000 Gs" if tipo_operacion == "Venta" else "Ej: 3.500.000 Gs (IVA Incluido)"
         precio = st.text_input("💰 Precio", placeholder=placeholder_precio)
         
-        m2 = st.text_input("📏 Superficie (m2)", placeholder="Ej: 2.000 m2 de terreno")
+        m2 = st.text_input("📏 Superficie (m2)", placeholder="Ej: 200 m2 propios")
 
     with col2:
-        habitaciones = st.number_input("🛏️ Habitaciones", min_value=0, value=3, step=1)
-        banos = st.number_input("🚿 Baños", min_value=0, value=2, step=1)
+        habitaciones = st.number_input("🛏️ Habitaciones", min_value=0, value=2, step=1)
+        banos = st.number_input("🚿 Baños", min_value=0, value=1, step=1)
         
-        st.write("**✨ Amenities / Extras:**")
+        st.write("**✨ Amenities y Extras:**")
         tiene_quincho = st.checkbox("🍖 Tiene Quincho")
         tiene_piscina = st.checkbox("🏊 Tiene Piscina")
-        tiene_cochera = st.checkbox("🚗 Tiene Cochera/Garage")
-        amoblado = st.checkbox("🛋️ Está Amoblado")
+        tiene_cochera = st.checkbox("🚗 Cochera/Garage")
+        amoblado = st.checkbox("🛋️ Amoblado")
 
-    # Estrategia según la operación
+        # --- SECCIÓN EXCLUSIVA PARA ALQUILER ---
+        inc_agua = False
+        inc_luz = False
+        inc_wifi = False
+        inc_cable = False
+
+        if tipo_operacion == "Alquiler":
+            st.markdown("---")
+            st.write("**🔌 Servicios Incluidos en el precio:**")
+            col_serv1, col_serv2 = st.columns(2)
+            with col_serv1:
+                inc_agua = st.checkbox("💧 Agua")
+                inc_luz = st.checkbox("⚡ Luz")
+            with col_serv2:
+                inc_wifi = st.checkbox("📶 Wifi")
+                inc_cable = st.checkbox("📺 TV Cable")
+
+    # Estrategia de venta
     st.write("---")
     st.write("🎯 **Enfoque del anuncio:**")
     
     if tipo_operacion == "Venta":
-        objetivo = st.radio("Estrategia de Venta", 
+        objetivo = st.radio("Estrategia", 
                             ["Venta Rápida (Urgente)", "Lujo y Exclusividad", "Oportunidad de Inversión", "Ideal Primera Vivienda"],
                             horizontal=True, label_visibility="collapsed")
     else: # Alquiler
-        objetivo = st.radio("Estrategia de Alquiler", 
-                            ["Alquiler Vacacional/Fin de Semana", "Alquiler Anual Familiar", "Para Estudiantes/Ejecutivos", "Lujo Temporal"],
+        objetivo = st.radio("Estrategia", 
+                            ["Alquiler Vacacional/Fin de Semana", "Alquiler Anual Familiar", "Para Estudiantes/Ejecutivos", "Todo Incluido (Temporal)"],
                             horizontal=True, label_visibility="collapsed")
 
     # --- PASO 3: GENERAR ---
     st.divider()
-    texto_boton = f"✨ Redactar Anuncio de {tipo_operacion}"
     
-    if st.button(texto_boton):
+    if st.button(f"✨ Redactar Anuncio de {tipo_operacion}"):
         
         if not ubicacion or not precio:
-            st.warning("⚠️ Por favor completa la ubicación y el precio.")
+            st.warning("⚠️ Por favor completa ubicación y precio.")
         else:
-            with st.spinner('🤖 La IA está escribiendo el copy...'):
+            with st.spinner('🤖 La IA está creando tu anuncio...'):
                 try:
-                    # Preparar extras
+                    # Recopilamos Extras Generales
                     extras = []
                     if tiene_quincho: extras.append("Quincho con parrilla")
                     if tiene_piscina: extras.append("Piscina")
-                    if tiene_cochera: extras.append("Estacionamiento")
-                    if amoblado: extras.append("Totalmente amoblado")
-                    lista_extras = ", ".join(extras) if extras else "No especificado"
+                    if tiene_cochera: extras.append("Cochera")
+                    if amoblado: extras.append("Amoblado")
+                    
+                    # Recopilamos Servicios (Solo si es alquiler)
+                    servicios = []
+                    if tipo_operacion == "Alquiler":
+                        if inc_agua: servicios.append("Agua")
+                        if inc_luz: servicios.append("Luz")
+                        if inc_wifi: servicios.append("Internet Wifi")
+                        if inc_cable: servicios.append("TV Cable")
+                    
+                    texto_extras = ", ".join(extras) if extras else "No especificado"
+                    texto_servicios = ", ".join(servicios) if servicios else "No incluye servicios extra"
 
                     # Prompt Dinámico
                     prompt_text = f"""
                     Actúa como un copywriter inmobiliario experto en Paraguay.
-                    Escribe un anuncio persuasivo para redes sociales para una operación de: {tipo_operacion.upper()}.
+                    Escribe un anuncio para Instagram/Facebook para: {tipo_operacion.upper()}.
 
                     DATOS:
                     - Inmueble: {tipo_inmueble}
@@ -107,14 +132,14 @@ if uploaded_file is not None:
                     - Precio: {precio}
                     - Dimensiones: {m2}
                     - Habitaciones: {habitaciones} | Baños: {banos}
-                    - Extras: {lista_extras}
+                    - Amenities: {texto_extras}
+                    - SERVICIOS INCLUIDOS: {texto_servicios} (Si la lista no está vacía, DESTÁCALO como un gran beneficio de ahorro).
                     - Enfoque: {objetivo}
 
                     INSTRUCCIONES:
-                    1. Adapta el tono: Si es 'Venta', enfócate en la propiedad y la inversión. Si es 'Alquiler', enfócate en la experiencia de vivir ahí o vacacionar.
-                    2. Si es QUINTA: Destaca el relax, la naturaleza y el espacio al aire libre.
-                    3. Usa estructura: Gancho emocional, Descripción detallada (visual + datos), y Llamada a la acción.
-                    4. Incluye emojis y hashtags de Paraguay (#BienesRaicesPy, etc).
+                    1. Si incluye servicios (Luz, Agua, Wifi), véndelo como "Olvídate de pagar facturas extra" o "Entra a vivir ya".
+                    2. Estructura visual: Título gancho, Descripción emotiva, Lista de beneficios con emojis, Precio y Contacto.
+                    3. Tono paraguayo profesional (cercano).
                     """
 
                     response = client.chat.completions.create(
@@ -133,12 +158,12 @@ if uploaded_file is not None:
                                 ],
                             }
                         ],
-                        max_tokens=600,
+                        max_tokens=650,
                     )
 
                     generated_text = response.choices[0].message.content
                     st.success("¡Anuncio generado!")
-                    st.text_area("Copia tu texto aquí:", value=generated_text, height=500)
+                    st.text_area("Copia tu texto aquí:", value=generated_text, height=550)
                 
                 except Exception as e:
                     st.error(f"Error: {e}")

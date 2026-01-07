@@ -41,20 +41,20 @@ if mostrar_pagos:
     st.title("💎 Suscríbete al Plan PRO")
     st.write("Elige tu método de pago favorito. La activación es en minutos.")
     
-    # Pestañas para los métodos de pago
-    tab1, tab2, tab3 = st.tabs(["📲 Pagar con QR", "🏦 Transferencia", "💳 Tarjeta (Link)"])
+    # SOLO 2 PESTAÑAS: QR Y TRANSFERENCIA
+    tab1, tab2 = st.tabs(["📲 Pagar con QR", "🏦 Transferencia"])
     
     with tab1:
         st.subheader("Escanea y Paga (Rápido)")
         col_qr1, col_qr2 = st.columns([1, 2])
         
         with col_qr1:
-            # === CAMBIO REALIZADO AQUÍ: AHORA BUSCA qr.jpg ===
+            # Busca qr.jpg (Asegúrate de haberlo subido a GitHub)
             if os.path.exists("qr.jpg"):
                 st.image("qr.jpg", caption="Escanea con tu App del Banco", use_container_width=True)
             else:
                 st.error("⚠️ No encuentro el archivo 'qr.jpg'")
-                st.info("Asegúrate de haber subido la foto a GitHub con ese nombre exacto.")
+                st.info("Sube la foto del QR a GitHub con el nombre: qr.jpg")
 
         with col_qr2:
             st.write("1. Abre la App de tu banco (Itaú, Ueno, Familiar, Tigo).")
@@ -67,21 +67,17 @@ if mostrar_pagos:
 
     with tab2:
         st.subheader("Datos para Transferencia (SIPAP)")
-        # RECUERDA: CAMBIA ESTOS DATOS POR LOS TUYOS REALES
+        st.write("Puedes transferir desde cualquier banco a esta cuenta:")
+        
+        # DATOS ACTUALIZADOS DE RICARDO BLANCO
         st.code("""
-        Banco: TU BANCO AQUÍ
-        Titular: TU NOMBRE
-        C.I. / RUC: 1.234.567-8
-        Cuenta Nº: 000000000
+        Banco: ITAÚ
+        Titular: Ricardo Blanco
+        RUC: 1911221-1
         """, language="text")
         
         st.info("Una vez realizada la transferencia, envía la captura al WhatsApp.")
         st.markdown("[📲 Enviar Comprobante Ahora](https://wa.me/595981000000)")
-
-    with tab3:
-        st.subheader("Pago con Tarjeta de Crédito/Débito")
-        st.write("Si prefieres usar tarjeta, usa nuestro link seguro de pago:")
-        st.link_button("💳 Pedir Link de Pago", "https://wa.me/595981000000?text=Hola,%20quiero%20el%20link%20de%20pago%20con%20tarjeta")
 
     st.divider()
 

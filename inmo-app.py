@@ -271,3 +271,84 @@ if uploaded_files:
     st.success(f"✅ {cant}/{limite_fotos} fotos cargadas.")
     
     with st.expander("👁️ Ver fotos cargadas", expanded=True):
+        cols = st.columns(4)
+        for i, file in enumerate(uploaded_files):
+            with cols[i % 4]:
+                image = Image.open(file)
+                st.image(image, use_container_width=True)
+    
+    # --- 2. DATOS ---
+    st.divider()
+    st.write("#### 2. 📝 Datos de la Propiedad")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True, help="Elige si vendes o alquilas.")
+        tipo = st.selectbox("Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"], help="Define la estructura del texto.")
+        ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra, Asunción", help="Barrio y Ciudad.")
+        precio = st.text_input("Precio", placeholder="Gs / USD", help="Incluye la moneda.")
+        
+        if opcion_plan != "GRATIS":
+            whatsapp = st.text_input("WhatsApp", placeholder="0981...", help="Número sin espacios para el link directo.")
+        else:
+            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True, help="Mejora tu plan para habilitar esto.")
+
+    with c2:
+        habs = st.number_input("Habitaciones", 1, help="Dormitorios.")
+        banos = st.number_input("Baños", 1, help="Sanitarios.")
+        
+        st.write("**Extras:**")
+        quincho = st.checkbox("Quincho", help="Zona de asado techada.")
+        piscina = st.checkbox("Piscina", help="Pileta.")
+        cochera = st.checkbox("Cochera", help="Estacionamiento.")
+        
+        txt_servicios = ""
+        if operacion == "Alquiler":
+            st.write("---")
+            st.write("**🔌 Servicios Incluidos:**")
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                if st.checkbox("💧 Agua"): txt_servicios += "Agua corriente, "
+                if st.checkbox("⚡ Luz"): txt_servicios += "Energía eléctrica, "
+                if st.checkbox("❄️ Aire A.A."): txt_servicios += "Aire Acondicionado, "
+            with col_s2:
+                if st.checkbox("📶 Wifi"): txt_servicios += "Internet Wifi, "
+                if st.checkbox("💨 Ventilador"): txt_servicios += "Ventiladores de techo, "
+
+    # --- 3. GENERAR ---
+    st.divider()
+    
+    if uploaded_files:
+        st.info("👁️ **Vision IA Activada:** Analizando materiales, iluminación y espacios...")
+
+    if st.button("✨ Redactar Anuncio Vendedor", help="Generar descripción con IA."):
+        if not ubicacion or not precio:
+            st.warning("⚠️ Faltan datos básicos (Ubicación o Precio).")
+        else:
+            with st.spinner('🤖 La IA está escribiendo tu anuncio...'):
+                try:
+                    prompt = f"""
+                    Actúa como copywriter inmobiliario senior.
+                    TAREA VISUAL: Analiza las {cant} imágenes. Describe pisos, luz, estilo, fachada.
+                    TAREA REDACCIÓN: Anuncio persuasivo {operacion} {tipo} en {ubicacion}.
+                    DATOS: Precio {precio}. {habs} habs, {banos} baños. Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
+                    {f'Servicios: {txt_servicios}' if operacion == 'Alquiler' else ''}
+                    CIERRE: Llamado a la acción. {f'Link: https://wa.me/595{whatsapp}' if whatsapp else ''}
+                    """
+                    
+                    content = [{"type": "text", "text": prompt}]
+                    for file in uploaded_files:
+                        img = Image.open(file)
+                        b64 = encode_image(img)
+                        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
+                        
+                    response = client.chat.completions.create(
+                         model="gpt-4o-mini",
+                         messages=[{"role": "user", "content": content}],
+                         max_tokens=900
+                    )
+                    st.success("¡Anuncio listo!")
+                    st.text_area("Tu descripción:", value=response.choices[0].message.content, height=600)
+
+                except Exception as e:
+                    st.error(f"Error: {e}")

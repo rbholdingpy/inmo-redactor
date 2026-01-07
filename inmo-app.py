@@ -3,12 +3,13 @@ from PIL import Image
 import base64
 import io
 import os
+import time
 from openai import OpenAI
 
-# --- CONFIGURACIÓN DE PÁGINA (NUEVO NOMBRE E ÍCONO) ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="VendeMás IA", # <--- NOMBRE ESTRATÉGICO EN LA PESTAÑA DEL NAVEGADOR
-    page_icon="🚀",           # <--- ÍCONO DE CRECIMIENTO
+    page_title="VendeMás IA",
+    page_icon="🚀",
     layout="centered",
     initial_sidebar_state="expanded"
 )
@@ -17,34 +18,51 @@ st.set_page_config(
 st.markdown("""
     <style>
     .main {
-        background-color: #f9f9f9;
+        background-color: #F3F4F6;
     }
     h1 {
-        color: #1E3A8A; /* Azul Marino Profesional */
+        color: #111827;
         font-family: 'Helvetica Neue', sans-serif;
+        font-weight: 800;
     }
-    h3 {
-        color: #2563EB;
+    h2, h3, h4 {
+        color: #1F2937;
     }
     .stButton>button {
-        background-color: #2563EB;
+        background-color: #2563EB; /* Azul Royal */
         color: white;
         border-radius: 8px;
         border: none;
-        padding: 10px 20px;
+        padding: 12px 24px;
         font-weight: bold;
+        transition: all 0.3s ease;
     }
     .stButton>button:hover {
         background-color: #1D4ED8;
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
     /* Tarjetas de Planes */
     .plan-card {
         background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         text-align: center;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #E5E7EB;
+        transition: transform 0.2s;
+    }
+    .plan-card:hover {
+        transform: translateY(-5px);
+        border-color: #2563EB;
+    }
+    /* Tutorial Box */
+    .tutorial-box {
+        background-color: #EFF6FF; /* Azul muy claro */
+        border-left: 5px solid #2563EB;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -57,17 +75,17 @@ def encode_image(image):
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-# --- INICIALIZAR ESTADO ---
+# --- INICIALIZAR ESTADO (Tutorial y Planes) ---
 if 'plan_elegido' not in st.session_state:
-    st.session_state['plan_elegido'] = "10_desc" 
+    st.session_state['plan_elegido'] = "10_desc"
+if 'tutorial_visto' not in st.session_state:
+    st.session_state['tutorial_visto'] = False
 
 # --- BARRA LATERAL (SIMULADOR) ---
 with st.sidebar:
     st.header("⚙️ Admin: Simulador")
-    # Mapeamos los nombres del selector a códigos internos
     opcion_plan = st.selectbox("Plan Usuario:", ["GRATIS", "Pack Básico", "Pack Estándar", "Agencia"])
     
-    # Lógica interna de límites
     limites = {
         "GRATIS": 1,
         "Pack Básico": 3,
@@ -77,6 +95,12 @@ with st.sidebar:
     limite_fotos = limites[opcion_plan]
     
     sin_creditos = st.checkbox("Simular: Sin Créditos", value=False)
+    
+    # Botón para resetear tutorial (solo para que tú pruebes)
+    if st.button("🔄 Resetear Tutorial"):
+        st.session_state['tutorial_visto'] = False
+        st.rerun()
+        
     st.divider()
     ver_precios = st.toggle("👉 Ver Lista de Precios", value=False)
 
@@ -90,16 +114,15 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # =======================================================
-# === ZONA DE VENTAS (ESTILO MEJORADO) ===
+# === ZONA DE VENTAS (MANTENIDA) ===
 # =======================================================
 if mostrar_pagos:
-    st.title("💎 Recarga tu VendeMás IA") # <--- CAMBIO AQUÍ TAMBIÉN
+    st.title("💎 Recarga tu VendeMás IA")
     st.markdown("Elige el pack que mejor se adapte a tu volumen de ventas.")
     
     if sin_creditos:
         st.error("⛔ ¡Tus créditos se han agotado! Recarga para continuar.")
 
-    # TARJETAS DE PRECIOS
     c1, c2, c3 = st.columns(3)
     
     with c1:
@@ -143,7 +166,6 @@ if mostrar_pagos:
 
     st.divider()
 
-    # --- DATOS DE PAGO ---
     plan = st.session_state['plan_elegido']
     datos_plan = {
         "10_desc":  {"nombre": "Pack Básico",   "monto": "20.000 Gs"},
@@ -161,9 +183,7 @@ if mostrar_pagos:
         st.write("Copia el Alias y transfiere el monto exacto.")
         st.code("RUC 1911221-1", language="text") 
         st.caption(f"Titular: Ricardo Blanco | C.I: 1911221 | Itaú: 320595209")
-        
-        st.markdown(f"**Monto a transferir:**")
-        st.markdown(f"# {info['monto']}")
+        st.markdown(f"**Monto:** # {info['monto']}")
 
     with c_info:
         msg_wa = f"Hola, ya transferí {info['monto']} por el {info['nombre']}. Aquí está mi comprobante."
@@ -183,7 +203,7 @@ if mostrar_pagos:
             font-size: 18px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         ">
-            📲 Enviar Comprobante WhatsApp
+            📲 Enviar Comprobante
         </a>
         """, unsafe_allow_html=True)
 
@@ -194,11 +214,33 @@ if mostrar_pagos:
 # === APP PRINCIPAL ===
 # =======================================================
 
-# --- TÍTULO PRINCIPAL MODIFICADO ---
 st.title("🚀 VendeMás IA")
 st.caption("Tu redactor inmobiliario experto en cierres.")
 
-# Barra de estado superior
+# --- LÓGICA DEL TUTORIAL DE PRIMERA VEZ ---
+if not st.session_state['tutorial_visto']:
+    st.markdown("""
+    <div class="tutorial-box">
+        <h3>👋 ¡Bienvenido a tu Asistente de Ventas!</h3>
+        <p>Sigue estos 3 pasos para crear tu primer anuncio viral:</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col_t1, col_t2, col_t3 = st.columns(3)
+    with col_t1:
+        st.info("1️⃣ **Sube Fotos**\n\nCarga la fachada y los interiores. La IA los analizará.")
+    with col_t2:
+        st.warning("2️⃣ **Detalles**\n\nCompleta ubicación, precio y extras. Cuanto más datos, mejor.")
+    with col_t3:
+        st.success("3️⃣ **¡Genera!**\n\nPresiona el botón mágico y obtén tu texto vendedor.")
+    
+    if st.button("¡Entendido, Empezar! 🚀"):
+        st.session_state['tutorial_visto'] = True
+        st.rerun()
+    
+    st.divider() # Separa el tutorial de la app real
+
+# --- BARRA DE ESTADO ---
 col_estado, col_limite = st.columns([3, 1])
 with col_estado:
     if opcion_plan == "GRATIS":
@@ -214,114 +256,18 @@ uploaded_files = st.file_uploader(
     "Sube las fotos aquí", 
     type=["jpg", "png"], 
     accept_multiple_files=True,
-    help=f"Sube fotos de la fachada, interior y patio. Tu plan actual permite hasta {limite_fotos} fotos."
+    help=f"Sube fotos de la fachada, interior y patio. Tu plan permite {limite_fotos} fotos."
 )
 
 if uploaded_files:
     cant = len(uploaded_files)
     
-    # --- VALIDACIÓN DE LÍMITES POR PLAN ---
+    # Validación Límites
     if cant > limite_fotos:
-        st.error(f"⚠️ **Has subido {cant} fotos, pero tu plan {opcion_plan} solo permite {limite_fotos}.**")
-        st.info("💡 Consejo: Elimina algunas fotos o mejora tu plan en la barra lateral para subir más.")
+        st.error(f"⚠️ **Has subido {cant} fotos. Tu plan {opcion_plan} permite máximo {limite_fotos}.**")
+        st.info("💡 Consejo: Elimina fotos o mejora tu plan en la barra lateral.")
         st.stop()
         
-    st.success(f"✅ {cant}/{limite_fotos} fotos cargadas correctamente.")
+    st.success(f"✅ {cant}/{limite_fotos} fotos cargadas.")
     
-    # Vista previa elegante
     with st.expander("👁️ Ver fotos cargadas", expanded=True):
-        cols = st.columns(4)
-        for i, file in enumerate(uploaded_files):
-            with cols[i % 4]: # Distribuye en 4 columnas
-                image = Image.open(file)
-                st.image(image, use_container_width=True)
-    
-    # --- 2. DATOS ---
-    st.divider()
-    st.write("#### 2. 📝 Datos de la Propiedad")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True, help="Elige si vendes o alquilas.")
-        tipo = st.selectbox("Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"], help="Define la estructura para que la IA adapte el tono.")
-        ubicacion = st.text_input("Ubicación", placeholder="Ej: Barrio Villa Morra, Asunción", help="Sé específico para dar contexto.")
-        precio = st.text_input("Precio", placeholder="Gs 3.500.000 / USD 150.000", help="Incluye la moneda.")
-        
-        if opcion_plan != "GRATIS":
-            whatsapp = st.text_input("WhatsApp", placeholder="0981...", help="Número sin espacios. La IA creará un link directo.")
-        else:
-            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True, help="Desbloquea esta función mejorando tu plan.")
-
-    with c2:
-        habs = st.number_input("Habitaciones", 1, help="Cantidad de dormitorios.")
-        banos = st.number_input("Baños", 1, help="Cantidad de sanitarios.")
-        
-        st.write("**Extras:**")
-        quincho = st.checkbox("Quincho", help="Marca si tiene zona de asado techada.")
-        piscina = st.checkbox("Piscina", help="Marca si tiene pileta.")
-        cochera = st.checkbox("Cochera", help="Marca si tiene estacionamiento.")
-        
-        # --- MENÚ ALQUILER COMPLETO ---
-        txt_servicios = ""
-        if operacion == "Alquiler":
-            st.write("---")
-            st.write("**🔌 Servicios Incluidos:**")
-            col_s1, col_s2 = st.columns(2)
-            with col_s1:
-                if st.checkbox("💧 Agua"): txt_servicios += "Agua corriente, "
-                if st.checkbox("⚡ Luz"): txt_servicios += "Energía eléctrica, "
-                if st.checkbox("❄️ Aire A.A."): txt_servicios += "Aire Acondicionado, "
-            with col_s2:
-                if st.checkbox("📶 Wifi"): txt_servicios += "Internet Wifi, "
-                if st.checkbox("💨 Ventilador"): txt_servicios += "Ventiladores de techo, "
-
-    # --- 3. GENERAR ---
-    st.divider()
-    
-    # Información de Vision IA
-    if uploaded_files:
-        st.info("👁️ **Vision IA Activada:** Analizando materiales, iluminación y espacios...")
-
-    if st.button("✨ Redactar Anuncio Vendedor", help="Haz clic para que la IA analice las fotos y escriba el texto."):
-        if not ubicacion or not precio:
-            st.warning("⚠️ Faltan datos básicos (Ubicación o Precio).")
-        else:
-            with st.spinner('🤖 La IA está observando tus fotos y escribiendo el mejor anuncio...'):
-                try:
-                    # PROMPT PROFESIONAL
-                    prompt = f"""
-                    Actúa como copywriter inmobiliario senior.
-                    
-                    TAREA VISUAL:
-                    Analiza las {cant} imágenes adjuntas. Describe con adjetivos sensoriales lo que ves (pisos, luz natural, amplitud, estilo de cocina, fachada).
-                    
-                    TAREA DE REDACCIÓN:
-                    Escribe un anuncio persuasivo para {operacion} de {tipo} en {ubicacion}.
-                    
-                    DATOS TÉCNICOS:
-                    - Precio: {precio}
-                    - {habs} habitaciones, {banos} baños.
-                    - Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
-                    - {f'Servicios incluidos: {txt_servicios}' if operacion == 'Alquiler' and txt_servicios else ''}
-                    
-                    CIERRE:
-                    - Llamado a la acción claro.
-                    - {f'Link directo: https://wa.me/595{whatsapp}' if whatsapp else ''}
-                    """
-                    
-                    content = [{"type": "text", "text": prompt}]
-                    for file in uploaded_files:
-                        img = Image.open(file)
-                        b64 = encode_image(img)
-                        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
-                        
-                    response = client.chat.completions.create(
-                         model="gpt-4o-mini",
-                         messages=[{"role": "user", "content": content}],
-                         max_tokens=900
-                    )
-                    st.success("¡Anuncio listo para copiar!")
-                    st.text_area("Tu descripción vendedora:", value=response.choices[0].message.content, height=600)
-
-                except Exception as e:
-                    st.error(f"Error: {e}")

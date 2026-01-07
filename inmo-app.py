@@ -30,7 +30,13 @@ st.markdown("""
         transform: scale(1.02);
     }
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
-    .plan-container { text-align: center; padding: 10px; }
+    .plan-card {
+        background-color: white; padding: 20px; border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border: 1px solid #E2E8F0; margin-bottom: 10px;
+    }
+    .highlight-card {
+        border: 2px solid #2563EB; background-color: #EFF6FF;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -47,12 +53,32 @@ def limpiar_formulario():
         if key in st.session_state:
             del st.session_state[key]
     st.session_state['uploader_key'] += 1
-    st.rerun()
+    # No es necesario rerun aquí si se llama desde un botón, pero por seguridad:
+    # st.rerun() 
 
 def cerrar_sesion():
     st.session_state['usuario_activo'] = None
-    st.session_state['plan_seleccionado'] = None # Limpiamos selección de plan
-    st.rerun()
+    st.session_state['plan_seleccionado'] = None
+    st.session_state['ver_planes'] = False
+    # st.rerun()
+
+# --- FUNCIONES CALLBACK (SOLUCIÓN AL ERROR DE SALTO) ---
+def ir_a_planes():
+    st.session_state.ver_planes = True
+    st.session_state.plan_seleccionado = None
+
+def seleccionar_plan(nombre_plan):
+    st.session_state.plan_seleccionado = nombre_plan
+    # Forzamos que ver_planes siga siendo True para que no se salga de la pantalla
+    st.session_state.ver_planes = True
+
+def volver_a_app():
+    st.session_state.ver_planes = False
+    st.session_state.plan_seleccionado = None
+
+def cancelar_seleccion():
+    st.session_state.plan_seleccionado = None
+    st.session_state.ver_planes = True
 
 # --- INICIALIZACIÓN DE ESTADO ---
 if 'uploader_key' not in st.session_state: st.session_state['uploader_key'] = 0
@@ -126,6 +152,7 @@ with st.sidebar:
             
             if usuario_encontrado:
                 st.session_state['usuario_activo'] = usuario_encontrado
+                # Aseguramos estado inicial al loguearse
                 st.session_state['ver_planes'] = False
                 st.rerun()
             else:
@@ -142,51 +169,43 @@ with st.sidebar:
         st.markdown(f":{color_cred}[**🪙 Créditos: {limite_fotos}**]")
         
         st.markdown("---")
-        if st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary"):
-            st.session_state.ver_planes = True
-            st.session_state.plan_seleccionado = None # Reseteamos selección
-            st.rerun()
+        # Usamos on_click para estabilidad
+        st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary", on_click=ir_a_planes)
 
         st.markdown("---")
         if st.button("🔒 Cerrar Sesión"):
             cerrar_sesion()
+            st.rerun()
 
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS (FLUJO COMPLETO) ===
+# === 💎 ZONA DE VENTAS (CONTROLADA POR VER_PLANES) ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Elige tu Nivel")
     
-    # PASO 1: MOSTRAR PLANES SI NO SE HA SELECCIONADO NINGUNO
+    # PASO 1: MOSTRAR PLANES (Si no hay selección)
     if st.session_state.plan_seleccionado is None:
         c1, c2, c3 = st.columns(3)
         
         with c1:
             st.markdown('<div class="plan-card"><h3>🥉 Básico</h3><h2>20.000 Gs</h2><p>10 Anuncios</p></div>', unsafe_allow_html=True)
-            if st.button("Elegir Básico", key="btn_basico"):
-                st.session_state.plan_seleccionado = "Básico (20.000 Gs)"
-                st.rerun()
+            # USAMOS ON_CLICK + ARGS -> Esto evita que la app se resetee al hacer clic
+            st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico (20.000 Gs)",))
 
         with c2:
             st.markdown('<div class="plan-card highlight-card"><h3>🥈 Estándar</h3><h2>35.000 Gs</h2><p>20 Anuncios</p></div>', unsafe_allow_html=True)
-            if st.button("Elegir Estándar", key="btn_estandar", type="primary"):
-                st.session_state.plan_seleccionado = "Estándar (35.000 Gs)"
-                st.rerun()
+            st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar (35.000 Gs)",))
 
         with c3:
             st.markdown('<div class="plan-card"><h3>🥇 Agencia</h3><h2>80.000 Gs</h2><p>200 Mensual</p></div>', unsafe_allow_html=True)
-            if st.button("Elegir Agencia", key="btn_agencia"):
-                st.session_state.plan_seleccionado = "Agencia (80.000 Gs)"
-                st.rerun()
+            st.button("Elegir Agencia", key="btn_agencia", on_click=seleccionar_plan, args=("Agencia (80.000 Gs)",))
         
         st.divider()
-        if st.button("⬅️ Volver a la App"):
-            st.session_state.ver_planes = False
-            st.rerun()
+        st.button("⬅️ Volver a la App", on_click=volver_a_app)
 
-    # PASO 2: MOSTRAR DATOS DE PAGO Y CONFIRMACIÓN
+    # PASO 2: MOSTRAR DATOS DE PAGO (Si ya seleccionó)
     else:
         st.info(f"🚀 Has seleccionado: **Plan {st.session_state.plan_seleccionado}**")
         
@@ -195,7 +214,7 @@ if st.session_state.ver_planes:
         with col_bank:
             st.subheader("1. Transfiere Aquí")
             st.markdown("""
-            <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd;">
+            <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;">
             <b>Banco:</b> ITAÚ <br>
             <b>Titular:</b> Ricardo Blanco <br>
             <b>C.I.:</b> 1911221 <br>
@@ -206,16 +225,17 @@ if st.session_state.ver_planes:
             
         with col_wa:
             st.subheader("2. Activa tu Plan")
-            st.write("Envía el comprobante para cargar tus créditos ahora mismo.")
+            st.write("Envía el comprobante para cargar tus créditos.")
             
-            # Mensaje personalizado para WhatsApp
             codigo_usuario = st.session_state['usuario_activo'].get('codigo', 'N/A') if st.session_state['usuario_activo'] else "Nuevo"
             mensaje_wp = f"Hola, realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Mi código es: *{codigo_usuario}*."
-            link_wp = f"https://wa.me/595981000000?text={mensaje_wp}"
+            # Codificamos espacios para URL
+            mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
+            link_wp = f"https://wa.me/595981000000?text={mensaje_wp_url}"
             
             st.markdown(f"""
-            <a href="{link_wp}" target="_blank">
-                <button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em;">
+            <a href="{link_wp}" target="_blank" style="text-decoration:none;">
+                <button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px;">
                 📲 Enviar Comprobante por WhatsApp
                 </button>
             </a>
@@ -224,16 +244,11 @@ if st.session_state.ver_planes:
         st.divider()
         c_back, c_cancel = st.columns(2)
         with c_back:
-            if st.button("🔙 Elegir otro plan"):
-                st.session_state.plan_seleccionado = None
-                st.rerun()
+            st.button("🔙 Elegir otro plan", on_click=cancelar_seleccion)
         with c_cancel:
-            if st.button("❌ Cancelar y Volver a la App"):
-                st.session_state.ver_planes = False
-                st.session_state.plan_seleccionado = None
-                st.rerun()
+            st.button("❌ Cancelar y Volver", on_click=volver_a_app)
 
-    st.stop() # Detiene la ejecución para que no se vea el resto de la app abajo
+    st.stop() # DETIENE LA EJECUCIÓN AQUÍ PARA NO MOSTRAR EL RESTO
 
 # =======================================================
 # === APP PRINCIPAL ===
@@ -313,7 +328,6 @@ if uploaded_files:
         else:
             with st.spinner('🧠 Escribiendo y descontando crédito...'):
                 try:
-                    # 1. GENERAR CON IA
                     prompt = f"""Actúa como copywriter inmobiliario. 
                     OPCIÓN 1: Storytelling ({enfoque}).
                     OPCIÓN 2: Venta Directa (Sin AIDA).
@@ -359,5 +373,5 @@ if uploaded_files:
         
         st.markdown("---")
         st.subheader("¿Terminaste con esta propiedad?")
-        if st.button("🔄 Analizar Otra Propiedad (Limpiar Pantalla)", type="secondary"):
-            limpiar_formulario()
+        if st.button("🔄 Analizar Otra Propiedad (Limpiar Pantalla)", type="secondary", on_click=limpiar_formulario):
+             pass

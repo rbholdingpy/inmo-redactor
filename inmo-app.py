@@ -104,11 +104,23 @@ if mostrar_pagos:
     datos = {"10_desc": {"n":"Pack Básico", "m":"20.000 Gs"}, "20_desc": {"n":"Pack Estándar", "m":"35.000 Gs"}, "200_desc": {"n":"Plan Agencia", "m":"80.000 Gs"}}
     info = datos[plan]
     
+    # --- CORRECCIÓN: MOSTRAR DATOS BANCARIOS COMPLETOS ---
     c_d, c_i = st.columns(2)
     with c_d:
         st.subheader("🏦 Transferencia SIPAP")
+        st.markdown("**Copia el Alias:**")
         st.code("RUC 1911221-1", language="text")
-        st.write(f"**Monto:** {info['m']}")
+        
+        # DATOS RECUPERADOS
+        st.markdown(f"""
+        **Banco:** ITAÚ  
+        **Titular:** Ricardo Blanco  
+        **C.I.:** 1911221  
+        **Cuenta Nro:** 320595209  
+        
+        **Monto a pagar:** # {info['m']}
+        """)
+        
     with c_i:
         msg = f"Hola, pagué {info['m']} por {info['n']}. Comprobante adjunto."
         link = f"https://wa.me/595981000000?text={msg.replace(' ', '%20')}"
@@ -130,13 +142,16 @@ if not st.session_state['tutorial_visto']:
         st.session_state['tutorial_visto'] = True
         st.rerun()
 
-# Estado
+# --- CORRECCIÓN: BARRA DE ESTADO SIN ERROR ---
 c_st, c_lim = st.columns([3, 1])
-if opcion_plan != "GRATIS":
-    c_st.success(f"PLAN: {opcion_plan.upper()}")
-else:
-    c_st.warning("PLAN: GRATIS (Básico)")
-c_lim.metric("Límite", f"{limite_fotos} Fotos")
+with c_st:
+    if opcion_plan != "GRATIS":
+        st.success(f"PLAN: {opcion_plan.upper()}")
+    else:
+        st.warning("PLAN: GRATIS (Básico)")
+
+with c_lim:
+    st.metric("Límite", f"{limite_fotos} Fotos")
 
 # 1. FOTOS
 st.write("#### 1. 📸 Galería")

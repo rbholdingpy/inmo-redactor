@@ -89,7 +89,6 @@ if mostrar_pagos:
     # --- ZONA DE DATOS BANCARIOS ---
     st.subheader("🏦 Datos para Transferencia (SIPAP)")
     
-    # Usamos st.code para el Alias porque Streamlit pone un botón de "copiar" automáticamente
     st.write("👇 **Copia el Alias para transferir rápido:**")
     st.code("RUC 1911221-1", language="text") 
     
@@ -118,66 +117,118 @@ if mostrar_pagos:
         st.stop()
 
 # =======================================================
-# === APP PRINCIPAL (RESTO IGUAL) ===
+# === APP PRINCIPAL (RESTO DEL CÓDIGO) ===
 # =======================================================
 
 st.title("🏡 Inmo-Redactor IA")
 
+# Carteles de estado
 if plan_actual == "GRATIS":
-    st.warning("Plan: GRATIS")
+    st.warning("Plan: GRATIS (Limitado a 1 foto)")
 elif "Pack" in plan_actual:
-    st.info(f"Plan: {plan_actual}")
+    st.info(f"Plan Activo: {plan_actual}")
 else:
-    st.success("Plan: AGENCIA")
+    st.success("Plan Activo: AGENCIA")
 
 # --- 1. FOTOS ---
 st.write("#### 1. 📸 Fotos")
-uploaded_files = st.file_uploader("Sube fotos", type=["jpg", "png"], accept_multiple_files=True)
+uploaded_files = st.file_uploader("Sube fotos (Fachada, Interior, Patio)", type=["jpg", "png"], accept_multiple_files=True)
 
 if uploaded_files:
     cant = len(uploaded_files)
+    
+    # Restricción Gratis
     if plan_actual == "GRATIS" and cant > 1:
-        st.error("🔒 Gratis = Solo 1 foto.")
+        st.error("🔒 El plan GRATIS solo permite 1 foto. Pásate a un Pack para subir galería completa.")
         st.stop()
         
-    st.success(f"✅ {cant} fotos.")
+    st.success(f"✅ {cant} fotos cargadas. La IA las analizará.")
+    
+    # --- RECUPERADO: VISTA PREVIA DE FOTOS ---
+    cols = st.columns(3)
+    for i, file in enumerate(uploaded_files[:3]):
+        with cols[i]:
+            image = Image.open(file)
+            st.image(image, use_container_width=True)
     
     # --- 2. DATOS ---
     st.divider()
+    st.write("#### 2. 📝 Detalles del Inmueble")
+    
     c1, c2 = st.columns(2)
     with c1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
-        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Local", "Duplex"])
-        ubicacion = st.text_input("Ubicación")
-        precio = st.text_input("Precio")
+        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"])
+        ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
+        precio = st.text_input("Precio", placeholder="Gs / USD")
         
         if plan_actual != "GRATIS":
             whatsapp = st.text_input("WhatsApp (Auto Link)", placeholder="0981...")
         else:
-            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Pagos", disabled=True)
+            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True)
 
     with c2:
         habs = st.number_input("Habitaciones", 1)
         banos = st.number_input("Baños", 1)
-        st.write("Extras:")
+        
+        st.write("**Extras Generales:**")
         quincho = st.checkbox("Quincho")
         piscina = st.checkbox("Piscina")
+        cochera = st.checkbox("Cochera")
         
+        # --- RECUPERADO: MENÚ COMPLETO DE ALQUILER ---
         txt_servicios = ""
         if operacion == "Alquiler":
             st.write("---")
-            if st.checkbox("Incluye Agua/Luz"): txt_servicios += "Agua y Luz, "
-            if st.checkbox("Aire Acond."): txt_servicios += "Aire A.A."
+            st.write("**🔌 Servicios y Climatización:**")
+            col_serv1, col_serv2 = st.columns(2)
+            with col_serv1:
+                inc_agua = st.checkbox("💧 Agua")
+                inc_luz = st.checkbox("⚡ Luz")
+                inc_aire = st.checkbox("❄️ Aire A.A.")
+            with col_serv2:
+                inc_wifi = st.checkbox("📶 Wifi")
+                inc_ventilador = st.checkbox("💨 Ventilador")
+            
+            # Construimos el texto de servicios para el prompt
+            servicios = []
+            if inc_agua: servicios.append("Agua")
+            if inc_luz: servicios.append("Luz")
+            if inc_aire: servicios.append("Aire Acondicionado")
+            if inc_wifi: servicios.append("Internet Wifi")
+            if inc_ventilador: servicios.append("Ventiladores")
+            txt_servicios = ", ".join(servicios)
 
     # --- 3. GENERAR ---
     st.divider()
-    if st.button("✨ Generar Anuncio"):
+    
+    # Información de Vision IA
+    if uploaded_files:
+        st.info("👁️ **Vista de Águila Activada:** La IA analizará los materiales, pisos e iluminación de tus fotos.")
+
+    if st.button("✨ Generar Anuncio Vendedor"):
         if not ubicacion or not precio:
-            st.warning("Faltan datos.")
+            st.warning("⚠️ Faltan datos básicos (Ubicación o Precio).")
         else:
-            with st.spinner('Procesando...'):
+            with st.spinner('🤖 Analizando fotos y redactando...'):
                 try:
-                    prompt = f"Anuncio {operacion} {tipo} en {ubicacion}. Precio {precio}. {habs} habs. {txt_servicios}."
+                    # PROMPT COMPLETO RECUPERADO
+                    prompt = f"""
+                    Actúa como experto copywriter inmobiliario en Paraguay.
+                    
+                    TAREA:
+                    1. (VISION IA) Analiza DETALLADAMENTE las imágenes adjuntas. Describe lo que ves: tipo de piso, iluminación, estilo de cocina, fachada, jardín.
+                    2. Escribe un anuncio persuasivo de {operacion} de {tipo} en {ubicacion}.
+                    3. DATOS: Precio {precio}. {habs} habs, {banos} baños. Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
+                    4. {f'SERVICIOS INCLUIDOS: {txt_servicios}' if operacion == 'Alquiler' and txt_servicios else ''}
+                    5. {f'LINK WHATSAPP: https://wa.me/595{whatsapp}' if whatsapp else 'Sin link de WhatsApp'}
+                    
+                    ESTRUCTURA:
+                    - Título Gancho (con Emojis).
+                    - Descripción Emocional (Mezcla lo que VES en las fotos con los datos).
+                    - Lista de Características Clave.
+                    - Cierre con llamado a la acción.
+                    """
                     
                     content = [{"type": "text", "text": prompt}]
                     for file in uploaded_files:
@@ -188,9 +239,10 @@ if uploaded_files:
                     response = client.chat.completions.create(
                          model="gpt-4o-mini",
                          messages=[{"role": "user", "content": content}],
-                         max_tokens=700
+                         max_tokens=800
                     )
-                    st.text_area("Resultado:", value=response.choices[0].message.content, height=500)
+                    st.success("¡Anuncio generado!")
+                    st.text_area("Copia tu texto aquí:", value=response.choices[0].message.content, height=600)
 
                 except Exception as e:
                     st.error(f"Error: {e}")

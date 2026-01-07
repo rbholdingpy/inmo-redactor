@@ -54,7 +54,6 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* Aviso Legal */
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
     """, unsafe_allow_html=True)
@@ -77,35 +76,40 @@ def cerrar_sesion():
     st.session_state['usuario_activo'] = None
     st.session_state['plan_seleccionado'] = None
     st.session_state['ver_planes'] = False
+    st.session_state['pedido_registrado'] = False # Reseteamos estado pedido
 
 # --- CALLBACKS DE NAVEGACIÓN ---
 def ir_a_planes():
     st.session_state.ver_planes = True
     st.session_state.plan_seleccionado = None
+    st.session_state.pedido_registrado = False
 
 def seleccionar_plan(nombre_plan):
     st.session_state.plan_seleccionado = nombre_plan
     st.session_state.ver_planes = True
+    st.session_state.pedido_registrado = False
 
 def volver_a_app():
     st.session_state.ver_planes = False
     st.session_state.plan_seleccionado = None
+    st.session_state.pedido_registrado = False
 
 def cancelar_seleccion():
     st.session_state.plan_seleccionado = None
     st.session_state.ver_planes = True
+    st.session_state.pedido_registrado = False
 
 # --- INICIALIZACIÓN DE ESTADO ---
 if 'uploader_key' not in st.session_state: st.session_state['uploader_key'] = 0
 if 'usuario_activo' not in st.session_state: st.session_state['usuario_activo'] = None
 if 'ver_planes' not in st.session_state: st.session_state['ver_planes'] = False
 if 'plan_seleccionado' not in st.session_state: st.session_state['plan_seleccionado'] = None
+if 'pedido_registrado' not in st.session_state: st.session_state['pedido_registrado'] = False
 
 # --- ESTADO FREEMIUM (INVITADO) ---
 if 'guest_last_use' not in st.session_state: st.session_state['guest_last_use'] = None
 if 'guest_credits' not in st.session_state: st.session_state['guest_credits'] = 1
 
-# Comprobar renovación de crédito gratuito (24 horas)
 if st.session_state['guest_last_use']:
     tiempo_pasado = datetime.now() - st.session_state['guest_last_use']
     if tiempo_pasado > timedelta(days=1):
@@ -147,11 +151,7 @@ def descontar_credito(codigo_usuario):
         cell = sheet.find(str(codigo_usuario))
         if cell:
             headers = sheet.row_values(1)
-            try:
-                col_limite = headers.index('limite') + 1 
-            except ValueError:
-                return False
-            
+            col_limite = headers.index('limite') + 1 
             valor_actual = sheet.cell(cell.row, col_limite).value
             if valor_actual and int(valor_actual) > 0:
                 nuevo_saldo = int(valor_actual) - 1
@@ -161,6 +161,35 @@ def descontar_credito(codigo_usuario):
         return False
     return False
 
+# --- NUEVA FUNCIÓN: REGISTRAR PEDIDO ---
+def registrar_pedido(nombre, apellido, email, telefono, plan):
+    """Guarda los datos del cliente en el Sheet con estado PENDIENTE"""
+    try:
+        client_gs = get_gspread_client()
+        sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
+        
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
+        nombre_completo = f"{nombre} {apellido}"
+        
+        # Estructura de fila: [Fecha, Cliente, Codigo, Plan, Limite, Telefono, Correo, Estado]
+        # Dejamos 'codigo' y 'limite' vacíos o con marcadores para que el admin los llene
+        nueva_fila = [
+            fecha, 
+            nombre_completo, 
+            "PENDIENTE-PAGO", # Código temporal
+            plan, 
+            "0", # Límite inicial
+            telefono,
+            email,
+            "NUEVO PEDIDO" # Estado
+        ]
+        
+        sheet.append_row(nueva_fila)
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar: {e}")
+        return False
+
 # =======================================================
 # === 🏗️ BARRA LATERAL (LOGIN) ===
 # =======================================================
@@ -168,7 +197,6 @@ with st.sidebar:
     st.header("🔐 Área de Miembros")
     
     if not st.session_state['usuario_activo']:
-        # MODO INVITADO
         st.markdown("""
         <div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;">
             <small>Estado actual:</small><br>
@@ -197,7 +225,6 @@ with st.sidebar:
         st.button("🚀 VER PLANES PRO", on_click=ir_a_planes)
     
     else:
-        # MODO MIEMBRO LOGUEADO
         user = st.session_state['usuario_activo']
         limite_raw = user.get('limite', 1)
         limite_fotos = int(limite_raw) if limite_raw != "" else 1
@@ -218,46 +245,96 @@ with st.sidebar:
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS ===
+# === 💎 ZONA DE VENTAS (FLUJO MEJORADO CON REGISTRO) ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
-    st.write("Desbloquea Neuro-Visión, Estrategias Avanzadas y WhatsApp.")
     
+    # 1. SELECCIÓN DE PLAN
     if st.session_state.plan_seleccionado is None:
+        st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p></div>', unsafe_allow_html=True)
-            st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico (20.000 Gs)",))
+            st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
         with c2:
             st.markdown('<div class="plan-standard"><h3>🥈 Estándar</h3><div class="price-tag" style="color:#2563EB;">35.000 Gs</div><p class="feature-text"><b>20 Estrategias</b></p></div>', unsafe_allow_html=True)
-            st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar (35.000 Gs)",))
+            st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
         with c3:
             st.markdown('<div class="plan-agency"><div style="background:#F59E0B; color:white; font-size:0.7em; font-weight:bold; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">🔥 MEJOR OPCIÓN</div><h3 style="color:#B45309;">🥇 Agencia</h3><div class="price-tag" style="color:#D97706;">80.000 Gs</div><p class="feature-text"><b>200 Estrategias</b></p></div>', unsafe_allow_html=True)
-            st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia (80.000 Gs)",))
+            st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
         
         st.divider()
         st.button("⬅️ Volver a la App", on_click=volver_a_app)
 
+    # 2. REGISTRO DE DATOS Y PAGO
     else:
-        # PANTALLA DE PAGO
-        st.info(f"🚀 Has seleccionado: **Plan {st.session_state.plan_seleccionado}**")
-        col_bank, col_wa = st.columns(2)
-        with col_bank:
-            st.subheader("1. Transfiere Aquí")
-            st.markdown('<div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;"><b>Banco:</b> ITAÚ <br><b>Titular:</b> Ricardo Blanco <br><b>C.I.:</b> 1911221 <br><b>Cuenta:</b> 320595209 <br><b>RUC:</b> 1911221-1</div>', unsafe_allow_html=True)
-        with col_wa:
-            st.subheader("2. Activa tu Plan")
-            st.write("Envía el comprobante para habilitar tu cuenta.")
-            codigo_usuario = st.session_state['usuario_activo'].get('codigo', 'N/A') if st.session_state['usuario_activo'] else "Nuevo Usuario"
-            mensaje_wp = f"Hola, realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Mi código (o soy nuevo) es: *{codigo_usuario}*."
-            mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
-            link_wp = f"https://wa.me/595981000000?text={mensaje_wp_url}"
-            st.markdown(f'<a href="{link_wp}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px;">📲 Enviar Comprobante por WhatsApp</button></a>', unsafe_allow_html=True)
-        st.divider()
-        c_back, c_cancel = st.columns(2)
-        with c_back: st.button("🔙 Ver otros planes", on_click=cancelar_seleccion)
-        with c_cancel: st.button("❌ Cancelar", on_click=volver_a_app)
+        st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
+        
+        # Si aún no ha registrado sus datos, mostramos el formulario
+        if not st.session_state.pedido_registrado:
+            st.write("### 📝 Paso 1: Tus Datos")
+            st.write("Necesitamos saber quién eres para generarte tu código de acceso.")
+            
+            with st.form("form_registro_pedido"):
+                c_nom, c_ape = st.columns(2)
+                nombre = c_nom.text_input("Nombre")
+                apellido = c_ape.text_input("Apellido")
+                email = st.text_input("Correo Electrónico (Aquí te enviaremos tu código)")
+                telefono = st.text_input("Número de WhatsApp")
+                
+                submitted = st.form_submit_button("✅ Confirmar y Ver Datos de Pago", type="primary")
+                
+                if submitted:
+                    if nombre and apellido and email and telefono:
+                        with st.spinner("Registrando pedido..."):
+                            exito = registrar_pedido(nombre, apellido, email, telefono, st.session_state.plan_seleccionado)
+                            if exito:
+                                st.session_state.pedido_registrado = True
+                                # Guardamos datos temporales para el mensaje de whatsapp
+                                st.session_state['temp_nombre'] = f"{nombre} {apellido}"
+                                st.rerun()
+                    else:
+                        st.warning("⚠️ Por favor completa todos los campos.")
+            
+            st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
+
+        # Si YA registró datos, mostramos el banco y el botón final
+        else:
+            st.success("✅ **¡Datos recibidos!** Tu solicitud ha sido registrada.")
+            st.write("### 💳 Paso 2: Realiza el Pago")
+            
+            col_bank, col_wa = st.columns(2)
+            with col_bank:
+                st.markdown("""
+                <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;">
+                <b>Banco:</b> ITAÚ <br>
+                <b>Titular:</b> Ricardo Blanco <br>
+                <b>C.I.:</b> 1911221 <br>
+                <b>Cuenta:</b> 320595209 <br>
+                <b>RUC:</b> 1911221-1
+                </div>
+                """, unsafe_allow_html=True)
+            with col_wa:
+                st.write("Envía el comprobante para activar tu cuenta rápidamente.")
+                
+                nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
+                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos en la App y realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Quedo a la espera de mi código."
+                mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
+                link_wp = f"https://wa.me/595981000000?text={mensaje_wp_url}"
+                
+                st.markdown(f"""
+                <a href="{link_wp}" target="_blank" style="text-decoration:none;">
+                    <button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">
+                    📲 Enviar Comprobante por WhatsApp
+                    </button>
+                </a>
+                """, unsafe_allow_html=True)
+            
+            st.divider()
+            if st.button("🏁 Finalizar y Volver al Inicio"):
+                volver_a_app()
+
     st.stop()
 
 # =======================================================
@@ -268,7 +345,6 @@ with c_title:
     st.title("🚀 VendeMás IA")
     st.caption("Experto en Neuroventas Inmobiliarias.")
 
-# DETERMINAR SI ES PRO O FREEMIUM
 es_pro = False
 plan_actual = "INVITADO"
 limite_fotos = 0
@@ -278,16 +354,14 @@ if st.session_state['usuario_activo']:
     user = st.session_state['usuario_activo']
     plan_actual = user.get('plan', 'GRATIS')
     limite_fotos = int(user.get('limite', 1) if user.get('limite') != "" else 0)
-    
     with c_badge:
         st.markdown(f'<div style="text-align:right"><span class="pro-badge">PLAN {plan_actual.upper()}</span></div>', unsafe_allow_html=True)
 else:
-    # MODO INVITADO
     es_pro = False
     with c_badge:
         st.markdown('<div style="text-align:right"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
-# --- GUÍA DE USO (Solo si no sabe usarla) ---
+# --- GUÍA ---
 with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
     st.markdown("""
     <div class="step-box"><b>1. Sube tus Fotos (Solo PRO):</b> La IA analiza las imágenes.</div>
@@ -296,36 +370,29 @@ with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
     """, unsafe_allow_html=True)
 
 # =======================================================
-# === 1. GALERÍA DE FOTOS (BLOQUEADA PARA FREEMIUM) ===
+# === 1. GALERÍA ===
 # =======================================================
 st.write("#### 1. 📸 Galería")
-
 uploaded_files = []
+
 if es_pro:
     if limite_fotos <= 0:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
-        
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
-    
     if uploaded_files:
         with st.expander("👁️ Ver fotos cargadas", expanded=True):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
                 with cols[i%4]: st.image(Image.open(f), use_container_width=True)
 else:
-    # MENSAJE DE BLOQUEO FREEMIUM
     st.info("🔒 **La carga de fotos y Visión IA es exclusiva para Miembros.**")
-    st.markdown("""
-    <div style="opacity:0.6; pointer-events:none; border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 10px;">
-        📂 Subir fotos (Bloqueado)
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div style="opacity:0.6; pointer-events:none; border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 10px;">📂 Subir fotos (Bloqueado)</div>', unsafe_allow_html=True)
 
 st.divider()
 
 # =======================================================
-# === 2. DATOS DE LA PROPIEDAD ===
+# === 2. DATOS ===
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 c1, c2 = st.columns(2)
@@ -334,14 +401,13 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
-    # ESTRATEGIA BLOQUEADA PARA FREEMIUM
     opciones_estrategia = ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"]
     
     if es_pro:
         enfoque = st.selectbox("🎯 Estrategia", opciones_estrategia)
     else:
         enfoque = st.selectbox("🎯 Estrategia", ["🔒 Estándar (Solo PRO)"], disabled=True)
-        enfoque = "Venta Estándar" # Valor por defecto interno
+        enfoque = "Venta Estándar"
     
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
@@ -353,7 +419,6 @@ with c1:
     else:
         texto_precio = st.text_input("Precio", key="input_precio")
         
-    # WHATSAPP BLOQUEADO PARA FREEMIUM
     if es_pro:
         whatsapp = st.text_input("WhatsApp (Solo números)", key="input_whatsapp")
     else:
@@ -369,11 +434,9 @@ with c2:
 
 st.divider()
 
-# MENSAJE NEURO-VISION (Solo PRO)
 if es_pro:
     st.info(f"🧠 **Neuro-Vision Activa:** Analizando fotos... (Te costará 1 crédito)")
 else:
-    # CHEQUEO DE CRÉDITO FREEMIUM
     creditos_guest = st.session_state['guest_credits']
     if creditos_guest > 0:
         st.success(f"🎁 **Modo Invitado:** Tienes {creditos_guest} generación gratis hoy.")
@@ -381,18 +444,14 @@ else:
         st.warning("⏳ **Has usado tu crédito diario.** Vuelve mañana o hazte PRO.")
 
 # =======================================================
-# === BOTÓN DE GENERACIÓN ===
+# === GENERACIÓN ===
 # =======================================================
 if st.button("✨ Generar Estrategia", type="primary"):
-    
-    # 1. VALIDACIONES
     if not ubicacion or not texto_precio:
         st.warning("⚠️ Completa Ubicación y Precio.")
         st.stop()
         
-    # 2. VERIFICAR PERMISOS DE GENERACIÓN
     puede_generar = False
-    
     if es_pro:
         if limite_fotos > 0: puede_generar = True
     else:
@@ -402,43 +461,26 @@ if st.button("✨ Generar Estrategia", type="primary"):
             st.stop()
 
     if puede_generar:
-        with st.spinner('🧠 Redactando estrategia ganadora...'):
+        with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- CONSTRUCCIÓN DEL PROMPT ---
-                # Si es PRO, usa fotos. Si es FREEMIUM, solo texto.
-                
-                base_prompt = f"""Actúa como copywriter inmobiliario. 
-                Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. Extras: Q={q}, P={p}, C={c}. Hab:{habs}, Baños:{banos}."""
+                base_prompt = f"""Actúa como copywriter inmobiliario. Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. Extras: Q={q}, P={p}, C={c}. Hab:{habs}, Baños:{banos}."""
                 
                 if es_pro:
-                    full_prompt = base_prompt + f"""
-                    OPCIÓN 1: Storytelling ({enfoque}).
-                    OPCIÓN 2: Venta Directa.
-                    OPCIÓN 3: Instagram.
-                    WhatsApp: https://wa.me/595{whatsapp}.
-                    REGLAS: NO uses Markdown (#, **). Usa EMOJIS.
-                    """
+                    full_prompt = base_prompt + f""" OPCIÓN 1: Storytelling ({enfoque}). OPCIÓN 2: Venta Directa. OPCIÓN 3: Instagram. WhatsApp: https://wa.me/595{whatsapp}. REGLAS: NO Markdown. Usa EMOJIS."""
                     content = [{"type": "text", "text": full_prompt}]
                     for f in uploaded_files:
                         f.seek(0)
                         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}"}})
                 else:
-                    # PROMPT SIMPLIFICADO PARA INVITADOS
-                    full_prompt = base_prompt + """
-                    Genera 1 Descripción de Venta atractiva y básica.
-                    REGLAS: NO uses Markdown (#, **). Usa EMOJIS.
-                    """
+                    full_prompt = base_prompt + """ Genera 1 Descripción de Venta atractiva y básica. REGLAS: NO Markdown. Usa EMOJIS."""
                     content = [{"type": "text", "text": full_prompt}]
 
-                # LLAMADA A OPENAI
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                 generated_text = res.choices[0].message.content
 
-                # LIMPIEZA
                 cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️").replace("#", "🚀")
                 cleaned_text = cleaned_text.replace("**", "").replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
-                # --- DESCUENTO DE CRÉDITOS ---
                 if es_pro:
                     exito = descontar_credito(user['codigo'])
                     if exito:
@@ -450,15 +492,12 @@ if st.button("✨ Generar Estrategia", type="primary"):
                     st.toast("✅ Crédito gratuito usado", icon="🎁")
 
                 st.session_state['generated_result'] = cleaned_text
-                
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# --- MOSTRAR RESULTADO ---
 if 'generated_result' in st.session_state:
     st.success("¡Estrategia lista! Copia el texto abajo.")
     st.write(st.session_state['generated_result'])
-    
     if es_pro and uploaded_files:
         st.divider()
         st.caption("📸 Fotos analizadas:")
@@ -466,13 +505,12 @@ if 'generated_result' in st.session_state:
         for i, f in enumerate(uploaded_files):
              f.seek(0)
              with cols_out[i%4]: st.image(Image.open(f), use_container_width=True)
-    
     st.markdown("---")
     st.subheader("¿Terminaste?")
     st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary", on_click=limpiar_formulario)
 
 # =======================================================
-# === ⚖️ AVISO LEGAL Y PRIVACIDAD ===
+# === ⚖️ AVISO LEGAL ===
 # =======================================================
 st.markdown("<br><br>", unsafe_allow_html=True)
 with st.expander("⚖️ Aviso Legal y Privacidad (Importante)"):
@@ -481,9 +519,9 @@ with st.expander("⚖️ Aviso Legal y Privacidad (Importante)"):
     <b>1. Protección de Datos y Privacidad:</b><br>
     VendeMás IA es una herramienta de procesamiento en tiempo real. Queremos informarle que:
     <ul>
-        <li><b>Eliminación Automática:</b> Todas las fotos, números de teléfono y datos ingresados en el formulario se eliminan automáticamente de la memoria del sistema en el momento en que usted cierra la pestaña, recarga la página o pulsa el botón de "Limpiar/Nueva Propiedad".</li>
-        <li><b>Sin Base de Datos de Respaldo:</b> Esta aplicación NO cuenta con una base de datos que almacene copias de seguridad de sus fotos o descripciones generadas. Una vez procesada la información por la Inteligencia Artificial para entregarle el resultado, los datos originales se descartan.</li>
-        <li><b>Responsabilidad:</b> Es responsabilidad del usuario guardar los textos generados antes de salir de la aplicación, ya que no podrán ser recuperados posteriormente.</li>
+        <li><b>Eliminación Automática:</b> Todas las fotos, números de teléfono y datos ingresados se eliminan automáticamente de la memoria del sistema al cerrar o recargar la página.</li>
+        <li><b>Sin Base de Datos de Respaldo:</b> No guardamos copias de seguridad de sus fotos o descripciones generadas.</li>
+        <li><b>Responsabilidad:</b> Guarde sus textos generados antes de salir, ya que no podrán recuperarse.</li>
     </ul>
     </div>
     """, unsafe_allow_html=True)

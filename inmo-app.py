@@ -8,6 +8,15 @@ from openai import OpenAI
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏡", layout="centered")
 
+# --- FUNCIÓN NECESARIA (LA QUE FALTABA) ---
+def encode_image(image):
+    buffered = io.BytesIO()
+    # Convertimos a RGB por si acaso es PNG con transparencia
+    if image.mode in ("RGBA", "P"):
+        image = image.convert("RGB")
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
 # --- BARRA LATERAL (SIMULADOR DE ESTADOS) ---
 with st.sidebar:
     st.header("⚙️ Admin: Simulador")
@@ -27,8 +36,7 @@ with st.sidebar:
     # Botón para ver la zona de pagos voluntariamente
     ver_precios = st.toggle("👉 Ver Lista de Precios", value=False)
 
-# Lógica de visualización de pagos:
-# Se muestra si el usuario lo pide (toggle) O si se quedó sin créditos (forzado)
+# Lógica de visualización de pagos
 mostrar_pagos = ver_precios or sin_creditos
 
 # --- API KEY ---
@@ -64,7 +72,7 @@ if mostrar_pagos:
         if st.button("Elegir Pack 10"):
             st.session_state['plan_elegido'] = "10_desc"
 
-    # PLAN 2: ESTÁNDAR (Recomendado)
+    # PLAN 2: ESTÁNDAR
     with col_p2:
         st.markdown("### 🥈 Estándar")
         st.markdown("## 35.000 Gs")
@@ -91,7 +99,7 @@ if mostrar_pagos:
     # --- DETALLES DE PAGO (QR y Transferencia) ---
     st.subheader("💳 Formas de Pago")
     
-    # Mensaje dinámico para WhatsApp según el plan
+    # Mensaje dinámico para WhatsApp
     plan_seleccionado = st.session_state.get('plan_elegido', 'general')
     mensajes_wa = {
         "10_desc": "Hola, quiero el Pack de 10 descripciones por 20.000 Gs.",
@@ -126,7 +134,7 @@ if mostrar_pagos:
         """, language="text")
         st.markdown(f"Una vez transferido, [**👉 Enviar Comprobante aquí**]({link_wa})")
 
-    # Si se quedó sin créditos, detenemos la app aquí para que no pueda usarla
+    # Si se quedó sin créditos, detenemos la app aquí
     if sin_creditos:
         st.stop()
 
@@ -134,10 +142,9 @@ if mostrar_pagos:
 # === APP PRINCIPAL ===
 # =======================================================
 
-# Si NO está viendo pagos, mostramos la App normal
 st.title("🏡 Inmo-Redactor IA")
 
-# Mostrar estado actual (Solo informativo)
+# Mostrar estado actual
 if plan_actual == "GRATIS (Nuevo)":
     st.warning("Estás en el plan de prueba GRATIS.")
 elif "Pack" in plan_actual:
@@ -163,10 +170,10 @@ if uploaded_files:
     col1, col2 = st.columns(2)
     with col1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
-        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial"])
+        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"])
         ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
         precio = st.text_input("Precio")
-        # WhatsApp activo para todos menos Gratis
+        
         if plan_actual != "GRATIS (Nuevo)":
             whatsapp = st.text_input("Tu WhatsApp (Link automático)", placeholder="0981...")
         else:
@@ -197,8 +204,16 @@ if uploaded_files:
         else:
             with st.spinner('🤖 Trabajando...'):
                 try:
-                    # Lógica simplificada de generación (Pega aquí tu prompt completo si lo necesitas)
-                    prompt = f"Crea anuncio de {tipo} en {ubicacion}. Precio {precio}. {habs} habs. {txt_servicios}."
+                    # Preparar Prompt
+                    prompt = f"""
+                    Actúa como experto inmobiliario.
+                    Crea anuncio de {operacion} de {tipo} en {ubicacion}.
+                    Precio: {precio}. {habs} habs, {banos} baños.
+                    Extras: Quincho={quincho}, Piscina={piscina}.
+                    {f'Servicios incluidos: {txt_servicios}' if operacion == 'Alquiler' else ''}
+                    {f'Link WhatsApp: https://wa.me/595{whatsapp}' if whatsapp else ''}
+                    Analiza las imágenes adjuntas y describe los detalles visuales.
+                    """
                     
                     # Llamada API
                     content = [{"type": "text", "text": prompt}]
@@ -210,11 +225,10 @@ if uploaded_files:
                     response = client.chat.completions.create(
                          model="gpt-4o-mini",
                          messages=[{"role": "user", "content": content}],
-                         max_tokens=600
+                         max_tokens=700
                     )
                     st.text_area("Resultado:", value=response.choices[0].message.content, height=500)
                     
-                    # AVISO DE RECARGA AL FINAL
                     if "Pack" in plan_actual:
                         st.info("💡 Tip: Si te quedan pocas descripciones, puedes recargar tu pack en el menú lateral.")
 

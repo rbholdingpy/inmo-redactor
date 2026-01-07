@@ -31,12 +31,11 @@ st.markdown("""
         background-color: white; padding: 25px; border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border: 1px solid #E5E7EB;
     }
-    .tutorial-box {
-        background-color: #EFF6FF; border-left: 5px solid #2563EB; padding: 20px; border-radius: 8px; margin-bottom: 20px;
-    }
-    /* Estilo para caja de Vision IA en Gratis */
     .vision-blocked {
         background-color: #FEF3C7; border-left: 5px solid #D97706; padding: 15px; border-radius: 5px; color: #92400E; font-size: 0.9em; margin-bottom: 15px;
+    }
+    .upsell-box {
+        background-color: #E0E7FF; border: 2px dashed #4338CA; padding: 20px; text-align: center; border-radius: 10px; margin-top: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -122,7 +121,7 @@ if mostrar_pagos:
 # =======================================================
 
 st.title("🚀 VendeMás IA")
-st.caption("Tu redactor inmobiliario experto en cierres.")
+st.caption("Experto en Neuroventas Inmobiliarias.")
 
 # Tutorial
 if not st.session_state['tutorial_visto']:
@@ -136,7 +135,7 @@ c_st, c_lim = st.columns([3, 1])
 if opcion_plan != "GRATIS":
     c_st.success(f"PLAN: {opcion_plan.upper()}")
 else:
-    c_st.warning("PLAN: GRATIS (Modo Básico)")
+    c_st.warning("PLAN: GRATIS (Básico)")
 c_lim.metric("Límite", f"{limite_fotos} Fotos")
 
 # 1. FOTOS
@@ -161,7 +160,6 @@ if uploaded_files:
     with c1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         
-        # GESTIÓN
         nombre_agencia = ""
         tipo_gestion = ""
         if operacion == "Alquiler":
@@ -171,16 +169,15 @@ if uploaded_files:
         
         tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"])
         
-        # --- ENFOQUE DE VENTA (Bloqueo en Gratis) ---
         if opcion_plan != "GRATIS":
             enfoque = st.selectbox(
-                "🎯 Enfoque de Venta", 
-                ["Normal (Equilibrado)", "🔥 Oportunidad / Oferta", "🔑 Tu Primera Casa", "💎 Lujo / Exclusivo", "💰 Ideal Inversionistas", "❤️ Ideal Parejas"],
-                help="Define la psicología del anuncio."
+                "🎯 Enfoque de Neuroventas", 
+                ["Normal (Equilibrado)", "🔥 Oportunidad (Urgencia)", "🔑 Primera Casa (Emotivo)", "💎 Lujo (Exclusividad)", "💰 Inversión (Rentabilidad)", "❤️ Parejas (Proyección)"],
+                help="Define el disparador psicológico."
             )
         else:
             enfoque = "Normal (Básico)"
-            st.selectbox("🎯 Enfoque de Venta", ["🔒 Bloqueado (Solo PRO)"], disabled=True, help="🔒 Pásate a PRO para usar estrategias psicológicas de venta (Lujo, Urgencia, Inversión).")
+            st.selectbox("🎯 Enfoque de Venta", ["🔒 Bloqueado (Solo PRO)"], disabled=True, help="Pásate a PRO para usar Neuroventas.")
         
         ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
         precio = st.text_input("Precio", placeholder="Gs / USD")
@@ -211,24 +208,22 @@ if uploaded_files:
     # 3. GENERAR
     st.divider()
     
-    # --- MENSAJES DE VISION IA (DETALLADOS) ---
     if uploaded_files:
         if opcion_plan == "GRATIS":
             st.markdown("""
             <div class="vision-blocked">
-                <strong>⚠️ Vision IA DESACTIVADA (Modo Ciego)</strong><br>
-                La IA NO analizará tus fotos en el plan gratis.
-                <br><em>Te pierdes: Detección de materiales (pisos, mesadas), análisis de iluminación natural, descripción de estilo arquitectónico y detalles premium.</em>
+                <strong>⚠️ Vision IA DESACTIVADA</strong><br>
+                La IA no "verá" los detalles de tus fotos (pisos, luz, estilos) para vender mejor.
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.info("👁️ **Vision IA Activa:** Escaneando texturas de pisos, calidad de iluminación natural, terminaciones y distribución de espacios...")
+            st.info("👁️ **Vision IA Activa:** Analizando neuro-estímulos visuales (iluminación, amplitud, texturas)...")
     
-    if st.button("✨ Redactar Anuncio Vendedor"):
+    if st.button("✨ Redactar Estrategia de Venta"):
         if not ubicacion or not precio:
-            st.warning("⚠️ Faltan datos (Ubicación o Precio).")
+            st.warning("⚠️ Faltan datos básicos.")
         else:
-            with st.spinner('🤖 Redactando estrategia...'):
+            with st.spinner('🧠 Aplicando Neuroventas y Copywriting...'):
                 try:
                     # GESTIÓN
                     info_gestion = ""
@@ -237,30 +232,54 @@ if uploaded_files:
                         elif tipo_gestion == "Agencia/Inmobiliaria" and nombre_agencia: info_gestion = f"Gestión profesional a cargo de {nombre_agencia}."
                         else: info_gestion = "Gestión profesional."
 
-                    # LÓGICA DEL PROMPT (PRO vs GRATIS)
-                    prompt_vision = ""
-                    if opcion_plan != "GRATIS":
-                        prompt_vision = "TAREA VISUAL (IMPORTANTE): Analiza DETALLADAMENTE las imágenes. Describe pisos, iluminación, materiales y sensaciones."
+                    # --- LÓGICA DE PROMPTS SEGÚN PLAN ---
+                    
+                    if opcion_plan == "GRATIS":
+                        # Prompt Básico (1 Opción)
+                        prompt = f"""
+                        Actúa como redactor inmobiliario estándar.
+                        Crea 1 descripción para {operacion} de {tipo} en {ubicacion}.
+                        Datos: Precio {precio}, {habs} habs, {banos} baños. Extras: Piscina={piscina}, Quincho={quincho}.
+                        NO uses Markdown. Usa solo Emojis.
+                        """
                     else:
-                        prompt_vision = "TAREA VISUAL: (IGNORA detalles profundos de las fotos, haz una descripción genérica basada solo en los datos de texto)."
-
-                    prompt = f"""
-                    Actúa como copywriter inmobiliario senior.
-                    
-                    FORMATO DE SALIDA (ESTRICTO):
-                    1. NO USES MARKDOWN. Prohibido usar #, ##, ***, -. 
-                    2. USA SOLO EMOJIS como viñetas.
-                    
-                    ESTRATEGIA: "{enfoque}"
-                    {prompt_vision}
-                    
-                    REDACCIÓN PARA: {operacion} de {tipo} en {ubicacion}.
-                    DATOS: Precio {precio}. {habs} habs, {banos} baños. Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
-                    {f'Servicios: {txt_servicios}' if operacion == 'Alquiler' else ''}
-                    Gestión: {info_gestion}
-                    
-                    CIERRE: Link: https://wa.me/595{whatsapp} (Si está vacío no poner).
-                    """
+                        # Prompt PRO (3 Opciones Estratégicas + Neuroventas)
+                        prompt = f"""
+                        Actúa como EXPERTO EN NEUROVENTAS y Marketing Inmobiliario.
+                        Tu objetivo es detener el scroll en Facebook e Instagram.
+                        
+                        Analiza las {cant} imágenes adjuntas: Detecta iluminación, calidad de materiales y sensaciones.
+                        
+                        Genera 3 OPCIONES de copy distintas para {operacion} de {tipo} en {ubicacion}:
+                        
+                        ---
+                        OPCIÓN 1: STORYTELLING EMOCIONAL (Neuroventa)
+                        Enfócate en cómo se SENTIRÁ vivir ahí. Usa palabras sensoriales. Apela al deseo de {enfoque}.
+                        
+                        ---
+                        OPCIÓN 2: VENTA DIRECTA (Método AIDA)
+                        Atención (Gancho fuerte) -> Interés (Datos clave) -> Deseo (Beneficios) -> Acción (Cierre).
+                        Usa urgencia y autoridad.
+                        
+                        ---
+                        OPCIÓN 3: FORMATO INSTAGRAM/TIKTOK (Visual y Rápido)
+                        Frases cortas, mucho aire, punteos con Emojis y Hashtags estratégicos al final.
+                        
+                        ---
+                        
+                        DATOS TÉCNICOS:
+                        Precio: {precio}
+                        {habs} Habs, {banos} Baños.
+                        Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
+                        {f'Servicios: {txt_servicios}' if operacion == 'Alquiler' else ''}
+                        Gestión: {info_gestion}
+                        
+                        CIERRE PARA TODAS: Link: https://wa.me/595{whatsapp}
+                        
+                        REGLAS DE FORMATO:
+                        1. NO USES MARKDOWN (nada de # o **).
+                        2. Usa separadores claros entre las opciones.
+                        """
                     
                     content = [{"type": "text", "text": prompt}]
                     for f in uploaded_files:
@@ -269,10 +288,27 @@ if uploaded_files:
                         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
                         
                     response = client.chat.completions.create(
-                         model="gpt-4o-mini", messages=[{"role": "user", "content": content}], max_tokens=900
+                         model="gpt-4o-mini", messages=[{"role": "user", "content": content}], max_tokens=1200
                     )
-                    st.success("¡Anuncio listo!")
-                    st.text_area("Copia y pega:", value=response.choices[0].message.content, height=600)
+                    
+                    st.success("¡Estrategia Generada!")
+                    st.text_area("Resultados:", value=response.choices[0].message.content, height=600)
+                    
+                    # --- MENSAJE DE CIERRE PARA EL PLAN GRATIS (UPSELL) ---
+                    if opcion_plan == "GRATIS":
+                        st.markdown("""
+                        <div class="upsell-box">
+                            <h3>🚀 ¿Quieres vender 3x más rápido?</h3>
+                            <p>Esta descripción es básica. Los usuarios <strong>PRO</strong> reciben:</p>
+                            <ul style="text-align: left; margin: 0 auto; display: inline-block;">
+                                <li>✅ <strong>3 Variaciones Estratégicas</strong> (Storytelling, AIDA, Instagram).</li>
+                                <li>✅ <strong>Neuroventas</strong> aplicadas para atacar el cerebro del comprador.</li>
+                                <li>✅ <strong>Vision IA</strong> que describe los detalles de tus fotos.</li>
+                            </ul>
+                            <br><br>
+                            <strong>👉 Ve al menú lateral y activa un PACK desde 20.000 Gs.</strong>
+                        </div>
+                        """, unsafe_allow_html=True)
 
                 except Exception as e:
                     st.error(f"Error: {e}")

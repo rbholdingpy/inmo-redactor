@@ -79,10 +79,20 @@ def obtener_usuarios_sheet():
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds_dict = st.secrets["gcp_service_account"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+       @st.cache_data(ttl=10) # Bajamos a 10 segundos para que pruebes rápido
+def obtener_usuarios_sheet():
+    try:
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client_gs = gspread.authorize(creds)
+        # Abre la hoja
         sheet = client_gs.open("Usuarios_InmoApp").sheet1
-        return sheet.get_all_records()
+       # ESTO ES LO NUEVO: Lee todo el contenido y limpia espacios vacíos
+        data = sheet.get_all_records()
+        return data
     except Exception as e:
+        st.error(f"Error de conexión: {e}")
         return []
 
 with st.sidebar:
@@ -222,3 +232,4 @@ if uploaded_files:
                     st.text_area("Resultado:", value=res.choices[0].message.content, height=400)
                 except Exception as e:
                     st.error(f"Error: {e}")
+

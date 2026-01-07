@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS (Diseño limpio) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -38,8 +38,8 @@ st.markdown("""
     .pro-badge {
         background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em;
     }
-    /* Ajuste para que el texto generado se vea limpio */
-    .stMarkdown { font-size: 1.05em; line-height: 1.6; }
+    /* Texto generado más grande y legible */
+    .stMarkdown p { font-size: 1.1em; line-height: 1.6; color: #1E293B; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -88,14 +88,12 @@ def obtener_usuarios_sheet():
         # 2. Abrimos el archivo por su nombre EXACTO
         archivo = client_gs.open("Usuarios_InmoApp")
         
-        # 3. Tomamos la PRIMERA hoja (índice 0) sin importar cómo se llame (Hoja 1, Sheet1, etc.)
+        # 3. Tomamos la PRIMERA hoja (índice 0)
         sheet = archivo.get_worksheet(0)
         
         return sheet.get_all_records()
 
     except Exception as e:
-        # Solo mostramos error si realmente falla la conexión, para no asustar al usuario
-        # st.error(f"⚠️ Error de conexión: {str(e)}")
         return []
 
 with st.sidebar:
@@ -106,32 +104,35 @@ with st.sidebar:
     limite_fotos = 1
     es_pro = False
     usuario_nombre = ""
+    creditos_disponibles = 0
     
     if codigo_acceso:
         usuarios_db = obtener_usuarios_sheet()
-        # Buscamos ignorando mayúsculas/minúsculas y espacios
         usuario_encontrado = next((u for u in usuarios_db if str(u.get('codigo', '')).strip().upper() == codigo_acceso.strip().upper()), None)
         
         if usuario_encontrado:
             plan_actual = usuario_encontrado.get('plan', 'GRATIS')
-            # Si el límite está vacío, ponemos 1 por defecto
+            # Leemos el límite del Excel
             limite_raw = usuario_encontrado.get('limite', 1)
             limite_fotos = int(limite_raw) if limite_raw != "" else 1
+            creditos_disponibles = limite_fotos
             
             usuario_nombre = usuario_encontrado.get('cliente', 'Usuario')
             es_pro = True
             st.session_state.ver_planes = False 
             
             st.success(f"✅ ¡Hola {usuario_nombre}!")
+            # --- NUEVO: MOSTRAR CRÉDITOS ---
+            st.info(f"🪙 Créditos: {creditos_disponibles}")
             
             if st.button("🔒 Cerrar Sesión"):
                 st.session_state.input_codigo = ""
                 st.rerun()
         else:
-            if usuarios_db: # Solo muestra error si la base de datos respondió
+            if usuarios_db: 
                 st.error("❌ Código no válido.")
             else:
-                st.warning("⚠️ Conectando con base de datos...")
+                st.warning("⚠️ Conectando...")
 
     st.divider()
     ver_precios = st.toggle("💎 Ver Planes y Precios", key="ver_planes")
@@ -188,13 +189,12 @@ uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], ac
 
 if uploaded_files:
     if len(uploaded_files) > limite_fotos:
-        st.error(f"⛔ Tu plan permite {limite_fotos} fotos. Has subido {len(uploaded_files)}. Elimina algunas para continuar.")
+        st.error(f"⛔ Tu límite es de {limite_fotos} fotos/créditos. Has subido {len(uploaded_files)}. Elimina algunas para continuar.")
         st.stop()
     
     with st.expander("👁️ Ver fotos cargadas", expanded=True):
         cols = st.columns(4)
         for i, f in enumerate(uploaded_files):
-            # Mostramos las fotos
             with cols[i%4]: st.image(Image.open(f), use_container_width=True)
 
     st.divider()
@@ -204,7 +204,7 @@ if uploaded_files:
         oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
         
-        # Estrategias (Quitamos nombres técnicos si el usuario prefiere)
+        # Estrategias
         opciones_estrategia = ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"]
         if not es_pro:
             opciones_estrategia = ["🔒 Bloqueado (Solo PRO)"]
@@ -237,58 +237,58 @@ if uploaded_files:
         # --- BOTÓN DE GENERACIÓN ---
         if st.button("✨ Generar Estrategia", type="primary"):
             if not ubicacion or not texto_precio:
-                st.warning("⚠️ Para generar, completa al menos Ubicación y Precio.")
+                st.warning("⚠️ Completa Ubicación y Precio.")
             else:
-                with st.spinner('🧠 La IA está redactando sin usar códigos raros...'):
+                with st.spinner('🧠 Redactando estrategia ganadora...'):
                     try:
-                        # PROMPT MODIFICADO: Pedimos formato limpio sin Markdown
-                        prompt = f"""Actúa como experto copywriter inmobiliario. Genera 3 opciones de texto para {oper} de {tipo} en {ubicacion}.
+                        # PROMPT MODIFICADO: SIN AIDA, SIN MARKDOWN
+                        prompt = f"""Actúa como copywriter inmobiliario experto. Crea 3 opciones de texto para {oper} de {tipo} en {ubicacion}.
                         
-                        OPCIÓN 1: Storytelling emotivo enfocado en ({enfoque}).
-                        OPCIÓN 2: Descripción de Venta Directa y persuasiva (NO uses el término AIDA, sé directo).
-                        OPCIÓN 3: Formato corto para Instagram/TikTok con hashtags.
+                        OPCIÓN 1: Storytelling emotivo ({enfoque}).
+                        OPCIÓN 2: Venta Directa y Persuasiva (Sé breve y contundente).
+                        OPCIÓN 3: Formato Instagram (Corto + Hashtags).
                         
-                        Datos: Precio: {texto_precio}. Extras: Quincho={q}, Piscina={p}, Cochera={c}. Habitaciones: {habs}. Baños: {banos}.
-                        Contacto: https://wa.me/595{whatsapp}.
+                        Datos: Precio: {texto_precio}. Extras: Quincho={q}, Piscina={p}, Cochera={c}. Hab: {habs}. Baños: {banos}.
+                        Link WhatsApp: https://wa.me/595{whatsapp}.
                         
-                        REGLA DE FORMATO: 
-                        - NO uses formato Markdown (no uses simbolos como #, **, ##). 
-                        - Usa emojis elegantes al inicio de los títulos y párrafos clave (ej: 📍, 💰, 🏡).
-                        - Separa las opciones claramente."""
+                        REGLAS DE FORMATO OBLIGATORIAS:
+                        1. NO uses símbolos de Markdown como #, ##, ***, **.
+                        2. Usa EMOJIS al principio de cada título o punto importante.
+                        3. Separa las opciones con una línea divisoria."""
                         
-                        # Preparamos contenido para OpenAI
                         content = [{"type": "text", "text": prompt}]
                         for f in uploaded_files:
-                            f.seek(0) # Reiniciamos archivo para leerlo
+                            f.seek(0)
                             content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}"}})
                         
-                        # Llamada a la IA
                         res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                         generated_text = res.choices[0].message.content
 
-                        # --- LIMPIEZA DE CÓDIGO (POST-PROCESAMIENTO) ---
-                        # Aseguramos que no queden rastros de Markdown
-                        cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️").replace("#", "🚀")
+                        # --- LIMPIEZA DE CÓDIGO (Reemplazo forzado de símbolos) ---
+                        cleaned_text = generated_text.replace("### ", "🔹 ").replace("###", "🔹")
+                        cleaned_text = cleaned_text.replace("## ", "🏘️ ").replace("##", "🏘️")
+                        cleaned_text = cleaned_text.replace("# ", "🚀 ").replace("#", "🚀")
                         cleaned_text = cleaned_text.replace("**", "") # Elimina negritas
-                        cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ") 
+                        cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
+                        cleaned_text = cleaned_text.replace("___", "〰️〰️〰️").replace("---", "〰️〰️〰️")
 
                         st.success("¡Estrategia lista! Copia el texto abajo.")
                         
                         # Mostramos el texto limpio
                         st.write(cleaned_text)
                         
-                        # --- MOSTRAMOS LAS FOTOS DE NUEVO AL FINAL ---
+                        # --- MOSTRAMOS LAS FOTOS AL FINAL ---
                         st.divider()
-                        st.caption("📸 Imágenes utilizadas para este análisis:")
+                        st.caption("📸 Fotos utilizadas:")
                         cols_out = st.columns(4)
                         for i, f in enumerate(uploaded_files):
-                             f.seek(0) # Reiniciamos puntero
+                             f.seek(0)
                              with cols_out[i%4]: st.image(Image.open(f), use_container_width=True)
 
                     except Exception as e:
                         st.error(f"Error al generar: {e}")
                         if "401" in str(e):
-                            st.error("⚠️ Tu llave de OpenAI es incorrecta. Actualízala en Secrets.")
+                            st.error("⚠️ Error de Llave: Verifica tu API KEY de OpenAI en Secrets.")
 
     else: 
         st.warning("⚠️ Vision IA Desactivada. Actualiza a PRO para generar.")

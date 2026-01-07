@@ -5,8 +5,49 @@ import io
 import os
 from openai import OpenAI
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏡", layout="centered")
+# --- CONFIGURACIÓN DE PÁGINA (NUEVO NOMBRE E ÍCONO) ---
+st.set_page_config(
+    page_title="VendeMás IA", # <--- NOMBRE ESTRATÉGICO EN LA PESTAÑA DEL NAVEGADOR
+    page_icon="🚀",           # <--- ÍCONO DE CRECIMIENTO
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
+
+# --- ESTILOS CSS PERSONALIZADOS (LOOK PREMIUM) ---
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f9f9f9;
+    }
+    h1 {
+        color: #1E3A8A; /* Azul Marino Profesional */
+        font-family: 'Helvetica Neue', sans-serif;
+    }
+    h3 {
+        color: #2563EB;
+    }
+    .stButton>button {
+        background-color: #2563EB;
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 10px 20px;
+        font-weight: bold;
+    }
+    .stButton>button:hover {
+        background-color: #1D4ED8;
+    }
+    /* Tarjetas de Planes */
+    .plan-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        border: 1px solid #e5e7eb;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- FUNCIÓN DE IMAGEN ---
 def encode_image(image):
@@ -20,10 +61,21 @@ def encode_image(image):
 if 'plan_elegido' not in st.session_state:
     st.session_state['plan_elegido'] = "10_desc" 
 
-# --- BARRA LATERAL ---
+# --- BARRA LATERAL (SIMULADOR) ---
 with st.sidebar:
-    st.header("⚙️ Admin")
-    plan_actual = st.selectbox("Plan Usuario:", ["GRATIS", "Pack Básico", "Pack Estándar", "Agencia"])
+    st.header("⚙️ Admin: Simulador")
+    # Mapeamos los nombres del selector a códigos internos
+    opcion_plan = st.selectbox("Plan Usuario:", ["GRATIS", "Pack Básico", "Pack Estándar", "Agencia"])
+    
+    # Lógica interna de límites
+    limites = {
+        "GRATIS": 1,
+        "Pack Básico": 3,
+        "Pack Estándar": 7,
+        "Agencia": 12
+    }
+    limite_fotos = limites[opcion_plan]
+    
     sin_creditos = st.checkbox("Simular: Sin Créditos", value=False)
     st.divider()
     ver_precios = st.toggle("👉 Ver Lista de Precios", value=False)
@@ -38,37 +90,60 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # =======================================================
-# === ZONA DE VENTAS (SOLO TRANSFERENCIA) ===
+# === ZONA DE VENTAS (ESTILO MEJORADO) ===
 # =======================================================
 if mostrar_pagos:
-    st.title("💎 Recarga tu Inmo-Redactor")
+    st.title("💎 Recarga tu VendeMás IA") # <--- CAMBIO AQUÍ TAMBIÉN
+    st.markdown("Elige el pack que mejor se adapte a tu volumen de ventas.")
     
     if sin_creditos:
-        st.error("⛔ ¡Se agotaron tus descripciones!")
-    
-    st.write("Selecciona un plan para ver los datos de pago:")
+        st.error("⛔ ¡Tus créditos se han agotado! Recarga para continuar.")
 
-    # BOTONES DE SELECCIÓN
+    # TARJETAS DE PRECIOS
     c1, c2, c3 = st.columns(3)
+    
     with c1:
-        st.info("🥉 **BÁSICO**\n\n**20.000 Gs**\n\n10 Anuncios")
-        if st.button("Pack 10", use_container_width=True):
+        st.markdown("""
+        <div class="plan-card">
+            <h3>🥉 Básico</h3>
+            <h2>20.000 Gs</h2>
+            <p>10 Anuncios</p>
+            <p>Max 3 Fotos</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Elegir Pack 10", use_container_width=True):
             st.session_state['plan_elegido'] = "10_desc"
             st.rerun()
+
     with c2:
-        st.warning("🥈 **ESTÁNDAR**\n\n**35.000 Gs**\n\n20 Anuncios")
-        if st.button("Pack 20", use_container_width=True):
+        st.markdown("""
+        <div class="plan-card" style="border: 2px solid #2563EB;">
+            <h3>🥈 Estándar</h3>
+            <h2>35.000 Gs</h2>
+            <p>20 Anuncios</p>
+            <p>Max 7 Fotos</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Elegir Pack 20", use_container_width=True):
             st.session_state['plan_elegido'] = "20_desc"
             st.rerun()
+
     with c3:
-        st.success("🥇 **AGENCIA**\n\n**80.000 Gs**\n\n200 Mensual")
-        if st.button("Mensual", use_container_width=True):
+        st.markdown("""
+        <div class="plan-card">
+            <h3>🥇 Agencia</h3>
+            <h2>80.000 Gs</h2>
+            <p>200 Mensual</p>
+            <p>Max 12 Fotos</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("Elegir Mensual", use_container_width=True):
             st.session_state['plan_elegido'] = "200_desc"
             st.rerun()
 
     st.divider()
 
-    # --- LÓGICA DE DATOS ---
+    # --- DATOS DE PAGO ---
     plan = st.session_state['plan_elegido']
     datos_plan = {
         "10_desc":  {"nombre": "Pack Básico",   "monto": "20.000 Gs"},
@@ -77,157 +152,161 @@ if mostrar_pagos:
     }
     info = datos_plan[plan]
     
-    # CARTEL GRANDE DE MONTO
-    st.markdown(f"""
-    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #ddd; margin-bottom: 20px;">
-        <h4 style="margin:0; color: #555;">Plan Seleccionado: {info['nombre']}</h4>
-        <h1 style="color: #28a745; font-size: 45px; margin: 10px 0;">{info['monto']}</h1>
-        <p style="color: #666;">Realiza la transferencia y envía el comprobante.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.info(f"👇 **Instrucciones para activar tu {info['nombre']}:**")
     
-    # --- ZONA DE DATOS BANCARIOS ---
-    st.subheader("🏦 Datos para Transferencia (SIPAP)")
+    c_datos, c_info = st.columns([1, 1])
     
-    st.write("👇 **Copia el Alias para transferir rápido:**")
-    st.code("RUC 1911221-1", language="text") 
-    
-    st.write("**Detalles de la cuenta:**")
-    st.text(f"""
-    Banco:      ITAÚ
-    Titular:    Ricardo Blanco
-    C.I:        1911221
-    Cuenta Nro: 320595209
-    """)
+    with c_datos:
+        st.subheader("🏦 Transferencia SIPAP")
+        st.write("Copia el Alias y transfiere el monto exacto.")
+        st.code("RUC 1911221-1", language="text") 
+        st.caption(f"Titular: Ricardo Blanco | C.I: 1911221 | Itaú: 320595209")
+        
+        st.markdown(f"**Monto a transferir:**")
+        st.markdown(f"# {info['monto']}")
 
-    # Link WhatsApp
-    msg_wa = f"Hola, ya transferí {info['monto']} por el {info['nombre']}. Aquí está mi comprobante."
-    link_wa = f"https://wa.me/595981000000?text={msg_wa.replace(' ', '%20')}"
-    
-    st.markdown("---")
-    st.markdown(f"""
-    <div style="text-align: center;">
-        <a href="{link_wa}" target="_blank" style="background-color: #25D366; color: white; padding: 15px 25px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 18px;">
-            📲 Enviar Comprobante por WhatsApp
+    with c_info:
+        msg_wa = f"Hola, ya transferí {info['monto']} por el {info['nombre']}. Aquí está mi comprobante."
+        link_wa = f"https://wa.me/595981000000?text={msg_wa.replace(' ', '%20')}"
+        
+        st.write("---")
+        st.write("📸 **Paso final:**")
+        st.markdown(f"""
+        <a href="{link_wa}" target="_blank" style="
+            display: inline-block;
+            background-color: #25D366;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 18px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        ">
+            📲 Enviar Comprobante WhatsApp
         </a>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     if sin_creditos:
         st.stop()
 
 # =======================================================
-# === APP PRINCIPAL (RESTO DEL CÓDIGO) ===
+# === APP PRINCIPAL ===
 # =======================================================
 
-st.title("🏡 Inmo-Redactor IA")
+# --- TÍTULO PRINCIPAL MODIFICADO ---
+st.title("🚀 VendeMás IA")
+st.caption("Tu redactor inmobiliario experto en cierres.")
 
-# Carteles de estado
-if plan_actual == "GRATIS":
-    st.warning("Plan: GRATIS (Limitado a 1 foto)")
-elif "Pack" in plan_actual:
-    st.info(f"Plan Activo: {plan_actual}")
-else:
-    st.success("Plan Activo: AGENCIA")
+# Barra de estado superior
+col_estado, col_limite = st.columns([3, 1])
+with col_estado:
+    if opcion_plan == "GRATIS":
+        st.warning("PLAN: GRATIS (Prueba)")
+    else:
+        st.success(f"PLAN: {opcion_plan.upper()}")
+with col_limite:
+    st.metric("Límite Fotos", f"{limite_fotos}")
 
 # --- 1. FOTOS ---
-st.write("#### 1. 📸 Fotos")
-uploaded_files = st.file_uploader("Sube fotos (Fachada, Interior, Patio)", type=["jpg", "png"], accept_multiple_files=True)
+st.write("#### 1. 📸 Galería de Imágenes")
+uploaded_files = st.file_uploader(
+    "Sube las fotos aquí", 
+    type=["jpg", "png"], 
+    accept_multiple_files=True,
+    help=f"Sube fotos de la fachada, interior y patio. Tu plan actual permite hasta {limite_fotos} fotos."
+)
 
 if uploaded_files:
     cant = len(uploaded_files)
     
-    # Restricción Gratis
-    if plan_actual == "GRATIS" and cant > 1:
-        st.error("🔒 El plan GRATIS solo permite 1 foto. Pásate a un Pack para subir galería completa.")
+    # --- VALIDACIÓN DE LÍMITES POR PLAN ---
+    if cant > limite_fotos:
+        st.error(f"⚠️ **Has subido {cant} fotos, pero tu plan {opcion_plan} solo permite {limite_fotos}.**")
+        st.info("💡 Consejo: Elimina algunas fotos o mejora tu plan en la barra lateral para subir más.")
         st.stop()
         
-    st.success(f"✅ {cant} fotos cargadas. La IA las analizará.")
+    st.success(f"✅ {cant}/{limite_fotos} fotos cargadas correctamente.")
     
-    # --- RECUPERADO: VISTA PREVIA DE FOTOS ---
-    cols = st.columns(3)
-    for i, file in enumerate(uploaded_files[:3]):
-        with cols[i]:
-            image = Image.open(file)
-            st.image(image, use_container_width=True)
+    # Vista previa elegante
+    with st.expander("👁️ Ver fotos cargadas", expanded=True):
+        cols = st.columns(4)
+        for i, file in enumerate(uploaded_files):
+            with cols[i % 4]: # Distribuye en 4 columnas
+                image = Image.open(file)
+                st.image(image, use_container_width=True)
     
     # --- 2. DATOS ---
     st.divider()
-    st.write("#### 2. 📝 Detalles del Inmueble")
+    st.write("#### 2. 📝 Datos de la Propiedad")
     
     c1, c2 = st.columns(2)
     with c1:
-        operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
-        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"])
-        ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
-        precio = st.text_input("Precio", placeholder="Gs / USD")
+        operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True, help="Elige si vendes o alquilas.")
+        tipo = st.selectbox("Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Quinta", "Estancia", "Local Comercial", "Duplex", "Penthouse"], help="Define la estructura para que la IA adapte el tono.")
+        ubicacion = st.text_input("Ubicación", placeholder="Ej: Barrio Villa Morra, Asunción", help="Sé específico para dar contexto.")
+        precio = st.text_input("Precio", placeholder="Gs 3.500.000 / USD 150.000", help="Incluye la moneda.")
         
-        if plan_actual != "GRATIS":
-            whatsapp = st.text_input("WhatsApp (Auto Link)", placeholder="0981...")
+        if opcion_plan != "GRATIS":
+            whatsapp = st.text_input("WhatsApp", placeholder="0981...", help="Número sin espacios. La IA creará un link directo.")
         else:
-            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True)
+            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True, help="Desbloquea esta función mejorando tu plan.")
 
     with c2:
-        habs = st.number_input("Habitaciones", 1)
-        banos = st.number_input("Baños", 1)
+        habs = st.number_input("Habitaciones", 1, help="Cantidad de dormitorios.")
+        banos = st.number_input("Baños", 1, help="Cantidad de sanitarios.")
         
-        st.write("**Extras Generales:**")
-        quincho = st.checkbox("Quincho")
-        piscina = st.checkbox("Piscina")
-        cochera = st.checkbox("Cochera")
+        st.write("**Extras:**")
+        quincho = st.checkbox("Quincho", help="Marca si tiene zona de asado techada.")
+        piscina = st.checkbox("Piscina", help="Marca si tiene pileta.")
+        cochera = st.checkbox("Cochera", help="Marca si tiene estacionamiento.")
         
-        # --- RECUPERADO: MENÚ COMPLETO DE ALQUILER ---
+        # --- MENÚ ALQUILER COMPLETO ---
         txt_servicios = ""
         if operacion == "Alquiler":
             st.write("---")
-            st.write("**🔌 Servicios y Climatización:**")
-            col_serv1, col_serv2 = st.columns(2)
-            with col_serv1:
-                inc_agua = st.checkbox("💧 Agua")
-                inc_luz = st.checkbox("⚡ Luz")
-                inc_aire = st.checkbox("❄️ Aire A.A.")
-            with col_serv2:
-                inc_wifi = st.checkbox("📶 Wifi")
-                inc_ventilador = st.checkbox("💨 Ventilador")
-            
-            # Construimos el texto de servicios para el prompt
-            servicios = []
-            if inc_agua: servicios.append("Agua")
-            if inc_luz: servicios.append("Luz")
-            if inc_aire: servicios.append("Aire Acondicionado")
-            if inc_wifi: servicios.append("Internet Wifi")
-            if inc_ventilador: servicios.append("Ventiladores")
-            txt_servicios = ", ".join(servicios)
+            st.write("**🔌 Servicios Incluidos:**")
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                if st.checkbox("💧 Agua"): txt_servicios += "Agua corriente, "
+                if st.checkbox("⚡ Luz"): txt_servicios += "Energía eléctrica, "
+                if st.checkbox("❄️ Aire A.A."): txt_servicios += "Aire Acondicionado, "
+            with col_s2:
+                if st.checkbox("📶 Wifi"): txt_servicios += "Internet Wifi, "
+                if st.checkbox("💨 Ventilador"): txt_servicios += "Ventiladores de techo, "
 
     # --- 3. GENERAR ---
     st.divider()
     
     # Información de Vision IA
     if uploaded_files:
-        st.info("👁️ **Vista de Águila Activada:** La IA analizará los materiales, pisos e iluminación de tus fotos.")
+        st.info("👁️ **Vision IA Activada:** Analizando materiales, iluminación y espacios...")
 
-    if st.button("✨ Generar Anuncio Vendedor"):
+    if st.button("✨ Redactar Anuncio Vendedor", help="Haz clic para que la IA analice las fotos y escriba el texto."):
         if not ubicacion or not precio:
             st.warning("⚠️ Faltan datos básicos (Ubicación o Precio).")
         else:
-            with st.spinner('🤖 Analizando fotos y redactando...'):
+            with st.spinner('🤖 La IA está observando tus fotos y escribiendo el mejor anuncio...'):
                 try:
-                    # PROMPT COMPLETO RECUPERADO
+                    # PROMPT PROFESIONAL
                     prompt = f"""
-                    Actúa como experto copywriter inmobiliario en Paraguay.
+                    Actúa como copywriter inmobiliario senior.
                     
-                    TAREA:
-                    1. (VISION IA) Analiza DETALLADAMENTE las imágenes adjuntas. Describe lo que ves: tipo de piso, iluminación, estilo de cocina, fachada, jardín.
-                    2. Escribe un anuncio persuasivo de {operacion} de {tipo} en {ubicacion}.
-                    3. DATOS: Precio {precio}. {habs} habs, {banos} baños. Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
-                    4. {f'SERVICIOS INCLUIDOS: {txt_servicios}' if operacion == 'Alquiler' and txt_servicios else ''}
-                    5. {f'LINK WHATSAPP: https://wa.me/595{whatsapp}' if whatsapp else 'Sin link de WhatsApp'}
+                    TAREA VISUAL:
+                    Analiza las {cant} imágenes adjuntas. Describe con adjetivos sensoriales lo que ves (pisos, luz natural, amplitud, estilo de cocina, fachada).
                     
-                    ESTRUCTURA:
-                    - Título Gancho (con Emojis).
-                    - Descripción Emocional (Mezcla lo que VES en las fotos con los datos).
-                    - Lista de Características Clave.
-                    - Cierre con llamado a la acción.
+                    TAREA DE REDACCIÓN:
+                    Escribe un anuncio persuasivo para {operacion} de {tipo} en {ubicacion}.
+                    
+                    DATOS TÉCNICOS:
+                    - Precio: {precio}
+                    - {habs} habitaciones, {banos} baños.
+                    - Extras: Quincho={quincho}, Piscina={piscina}, Cochera={cochera}.
+                    - {f'Servicios incluidos: {txt_servicios}' if operacion == 'Alquiler' and txt_servicios else ''}
+                    
+                    CIERRE:
+                    - Llamado a la acción claro.
+                    - {f'Link directo: https://wa.me/595{whatsapp}' if whatsapp else ''}
                     """
                     
                     content = [{"type": "text", "text": prompt}]
@@ -239,10 +318,10 @@ if uploaded_files:
                     response = client.chat.completions.create(
                          model="gpt-4o-mini",
                          messages=[{"role": "user", "content": content}],
-                         max_tokens=800
+                         max_tokens=900
                     )
-                    st.success("¡Anuncio generado!")
-                    st.text_area("Copia tu texto aquí:", value=response.choices[0].message.content, height=600)
+                    st.success("¡Anuncio listo para copiar!")
+                    st.text_area("Tu descripción vendedora:", value=response.choices[0].message.content, height=600)
 
                 except Exception as e:
                     st.error(f"Error: {e}")

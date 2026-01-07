@@ -73,22 +73,26 @@ client = OpenAI(api_key=api_key)
 @st.cache_data(ttl=10) 
 def obtener_usuarios_sheet():
     try:
-        # Convertimos los secretos a un diccionario real
+        # 1. Cargamos los secretos
         creds_info = dict(st.secrets["gcp_service_account"])
         
-        # Definimos los permisos (alcance)
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        # 2. LIMPIEZA AUTOMÁTICA (Crucial para que no de error de padding)
+        # Si la llave tiene "\\n" (escapados), los convertimos en saltos de línea reales
+        if "private_key" in creds_info:
+            creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
         
-        # Generamos las credenciales desde el diccionario
+        # 3. Conectamos
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_info, scope)
         client_gs = gspread.authorize(creds)
         
-        # Abrimos la hoja. El nombre debe ser idéntico al de tu Google Drive.
+        # 4. Abrimos la hoja (Verifica el nombre "Usuarios_InmoApp" en tu Drive)
         sheet = client_gs.open("Usuarios_InmoApp").sheet1
         return sheet.get_all_records()
+
     except Exception as e:
-        # Esto mostrará el error real en la barra lateral
-        st.error(f"Error de acceso: {str(e)}")
+        # Si falla, muestra el error exacto
+        st.error(f"⚠️ Error de conexión: {str(e)}")
         return []
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -225,6 +229,7 @@ if uploaded_files:
                     st.text_area("Resultado:", value=res.choices[0].message.content, height=400)
                 except Exception as e:
                     st.error(f"Error: {e}")
+
 
 
 

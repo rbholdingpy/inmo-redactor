@@ -7,16 +7,16 @@ from openai import OpenAI
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏡", layout="centered")
 
-# --- SIMULACIÓN DE SISTEMA DE USUARIOS (Barra Lateral) ---
+# --- BARRA LATERAL (SIMULADOR DE PLANES) ---
 with st.sidebar:
     st.header("⚙️ Panel de Control")
     tipo_plan = st.radio("Simular Plan del Usuario:", ["GRATIS (Free)", "PREMIUM (Pro)"])
     
     st.divider()
     if tipo_plan == "GRATIS (Free)":
-        st.warning("🔒 Límite: 1 Foto por anuncio.")
+        st.warning("🔒 Límite: 1 Foto. Sin análisis de servicios.")
     else:
-        st.success("🔓 Modo Galería: Múltiples fotos activado.")
+        st.success("🔓 Modo PRO: Galería de fotos + WhatsApp + Análisis Completo.")
 
 # --- API KEY ---
 api_key = st.secrets.get("OPENAI_API_KEY")
@@ -35,92 +35,138 @@ def encode_image(image):
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-# --- 1. CARGA DE IMAGENES (Lógica Diferenciada) ---
+# --- 1. CARGA DE IMAGENES ---
 st.write("#### 1. 📸 Fotos del Inmueble")
 
 if tipo_plan == "PREMIUM (Pro)":
-    uploaded_files = st.file_uploader("Sube todas las fotos (Fachada, Interior, Patio)", type=["jpg", "png"], accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Sube la galería completa (Fachada, Interior, Patio)", type=["jpg", "png"], accept_multiple_files=True)
 else:
-    uploaded_files = st.file_uploader("Sube la foto principal (Fachada)", type=["jpg", "png"], accept_multiple_files=False)
-    # Si sube una, la convertimos en lista para que el código de abajo funcione igual
+    uploaded_files = st.file_uploader("Sube la foto principal", type=["jpg", "png"], accept_multiple_files=False)
     if uploaded_files:
-        uploaded_files = [uploaded_files] 
+        uploaded_files = [uploaded_files] # Convertir a lista
 
-# Mostrar vista previa
+# Vista previa
 if uploaded_files:
     cant = len(uploaded_files)
-    st.info(f"✅ {cant} foto(s) cargada(s) para análisis.")
+    st.info(f"✅ {cant} foto(s) lista(s) para análisis.")
     
-    # Mostramos las primeras 3 como ejemplo visual
     cols = st.columns(3)
     for i, file in enumerate(uploaded_files[:3]):
         with cols[i]:
             image = Image.open(file)
             st.image(image, use_container_width=True)
 
-    # --- 2. FORMULARIO DE DATOS ---
+    # --- 2. DATOS DEL INMUEBLE ---
     st.divider()
     st.write("#### 2. 📝 Detalles")
 
     col1, col2 = st.columns(2)
     
+    # --- COLUMNA 1: DATOS GENERALES ---
     with col1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
-        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Quinta", "Terreno"])
-        ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
-        precio = st.text_input("Precio", placeholder="Gs o USD")
         
-        # WhatsApp (Solo PRO)
+        # === LISTA DE TIPOS AMPLIADA ===
+        lista_tipos = [
+            "Casa", "Departamento", "Duplex", 
+            "Terreno", "Quinta", "Estancia",
+            "Penthouse", "Loft", "Monoambiente",
+            "Oficina", "Local Comercial", "Galpón/Depósito", "Edificio"
+        ]
+        tipo = st.selectbox("Tipo de Propiedad", lista_tipos)
+        
+        ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
+        
+        placeholder_precio = "Gs mensuales" if operacion == "Alquiler" else "Gs / USD"
+        precio = st.text_input("Precio", placeholder=placeholder_precio)
+        
+        # WhatsApp (Lógica Pro)
+        st.write("---")
         if tipo_plan == "PREMIUM (Pro)":
             whatsapp = st.text_input("📞 WhatsApp (Link automático)", placeholder="0981...")
         else:
             whatsapp = st.text_input("📞 WhatsApp", placeholder="🔒 Solo PREMIUM", disabled=True)
 
+    # --- COLUMNA 2: AMENITIES Y SERVICIOS ---
     with col2:
         habs = st.number_input("Habitaciones", 1)
         banos = st.number_input("Baños", 1)
-        st.write("**Extras:**")
+        
+        st.write("**Extras Generales:**")
         quincho = st.checkbox("Quincho")
         piscina = st.checkbox("Piscina")
-        
-        # Visión IA (Información visual)
-        if tipo_plan == "PREMIUM (Pro)":
-            st.success(f"👁️ **Visión PRO activada:** La IA analizará las {cant} fotos para describir ambientes y materiales.")
-        else:
-            st.warning("👁️ **Visión Limitada:** La IA solo ve la fachada. Pásate a PRO para análisis de interiores.")
+        cochera = st.checkbox("Cochera")
 
-    # --- 3. BOTÓN DE ACCIÓN ---
+        # --- SECCIÓN SERVICIOS DE ALQUILER ---
+        inc_agua = False; inc_luz = False; inc_wifi = False; inc_aire = False; inc_ventilador = False
+
+        if operacion == "Alquiler":
+            st.write("---")
+            st.write("**🔌 Incluye / Climatización:**")
+            col_serv1, col_serv2 = st.columns(2)
+            with col_serv1:
+                inc_agua = st.checkbox("💧 Agua")
+                inc_luz = st.checkbox("⚡ Luz")
+                inc_aire = st.checkbox("❄️ Aire A.A.")
+            with col_serv2:
+                inc_wifi = st.checkbox("📶 Wifi")
+                inc_ventilador = st.checkbox("💨 Ventilador")
+        
+        # Visión IA info
+        st.write("---")
+        if tipo_plan == "PREMIUM (Pro)":
+            st.caption("✅ **Visión PRO:** Analizando todas las fotos.")
+        else:
+            st.caption("⚠️ **Visión Básica:** Solo analiza la fachada.")
+
+    # --- 3. BOTÓN GENERAR ---
     st.divider()
     btn_text = "✨ Redactar Anuncio Completo" if tipo_plan == "PREMIUM (Pro)" else "Generar Descripción Simple"
     
     if st.button(btn_text):
         if not ubicacion or not precio:
-            st.warning("Faltan datos básicos.")
+            st.warning("⚠️ Faltan datos básicos (Ubicación o Precio).")
         else:
-            with st.spinner('🤖 Analizando galería de fotos y redactando...'):
+            with st.spinner('🤖 Analizando fotos y redactando...'):
                 try:
-                    # PREPARAR EL MENSAJE PARA LA API
-                    # 1. Texto del Prompt
+                    # PREPARAR DATOS PARA EL PROMPT
+                    extras_list = []
+                    if quincho: extras_list.append("Quincho")
+                    if piscina: extras_list.append("Piscina")
+                    if cochera: extras_list.append("Cochera")
+                    txt_extras = ", ".join(extras_list) if extras_list else "Estándar"
+
+                    servicios_list = []
+                    if operacion == "Alquiler":
+                        if inc_agua: servicios_list.append("Agua")
+                        if inc_luz: servicios_list.append("Luz")
+                        if inc_wifi: servicios_list.append("Internet Wifi")
+                        if inc_aire: servicios_list.append("Aire Acondicionado (A.A.)")
+                        if inc_ventilador: servicios_list.append("Ventiladores")
+                    txt_servicios = ", ".join(servicios_list) if servicios_list else "No especificado"
+
+                    # 1. TEXTO DEL PROMPT
                     prompt_text = f"""
-                    Actúa como experto copywriter inmobiliario.
+                    Actúa como experto copywriter inmobiliario en Paraguay.
                     
                     TAREA:
-                    1. Analiza TODAS las imágenes proporcionadas. Integra detalles de la fachada, el interior (pisos, luces, cocina) y el patio.
-                    2. Escribe un anuncio persuasivo de {operacion} de {tipo} en {ubicacion}.
-                    3. Precio: {precio}. {habs} habs, {banos} baños.
-                    4. { 'Crea link de WhatsApp: https://wa.me/595' + whatsapp if tipo_plan == "PREMIUM (Pro)" else 'NO incluyas link de WhatsApp.' }
+                    1. Analiza TODAS las imágenes adjuntas. Describe estilo, pisos, iluminación y detalles visuales reales.
+                    2. Escribe un anuncio persuasivo para {operacion} de {tipo} en {ubicacion}.
+                    3. DATOS: Precio {precio}. {habs} habs, {banos} baños. Extras: {txt_extras}.
+                    4. { 'SERVICIOS INCLUIDOS / CLIMA: ' + txt_servicios if operacion == "Alquiler" else '' }
+                    5. { 'LINK WHATSAPP: https://wa.me/595' + whatsapp if tipo_plan == "PREMIUM (Pro)" else 'NO pongas link de WhatsApp.' }
                     
                     ESTRUCTURA:
-                    - Título Gancho (con Emojis).
-                    - Descripción Emocional (Menciona lo que ves en las fotos: "Cocina con mesada de granito...", "Amplio patio con...").
-                    - Lista de Características.
-                    - Cierre.
+                    - Título Gancho con emojis.
+                    - Cuerpo del texto (Mezcla la descripción visual de las fotos con los datos técnicos).
+                    - { 'Si tiene A.A. o incluye luz/agua, ¡DESTÁCALO!' if operacion == "Alquiler" else '' }
+                    - { 'Si es PENTHOUSE o ESTANCIA, usa un tono de alto lujo/exclusividad.' if tipo in ["Penthouse", "Estancia"] else '' }
+                    - Cierre fuerte.
                     """
 
-                    # 2. Construir el contenido del mensaje (Texto + Lista de Imágenes)
+                    # 2. CONSTRUIR MENSAJE (TEXTO + IMÁGENES)
                     content_content = [{"type": "text", "text": prompt_text}]
                     
-                    # Recorremos cada foto subida, la codificamos y la agregamos al mensaje
                     for file in uploaded_files:
                         img = Image.open(file)
                         b64 = encode_image(img)
@@ -129,24 +175,16 @@ if uploaded_files:
                             "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
                         })
 
-                    # 3. Llamada a la API
+                    # 3. LLAMADA A LA API
                     response = client.chat.completions.create(
                         model="gpt-4o-mini",
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": content_content
-                            }
-                        ],
+                        messages=[{"role": "user", "content": content_content}],
                         max_tokens=800,
                     )
                     
                     res_text = response.choices[0].message.content
-                    st.success("¡Anuncio generado con éxito!")
+                    st.success("¡Anuncio generado!")
                     st.text_area("Copia tu texto:", value=res_text, height=600)
-                    
-                    if tipo_plan == "GRATIS (Free)":
-                        st.info("💡 Consejo: Con el plan PRO podrías subir fotos de la cocina y los baños para que la IA los describa automáticamente.")
 
                 except Exception as e:
                     st.error(f"Error: {e}")

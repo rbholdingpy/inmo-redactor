@@ -27,7 +27,6 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* TARJETAS DE PLANES */
     .plan-basic {
         background-color: #F8FAFC; border: 2px solid #475569; color: #334155;
         padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
@@ -76,7 +75,7 @@ def cerrar_sesion():
     st.session_state['usuario_activo'] = None
     st.session_state['plan_seleccionado'] = None
     st.session_state['ver_planes'] = False
-    st.session_state['pedido_registrado'] = False # Reseteamos estado pedido
+    st.session_state['pedido_registrado'] = False
 
 # --- CALLBACKS DE NAVEGACIÓN ---
 def ir_a_planes():
@@ -151,7 +150,11 @@ def descontar_credito(codigo_usuario):
         cell = sheet.find(str(codigo_usuario))
         if cell:
             headers = sheet.row_values(1)
-            col_limite = headers.index('limite') + 1 
+            try:
+                col_limite = headers.index('limite') + 1 
+            except ValueError:
+                return False
+            
             valor_actual = sheet.cell(cell.row, col_limite).value
             if valor_actual and int(valor_actual) > 0:
                 nuevo_saldo = int(valor_actual) - 1
@@ -161,9 +164,9 @@ def descontar_credito(codigo_usuario):
         return False
     return False
 
-# --- NUEVA FUNCIÓN: REGISTRAR PEDIDO ---
+# --- NUEVA FUNCIÓN CORREGIDA: REGISTRAR PEDIDO ---
 def registrar_pedido(nombre, apellido, email, telefono, plan):
-    """Guarda los datos del cliente en el Sheet con estado PENDIENTE"""
+    """Guarda los datos respetando el orden EXACTO de tus columnas"""
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
@@ -171,17 +174,18 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
         nombre_completo = f"{nombre} {apellido}"
         
-        # Estructura de fila: [Fecha, Cliente, Codigo, Plan, Limite, Telefono, Correo, Estado]
-        # Dejamos 'codigo' y 'limite' vacíos o con marcadores para que el admin los llene
+        # ORDEN DE TU EXCEL:
+        # A: codigo | B: cliente | C: plan | D: limite | E: telefono | F: correo | G: estado | H: fecha (nuevo)
+        
         nueva_fila = [
-            fecha, 
-            nombre_completo, 
-            "PENDIENTE-PAGO", # Código temporal
-            plan, 
-            "0", # Límite inicial
-            telefono,
-            email,
-            "NUEVO PEDIDO" # Estado
+            "PENDIENTE",      # A: codigo
+            nombre_completo,  # B: cliente
+            plan,             # C: plan
+            0,                # D: limite (inicia en 0)
+            telefono,         # E: telefono
+            email,            # F: correo
+            "NUEVO PEDIDO",   # G: estado
+            fecha             # H: fecha (agregado al final)
         ]
         
         sheet.append_row(nueva_fila)
@@ -245,7 +249,7 @@ with st.sidebar:
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS (FLUJO MEJORADO CON REGISTRO) ===
+# === 💎 ZONA DE VENTAS ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
@@ -271,7 +275,7 @@ if st.session_state.ver_planes:
     else:
         st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
         
-        # Si aún no ha registrado sus datos, mostramos el formulario
+        # Formulario de registro si no está registrado
         if not st.session_state.pedido_registrado:
             st.write("### 📝 Paso 1: Tus Datos")
             st.write("Necesitamos saber quién eres para generarte tu código de acceso.")
@@ -280,7 +284,7 @@ if st.session_state.ver_planes:
                 c_nom, c_ape = st.columns(2)
                 nombre = c_nom.text_input("Nombre")
                 apellido = c_ape.text_input("Apellido")
-                email = st.text_input("Correo Electrónico (Aquí te enviaremos tu código)")
+                email = st.text_input("Correo Electrónico")
                 telefono = st.text_input("Número de WhatsApp")
                 
                 submitted = st.form_submit_button("✅ Confirmar y Ver Datos de Pago", type="primary")
@@ -291,7 +295,6 @@ if st.session_state.ver_planes:
                             exito = registrar_pedido(nombre, apellido, email, telefono, st.session_state.plan_seleccionado)
                             if exito:
                                 st.session_state.pedido_registrado = True
-                                # Guardamos datos temporales para el mensaje de whatsapp
                                 st.session_state['temp_nombre'] = f"{nombre} {apellido}"
                                 st.rerun()
                     else:
@@ -299,7 +302,7 @@ if st.session_state.ver_planes:
             
             st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
 
-        # Si YA registró datos, mostramos el banco y el botón final
+        # Mostrar pago
         else:
             st.success("✅ **¡Datos recibidos!** Tu solicitud ha sido registrada.")
             st.write("### 💳 Paso 2: Realiza el Pago")
@@ -401,10 +404,8 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
-    opciones_estrategia = ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"]
-    
     if es_pro:
-        enfoque = st.selectbox("🎯 Estrategia", opciones_estrategia)
+        enfoque = st.selectbox("🎯 Estrategia", ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"])
     else:
         enfoque = st.selectbox("🎯 Estrategia", ["🔒 Estándar (Solo PRO)"], disabled=True)
         enfoque = "Venta Estándar"

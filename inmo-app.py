@@ -88,7 +88,7 @@ if verificar_acceso():
                 with st.spinner('🤖 La IA está analizando la foto y escribiendo el copy...'):
                     try:
                         # Configuración del modelo (Gemini 1.5 Flash es rápido y barato)
-                       model = genai.GenerativeModel('gemini-1.5-flash')
+                        model = genai.GenerativeModel('gemini-1.5-flash')
                         
                         prompt = f"""
                         Eres un experto copywriter inmobiliario con 20 años de experiencia.
@@ -115,9 +115,4 @@ if verificar_acceso():
                         st.text_area("Copia tu texto aquí:", value=response.text, height=350)
                         
                     except Exception as e:
-
                         st.error(f"Ocurrió un error al conectar con Google: {e}")
-
-
-
-

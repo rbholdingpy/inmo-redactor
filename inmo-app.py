@@ -219,7 +219,7 @@ if st.session_state.ver_planes:
             <b>Titular:</b> Ricardo Blanco <br>
             <b>C.I.:</b> 1911221 <br>
             <b>Cuenta:</b> 320595209 <br>
-            <b>RUC:</b> 1911221-1
+            <b>ALIAS:RUC</b> 1911221-1
             </div>
             """, unsafe_allow_html=True)
             
@@ -375,3 +375,4 @@ if uploaded_files:
         st.subheader("¿Terminaste con esta propiedad?")
         if st.button("🔄 Analizar Otra Propiedad (Limpiar Pantalla)", type="secondary", on_click=limpiar_formulario):
              pass
+

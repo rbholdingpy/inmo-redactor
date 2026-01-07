@@ -127,10 +127,18 @@ if not st.session_state['tutorial_visto']:
         st.session_state['tutorial_visto'] = True
         st.rerun()
 
-# Estado
-c_st, c_lim = st.columns([3, 1])
-c_st.success(f"PLAN: {opcion_plan.upper()}") if opcion_plan != "GRATIS" else c_st.warning("PLAN: GRATIS")
-c_lim.metric("Límite", f"{limite_fotos} Fotos")
+# --- BARRA DE ESTADO (CORREGIDA PARA EVITAR ERROR DELTA) ---
+col_estado, col_limite = st.columns([3, 1])
+
+# Aquí estaba el error. Ahora lo hacemos paso a paso:
+with col_estado:
+    if opcion_plan != "GRATIS":
+        st.success(f"PLAN: {opcion_plan.upper()}")
+    else:
+        st.warning("PLAN: GRATIS")
+
+with col_limite:
+    st.metric("Límite", f"{limite_fotos} Fotos")
 
 # 1. FOTOS
 st.write("#### 1. 📸 Galería")
@@ -154,7 +162,7 @@ if uploaded_files:
     with c1:
         operacion = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         
-        # --- NUEVA LÓGICA: DUEÑO vs AGENCIA ---
+        # LÓGICA: DUEÑO vs AGENCIA
         nombre_agencia = ""
         tipo_gestion = ""
         if operacion == "Alquiler":
@@ -172,7 +180,11 @@ if uploaded_files:
         
         ubicacion = st.text_input("Ubicación", placeholder="Ej: Villa Morra")
         precio = st.text_input("Precio", placeholder="Gs / USD")
-        whatsapp = st.text_input("WhatsApp", placeholder="0981...") if opcion_plan != "GRATIS" else st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True)
+        
+        if opcion_plan != "GRATIS":
+            whatsapp = st.text_input("WhatsApp", placeholder="0981...")
+        else:
+            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Planes Pagos", disabled=True)
 
     with c2:
         habs = st.number_input("Habitaciones", 1)
@@ -202,7 +214,7 @@ if uploaded_files:
         else:
             with st.spinner('🤖 Redactando estrategia...'):
                 try:
-                    # PREPARAR INFORMACIÓN DE GESTIÓN PARA EL PROMPT
+                    # PREPARAR INFORMACIÓN DE GESTIÓN
                     info_gestion = ""
                     if operacion == "Alquiler":
                         if tipo_gestion == "Propietario Directo":
@@ -212,7 +224,7 @@ if uploaded_files:
                         else:
                             info_gestion = "Gestión inmobiliaria profesional."
 
-                    # PROMPT ACTUALIZADO
+                    # PROMPT
                     prompt = f"""
                     Actúa como copywriter inmobiliario senior.
                     
@@ -223,7 +235,7 @@ if uploaded_files:
                     
                     TAREA REDACCIÓN: Anuncio para {operacion} de {tipo} en {ubicacion}.
                     
-                    DATOS DE GESTIÓN (Importante):
+                    DATOS DE GESTIÓN:
                     {info_gestion}
                     
                     DATOS TÉCNICOS:

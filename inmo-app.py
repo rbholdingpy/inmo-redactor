@@ -64,21 +64,26 @@ if uploaded_file is not None:
         amoblado = st.checkbox("🛋️ Amoblado")
 
         # --- SECCIÓN EXCLUSIVA PARA ALQUILER ---
+        # Inicializamos variables en False para que no den error si es Venta
         inc_agua = False
         inc_luz = False
         inc_wifi = False
         inc_cable = False
+        inc_aire = False
+        inc_ventilador = False
 
         if tipo_operacion == "Alquiler":
             st.markdown("---")
-            st.write("**🔌 Servicios Incluidos en el precio:**")
+            st.write("**🔌 Incluye / Equipamiento:**")
             col_serv1, col_serv2 = st.columns(2)
             with col_serv1:
                 inc_agua = st.checkbox("💧 Agua")
                 inc_luz = st.checkbox("⚡ Luz")
+                inc_aire = st.checkbox("❄️ Aire Acondicionado")
             with col_serv2:
                 inc_wifi = st.checkbox("📶 Wifi")
                 inc_cable = st.checkbox("📺 TV Cable")
+                inc_ventilador = st.checkbox("💨 Ventilador(es)")
 
     # Estrategia de venta
     st.write("---")
@@ -117,6 +122,8 @@ if uploaded_file is not None:
                         if inc_luz: servicios.append("Luz")
                         if inc_wifi: servicios.append("Internet Wifi")
                         if inc_cable: servicios.append("TV Cable")
+                        if inc_aire: servicios.append("Aire Acondicionado (A.A.)")
+                        if inc_ventilador: servicios.append("Ventiladores de techo/pie")
                     
                     texto_extras = ", ".join(extras) if extras else "No especificado"
                     texto_servicios = ", ".join(servicios) if servicios else "No incluye servicios extra"
@@ -133,13 +140,14 @@ if uploaded_file is not None:
                     - Dimensiones: {m2}
                     - Habitaciones: {habitaciones} | Baños: {banos}
                     - Amenities: {texto_extras}
-                    - SERVICIOS INCLUIDOS: {texto_servicios} (Si la lista no está vacía, DESTÁCALO como un gran beneficio de ahorro).
+                    - INCLUYE / EQUIPAMIENTO: {texto_servicios} (Si incluye A.A. o Ventiladores, destácalo como "Ambientes Climatizados" o "Listo para el verano").
                     - Enfoque: {objetivo}
 
                     INSTRUCCIONES:
-                    1. Si incluye servicios (Luz, Agua, Wifi), véndelo como "Olvídate de pagar facturas extra" o "Entra a vivir ya".
-                    2. Estructura visual: Título gancho, Descripción emotiva, Lista de beneficios con emojis, Precio y Contacto.
-                    3. Tono paraguayo profesional (cercano).
+                    1. Si incluye servicios (Luz, Agua, Wifi), véndelo como "Olvídate de pagar facturas extra".
+                    2. Si tiene Aire Acondicionado, menciónalo con emojis de frío ❄️ (clave en Paraguay).
+                    3. Estructura visual: Título gancho, Descripción emotiva, Lista de beneficios, Precio y Contacto.
+                    4. Tono paraguayo profesional (cercano).
                     """
 
                     response = client.chat.completions.create(
@@ -152,18 +160,3 @@ if uploaded_file is not None:
                                     {
                                         "type": "image_url",
                                         "image_url": {
-                                            "url": f"data:image/jpeg;base64,{base64_image}"
-                                        },
-                                    },
-                                ],
-                            }
-                        ],
-                        max_tokens=650,
-                    )
-
-                    generated_text = response.choices[0].message.content
-                    st.success("¡Anuncio generado!")
-                    st.text_area("Copia tu texto aquí:", value=generated_text, height=550)
-                
-                except Exception as e:
-                    st.error(f"Error: {e}")

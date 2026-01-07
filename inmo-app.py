@@ -56,7 +56,10 @@ def encode_image(image):
 if 'tutorial_visto' not in st.session_state:
     st.session_state['tutorial_visto'] = False
 
-# Inicializamos el estado del toggle de precios para poder controlarlo desde el botón
+# Esta es la función mágica que arregla el error del botón PRO
+def activar_planes():
+    st.session_state.ver_planes = True
+
 if 'ver_planes' not in st.session_state:
     st.session_state['ver_planes'] = False
 
@@ -125,7 +128,7 @@ with st.sidebar:
     st.divider()
     st.markdown("¿No tienes código?")
     
-    # --- AQUÍ ESTÁ EL TRUCO: Conectamos el toggle al estado 'ver_planes' ---
+    # Toggle conectado al estado 'ver_planes'
     ver_precios = st.toggle("💎 Ver Planes y Precios", key="ver_planes")
     
     st.caption("© 2026 VendeMás IA")
@@ -167,16 +170,13 @@ with c_badge:
     if es_pro:
         st.markdown(f'<div style="text-align:right"><span class="pro-badge">PLAN {plan_actual.upper()}</span></div>', unsafe_allow_html=True)
     else:
-        # --- BOTÓN INTERACTIVO PARA IR A VENTAS ---
-        # Usamos columnas anidadas para alinear a la derecha
+        # BOTONES ALINEADOS
         col_espacio, col_gratis, col_pro = st.columns([0.2, 1, 1])
         with col_gratis:
              st.markdown('<div style="margin-top: 10px; text-align: center;"><span style="background-color:#F1F5F9; color:#64748B; padding:8px 12px; border-radius:20px; font-size:0.8em;">GRATIS</span></div>', unsafe_allow_html=True)
         with col_pro:
-            # Este botón activa la sección de precios
-            if st.button("💎 SER PRO", type="primary", use_container_width=True):
-                st.session_state['ver_planes'] = True # Activamos el toggle
-                st.rerun() # Recargamos la página para mostrar los precios
+            # BOTÓN PRO CORREGIDO con on_click
+            st.button("💎 SER PRO", type="primary", on_click=activar_planes, use_container_width=True)
 
 # 1. GALERÍA
 st.write("#### 1. 📸 Galería")

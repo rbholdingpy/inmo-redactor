@@ -8,11 +8,10 @@ from openai import OpenAI
 st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏠")
 
 # Título y Subtítulo
-st.title("🏠 Inmo-Redactor IA (Versión OpenAI)")
-st.write("Sube una foto y deja que la Inteligencia Artificial escriba el anuncio perfecto.")
+st.title("🏠 Inmo-Redactor IA (Versión Pro)")
+st.write("Sube una foto y completa los detalles para crear el anuncio perfecto.")
 
 # --- BARRA LATERAL (Clave API) ---
-# Intentamos obtener la clave de los secretos de Streamlit
 api_key = st.secrets.get("OPENAI_API_KEY")
 
 if not api_key:
@@ -23,58 +22,82 @@ client = OpenAI(api_key=api_key)
 
 # --- PASO 1: CARGA DE IMAGEN ---
 st.header("1. 📸 Sube la foto del inmueble")
-uploaded_file = st.file_uploader("Elige una imagen (JPG o PNG)", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Elige una imagen principal", type=["jpg", "jpeg", "png"])
 
-# Función para convertir imagen a base64 (necesario para OpenAI)
 def encode_image(image):
     buffered = io.BytesIO()
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 if uploaded_file is not None:
-    # Mostrar la imagen
     image = Image.open(uploaded_file)
     st.image(image, caption="Imagen cargada", use_container_width=True)
-    
-    # Procesar imagen para OpenAI
     base64_image = encode_image(image)
 
     # --- PASO 2: DATOS BÁSICOS ---
     st.divider()
-    st.header("2. 📝 Datos Básicos")
+    st.header("2. 📝 Detalles de la Propiedad")
 
+    # Columnas para organizar mejor los datos
     col1, col2 = st.columns(2)
+
     with col1:
         ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: Villa Morra, Asunción")
         precio = st.text_input("💰 Precio", placeholder="Ej: 750.000.000 Gs")
+        tipo_inmueble = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Duplex", "Oficina"])
+        m2 = st.text_input("📏 Superficie (m2)", placeholder="Ej: 360 m2 terreno / 200 m2 construidos")
+
     with col2:
-        tipo_inmueble = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Oficina", "Duplex"])
-        objetivo = st.radio("🎯 Objetivo del Texto", ["Venta Rápida (Urgente)", "Lujo/Prestigio", "Oportunidad de Inversión"])
+        habitaciones = st.number_input("🛏️ Habitaciones", min_value=0, value=3, step=1)
+        banos = st.number_input("🚿 Baños", min_value=0, value=2, step=1)
+        st.write("**✨ Amenities / Extras:**")
+        tiene_quincho = st.checkbox("🍖 Tiene Quincho")
+        tiene_piscina = st.checkbox("🏊 Tiene Piscina")
+        tiene_cochera = st.checkbox("🚗 Tiene Cochera/Garage")
+
+    # Objetivo de venta (fuera de las columnas para destacar)
+    st.write("---")
+    objetivo = st.radio("🎯 Estrategia de Venta", 
+                        ["Venta Rápida (Urgente)", "Lujo y Exclusividad", "Oportunidad de Inversión", "Ideal Primera Vivienda"],
+                        horizontal=True)
 
     # --- PASO 3: GENERAR ---
     st.divider()
     if st.button("✨ Generar Descripción Vendedora"):
         
         if not ubicacion or not precio:
-            st.warning("⚠️ Por favor completa la ubicación y el precio.")
+            st.warning("⚠️ Por favor completa al menos la ubicación y el precio.")
         else:
-            with st.spinner('🤖 Analizando la foto con GPT-4o...'):
+            with st.spinner('🤖 La IA está redactando tu anuncio...'):
                 try:
-                    # El Prompt Maestro
+                    # Preparamos el texto de los extras
+                    extras = []
+                    if tiene_quincho: extras.append("Quincho con parrilla")
+                    if tiene_piscina: extras.append("Piscina")
+                    if tiene_cochera: extras.append("Estacionamiento")
+                    lista_extras = ", ".join(extras) if extras else "No especificado"
+
+                    # El Prompt Actualizado con los nuevos datos
                     prompt_text = f"""
-                    Actúa como un experto copywriter inmobiliario en Paraguay.
-                    Tu tarea es escribir un anuncio persuasivo para redes sociales basado en la imagen que ves y estos datos:
-                    
+                    Actúa como un copywriter inmobiliario experto en el mercado de Paraguay.
+                    Escribe un anuncio para Instagram/Facebook altamente persuasivo.
+
+                    DATOS DEL INMUEBLE:
                     - Tipo: {tipo_inmueble}
                     - Ubicación: {ubicacion}
                     - Precio: {precio}
-                    - Enfoque: {objetivo}
+                    - Dimensiones: {m2}
+                    - Habitaciones: {habitaciones}
+                    - Baños: {banos}
+                    - Extras importantes: {lista_extras}
+                    - Enfoque de venta: {objetivo}
 
-                    INSTRUCCIONES:
-                    1. Analiza visualmente la imagen (luz, piso, espacios) y úsalo en la descripción.
-                    2. Usa un tono cercano pero profesional.
-                    3. Estructura: Gancho atractivo, Características clave (visuales + datos), y Llamada a la acción.
-                    4. Usa emojis estratégicos y hashtags relevantes para Paraguay.
+                    INSTRUCCIONES DE REDACCIÓN:
+                    1. GANCHO: Empieza con una frase corta que impacte o una pregunta.
+                    2. CUERPO: Describe la propiedad integrando lo que ves en la foto (luz, estilo) con los datos técnicos (habitaciones, quincho, etc.). NO hagas una simple lista aburrida, cuenta una historia de cómo se vive ahí.
+                    3. Si tiene QUINCHO o PISCINA, destácalo mucho (es clave en Paraguay).
+                    4. CIERRE: Llamada a la acción clara para agendar visita.
+                    5. FORMATO: Usa emojis, párrafos cortos y una lista de características al final para lectura rápida.
                     """
 
                     response = client.chat.completions.create(
@@ -93,14 +116,12 @@ if uploaded_file is not None:
                                 ],
                             }
                         ],
-                        max_tokens=500,
+                        max_tokens=600,
                     )
 
-                    # Resultado
                     generated_text = response.choices[0].message.content
-                    st.success("¡Descripción generada con éxito!")
-                    st.text_area("Copia tu texto aquí:", value=generated_text, height=400)
+                    st.success("¡Anuncio listo para copiar!")
+                    st.text_area("Copia tu texto aquí:", value=generated_text, height=500)
                 
                 except Exception as e:
-                    st.error(f"Ocurrió un error: {e}")
-                    st.info("Nota: Verifica que tengas saldo/créditos en tu cuenta de OpenAI (Billing).")
+                    st.error(f"Error: {e}")

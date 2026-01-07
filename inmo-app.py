@@ -5,11 +5,11 @@ import io
 from openai import OpenAI
 
 # Configuración de la página
-st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏠")
+st.set_page_config(page_title="Inmo-Redactor IA", page_icon="🏡")
 
-# Título y Subtítulo
-st.title("🏠 Inmo-Redactor IA (Versión Pro)")
-st.write("Sube una foto y completa los detalles para crear el anuncio perfecto.")
+# Título
+st.title("🏡 Inmo-Redactor IA (Pro)")
+st.write("Sube una foto y completa los datos para generar el anuncio.")
 
 # --- BARRA LATERAL (Clave API) ---
 api_key = st.secrets.get("OPENAI_API_KEY")
@@ -21,7 +21,7 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # --- PASO 1: CARGA DE IMAGEN ---
-st.header("1. 📸 Sube la foto del inmueble")
+st.header("1. 📸 Sube la foto")
 uploaded_file = st.file_uploader("Elige una imagen principal", type=["jpg", "jpeg", "png"])
 
 def encode_image(image):
@@ -34,70 +34,87 @@ if uploaded_file is not None:
     st.image(image, caption="Imagen cargada", use_container_width=True)
     base64_image = encode_image(image)
 
-    # --- PASO 2: DATOS BÁSICOS ---
+    # --- PASO 2: DATOS DE LA PROPIEDAD ---
     st.divider()
-    st.header("2. 📝 Detalles de la Propiedad")
+    st.header("2. 📝 Detalles del Inmueble")
 
-    # Columnas para organizar mejor los datos
+    # NUEVO: Tipo de Operación (Venta o Alquiler)
+    tipo_operacion = st.radio("💼 ¿Es Venta o Alquiler?", ["Venta", "Alquiler"], horizontal=True)
+
     col1, col2 = st.columns(2)
 
     with col1:
-        ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: Villa Morra, Asunción")
-        precio = st.text_input("💰 Precio", placeholder="Ej: 750.000.000 Gs")
-        tipo_inmueble = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Terreno", "Duplex", "Oficina"])
-        m2 = st.text_input("📏 Superficie (m2)", placeholder="Ej: 360 m2 terreno / 200 m2 construidos")
+        # Agregamos "Quinta" a la lista
+        tipo_inmueble = st.selectbox("🏗️ Tipo de Inmueble", ["Casa", "Departamento", "Quinta", "Terreno", "Duplex", "Oficina", "Local Comercial"])
+        ubicacion = st.text_input("📍 Ubicación / Barrio", placeholder="Ej: San Bernardino, Zona Alta")
+        
+        # El precio cambia el placeholder según si es venta o alquiler
+        placeholder_precio = "Ej: 750.000.000 Gs" if tipo_operacion == "Venta" else "Ej: 3.500.000 Gs mensuales"
+        precio = st.text_input("💰 Precio", placeholder=placeholder_precio)
+        
+        m2 = st.text_input("📏 Superficie (m2)", placeholder="Ej: 2.000 m2 de terreno")
 
     with col2:
         habitaciones = st.number_input("🛏️ Habitaciones", min_value=0, value=3, step=1)
         banos = st.number_input("🚿 Baños", min_value=0, value=2, step=1)
+        
         st.write("**✨ Amenities / Extras:**")
         tiene_quincho = st.checkbox("🍖 Tiene Quincho")
         tiene_piscina = st.checkbox("🏊 Tiene Piscina")
         tiene_cochera = st.checkbox("🚗 Tiene Cochera/Garage")
+        amoblado = st.checkbox("🛋️ Está Amoblado")
 
-    # Objetivo de venta (fuera de las columnas para destacar)
+    # Estrategia según la operación
     st.write("---")
-    objetivo = st.radio("🎯 Estrategia de Venta", 
-                        ["Venta Rápida (Urgente)", "Lujo y Exclusividad", "Oportunidad de Inversión", "Ideal Primera Vivienda"],
-                        horizontal=True)
+    st.write("🎯 **Enfoque del anuncio:**")
+    
+    if tipo_operacion == "Venta":
+        objetivo = st.radio("Estrategia de Venta", 
+                            ["Venta Rápida (Urgente)", "Lujo y Exclusividad", "Oportunidad de Inversión", "Ideal Primera Vivienda"],
+                            horizontal=True, label_visibility="collapsed")
+    else: # Alquiler
+        objetivo = st.radio("Estrategia de Alquiler", 
+                            ["Alquiler Vacacional/Fin de Semana", "Alquiler Anual Familiar", "Para Estudiantes/Ejecutivos", "Lujo Temporal"],
+                            horizontal=True, label_visibility="collapsed")
 
     # --- PASO 3: GENERAR ---
     st.divider()
-    if st.button("✨ Generar Descripción Vendedora"):
+    texto_boton = f"✨ Redactar Anuncio de {tipo_operacion}"
+    
+    if st.button(texto_boton):
         
         if not ubicacion or not precio:
-            st.warning("⚠️ Por favor completa al menos la ubicación y el precio.")
+            st.warning("⚠️ Por favor completa la ubicación y el precio.")
         else:
-            with st.spinner('🤖 La IA está redactando tu anuncio...'):
+            with st.spinner('🤖 La IA está escribiendo el copy...'):
                 try:
-                    # Preparamos el texto de los extras
+                    # Preparar extras
                     extras = []
                     if tiene_quincho: extras.append("Quincho con parrilla")
                     if tiene_piscina: extras.append("Piscina")
                     if tiene_cochera: extras.append("Estacionamiento")
+                    if amoblado: extras.append("Totalmente amoblado")
                     lista_extras = ", ".join(extras) if extras else "No especificado"
 
-                    # El Prompt Actualizado con los nuevos datos
+                    # Prompt Dinámico
                     prompt_text = f"""
-                    Actúa como un copywriter inmobiliario experto en el mercado de Paraguay.
-                    Escribe un anuncio para Instagram/Facebook altamente persuasivo.
+                    Actúa como un copywriter inmobiliario experto en Paraguay.
+                    Escribe un anuncio persuasivo para redes sociales para una operación de: {tipo_operacion.upper()}.
 
-                    DATOS DEL INMUEBLE:
-                    - Tipo: {tipo_inmueble}
+                    DATOS:
+                    - Inmueble: {tipo_inmueble}
                     - Ubicación: {ubicacion}
                     - Precio: {precio}
                     - Dimensiones: {m2}
-                    - Habitaciones: {habitaciones}
-                    - Baños: {banos}
-                    - Extras importantes: {lista_extras}
-                    - Enfoque de venta: {objetivo}
+                    - Habitaciones: {habitaciones} | Baños: {banos}
+                    - Extras: {lista_extras}
+                    - Enfoque: {objetivo}
 
-                    INSTRUCCIONES DE REDACCIÓN:
-                    1. GANCHO: Empieza con una frase corta que impacte o una pregunta.
-                    2. CUERPO: Describe la propiedad integrando lo que ves en la foto (luz, estilo) con los datos técnicos (habitaciones, quincho, etc.). NO hagas una simple lista aburrida, cuenta una historia de cómo se vive ahí.
-                    3. Si tiene QUINCHO o PISCINA, destácalo mucho (es clave en Paraguay).
-                    4. CIERRE: Llamada a la acción clara para agendar visita.
-                    5. FORMATO: Usa emojis, párrafos cortos y una lista de características al final para lectura rápida.
+                    INSTRUCCIONES:
+                    1. Adapta el tono: Si es 'Venta', enfócate en la propiedad y la inversión. Si es 'Alquiler', enfócate en la experiencia de vivir ahí o vacacionar.
+                    2. Si es QUINTA: Destaca el relax, la naturaleza y el espacio al aire libre.
+                    3. Usa estructura: Gancho emocional, Descripción detallada (visual + datos), y Llamada a la acción.
+                    4. Incluye emojis y hashtags de Paraguay (#BienesRaicesPy, etc).
                     """
 
                     response = client.chat.completions.create(
@@ -120,7 +137,7 @@ if uploaded_file is not None:
                     )
 
                     generated_text = response.choices[0].message.content
-                    st.success("¡Anuncio listo para copiar!")
+                    st.success("¡Anuncio generado!")
                     st.text_area("Copia tu texto aquí:", value=generated_text, height=500)
                 
                 except Exception as e:

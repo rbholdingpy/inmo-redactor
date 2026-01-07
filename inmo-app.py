@@ -160,3 +160,18 @@ if uploaded_file is not None:
                                     {
                                         "type": "image_url",
                                         "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_image}"
+                                        },
+                                    },
+                                ],
+                            }
+                        ],
+                        max_tokens=650,
+                    )
+
+                    generated_text = response.choices[0].message.content
+                    st.success("¡Anuncio generado!")
+                    st.text_area("Copia tu texto aquí:", value=generated_text, height=550)
+                
+                except Exception as e:
+                    st.error(f"Error: {e}")

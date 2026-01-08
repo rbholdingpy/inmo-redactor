@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL SÚPER ESTÁTICO) ---
+# --- ESTILOS CSS (MODO ANTI-CAPA GRIS REFORZADO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,18 +47,20 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA --- */
+    /* --- NUCLEAR 2.0: FORZAR VISIBILIDAD EN MÓVIL --- */
     
-    /* 1. Forzar opacidad total siempre */
-    .stApp, [data-testid="stAppViewContainer"] {
+    /* 1. Bloquear cualquier animación de opacidad en el contenedor principal */
+    [data-testid="stAppViewContainer"] {
         opacity: 1 !important;
         filter: none !important;
         transition: none !important;
-        will-change: auto !important;
+        animation: none !important;
+        background-color: #F8FAFC !important; /* Mantiene el fondo blanco sólido */
     }
     
-    /* 2. Ocultar animación de carga superior */
-    [data-testid="stStatusWidget"] { display: none !important; }
+    /* 2. Ocultar el spinner nativo de arriba */
+    header { visibility: hidden !important; }
+    [data-testid="stStatusWidget"] { visibility: hidden !important; }
 
     /* 3. Eliminar "Press Enter to apply" */
     [data-testid="InputInstructions"] { display: none !important; }
@@ -760,9 +762,8 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
         st.stop()
 
     if permitido:
-        # === AQUI EL CAMBIO: MENSAJE DE TEXTO SIMPLE EN LUGAR DE SPINNER ===
-        mensaje_carga = st.empty()
-        mensaje_carga.markdown("##### ⏳ La IA está procesando tu información... (Esto toma unos segundos)")
+        # === AQUI EL CAMBIO: NOTIFICACIÓN FLOTANTE (TOAST) PARA EVITAR BLOQUEO ===
+        st.toast("⏳ La IA está pensando... (Esto toma unos segundos)", icon="🧠")
         
         try:
             # Prompt con Geo-Inteligencia Paraguaya
@@ -873,11 +874,9 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 st.toast("✅ Crédito gratuito usado", icon="🎁")
 
             st.session_state['generated_result'] = cleaned_text
-            mensaje_carga.empty() # BORRAR EL MENSAJE
             
         except Exception as e:
             st.error(f"Error: {e}")
-            mensaje_carga.empty()
 
 if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
@@ -903,9 +902,8 @@ if 'generated_result' in st.session_state:
                 if not MOVIEPY_AVAILABLE:
                     st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
                 else:
-                    # === MENSAJE DE TEXTO SIMPLE TAMBIÉN PARA VIDEO ===
-                    msg_video = st.empty()
-                    msg_video.markdown("##### 🎞️ Generando video (esto toma unos segundos)...")
+                    # === TOAST TAMBIÉN PARA EL VIDEO ===
+                    st.toast("🎞️ Renderizando video... (Unos segundos)", icon="🎬")
                     try:
                         frases = st.session_state.get('video_frases', ["AppyProp IA"])
                         path_video = crear_reel_vertical(uploaded_files, frases)
@@ -913,10 +911,8 @@ if 'generated_result' in st.session_state:
                             st.session_state['video_path'] = path_video
                         else:
                             st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
-                        msg_video.empty() # Borrar mensaje
                     except Exception as e:
                         st.error(f"Error video: {e}")
-                        msg_video.empty()
 
         if 'video_path' in st.session_state:
             st.success("✅ Video Reel generado con éxito.")

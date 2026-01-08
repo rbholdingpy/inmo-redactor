@@ -17,7 +17,6 @@ import shutil
 # 🚀 CONFIGURACIÓN DE LANZAMIENTO
 # ==========================================
 # True = Invitados tienen acceso a TODO (Video, Estrategias) por 1 crédito.
-# False = Invitados restringidos (Sin video, pocas estrategias).
 MODO_LANZAMIENTO = True 
 
 # --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
@@ -38,7 +37,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS (CORREGIDOS PARA MÓVIL) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -68,6 +67,9 @@ st.markdown("""
     }
     .agency-badge { background-color: #F59E0B; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; vertical-align: middle; }
 
+    /* ELIMINAR MOLESTIAS MÓVILES (ENTER TO APPLY) */
+    [data-testid="InputInstructions"] { display: none !important; }
+    
     /* UPLOADER ESPAÑOL */
     [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
     [data-testid='stFileUploaderDropzoneInstructions']::before {
@@ -88,23 +90,13 @@ st.markdown("""
         font-weight: bold; font-size: 14px;
     }
 
-    /* BOTÓN FLOTANTE MENÚ */
+    /* BOTÓN FLOTANTE MENÚ (Simplificado para evitar overlay en móvil) */
     [data-testid="stSidebarCollapsedControl"] {
-        position: fixed !important; top: 15px !important; left: 15px !important; z-index: 1000001 !important;
         background-color: #2563EB !important; color: white !important;
-        border: 2px solid white !important; border-radius: 12px !important;
-        padding: 10px 15px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
-        width: auto !important; height: auto !important;
-        display: flex !important; align-items: center !important; gap: 5px !important;
+        border-radius: 8px !important;
+        padding: 5px !important;
     }
-    [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; width: 24px !important; height: 24px !important; }
-    [data-testid="stSidebarCollapsedControl"]::after { content: "MENÚ"; font-weight: 800; font-size: 16px; color: white; letter-spacing: 1px; }
-    @keyframes pulse-blue {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
-        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
-    }
-    [data-testid="stSidebarCollapsedControl"] { animation: pulse-blue 2s infinite; }
+    [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
     /* TARJETAS PLANES */
     .plan-basic, .plan-standard, .plan-agency {
@@ -175,7 +167,7 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL ---
+# --- FUNCIÓN GENERADORA DE VIDEO REEL (CORREGIDA SINTAXIS) ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave):
     """Convierte imágenes en un video vertical 9:16 concatenando clips."""
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:

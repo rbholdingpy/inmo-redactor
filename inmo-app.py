@@ -7,16 +7,17 @@ from oauth2client.service_account import ServiceAccountCredentials
 from openai import OpenAI
 import time
 from datetime import datetime, timedelta
+import urllib.parse # Para crear los enlaces mágicos de WhatsApp
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="VendeMás IA - Marketing con Estrategia para Gestiones Inmobiliaria ",
+    page_title="VendeMás IA",
     page_icon="🚀",
     layout="centered",
     initial_sidebar_state="expanded"
 )
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS (MARKETING VISUAL + SOCIAL) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,25 +48,18 @@ st.markdown("""
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     .free-badge { background-color: #F1F5F9; color: #64748B; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     
-    .step-box {
-        background-color: white; padding: 15px; border-radius: 10px; 
-        border-left: 5px solid #2563EB; margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .photo-limit-box {
+        background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1;
+        padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em;
+        font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* ESTILO PARA NOTIFICACIÓN DE LÍMITE DE FOTOS */
-    .photo-limit-box {
-        background-color: #E0F2FE;
-        border: 2px solid #0284C7;
-        color: #0369A1;
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-        font-size: 1.1em;
-        font-weight: bold;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    /* ZONA SOCIAL */
+    .social-area {
+        background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px;
+        border-radius: 10px; margin-top: 20px; text-align: center;
     }
+    .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
     
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
@@ -175,7 +169,6 @@ def descontar_credito(codigo_usuario):
     return False
 
 def registrar_pedido(nombre, apellido, email, telefono, plan):
-    """Guarda pedido en hoja"""
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
@@ -268,8 +261,6 @@ if st.session_state.ver_planes:
         
         if not st.session_state.pedido_registrado:
             st.write("### 📝 Paso 1: Tus Datos")
-            st.write("Necesitamos saber quién eres para generarte tu código de acceso.")
-            
             with st.form("form_registro_pedido"):
                 c_nom, c_ape = st.columns(2)
                 nombre = c_nom.text_input("Nombre")
@@ -288,33 +279,21 @@ if st.session_state.ver_planes:
                                 st.session_state['temp_nombre'] = f"{nombre} {apellido}"
                                 st.rerun()
                     else:
-                        st.warning("⚠️ Por favor completa todos los campos.")
-            
+                        st.warning("⚠️ Completa todos los campos.")
             st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
 
         else:
             st.success("✅ **¡Datos recibidos!** Tu solicitud ha sido registrada.")
             st.write("### 💳 Paso 2: Realiza el Pago")
-            
             col_bank, col_wa = st.columns(2)
             with col_bank:
-                st.markdown("""
-                <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;">
-                <b>Banco:</b> ITAÚ <br>
-                <b>Titular:</b> Ricardo Blanco <br>
-                <b>C.I.:</b> 1911221 <br>
-                <b>Cuenta:</b> 320595209 <br>
-                <b>RUC:</b> 1911221-1
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown('<div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;"><b>Banco:</b> ITAÚ <br><b>Titular:</b> Ricardo Blanco <br><b>C.I.:</b> 1911221 <br><b>Cuenta:</b> 320595209 <br><b>RUC:</b> 1911221-1</div>', unsafe_allow_html=True)
             with col_wa:
-                st.write("Envía el comprobante para activar tu cuenta rápidamente.")
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
-                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos en la App y realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Quedo a la espera de mi código."
+                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos y pagué el *Plan {st.session_state.plan_seleccionado}*. Espero mi código."
                 mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
                 link_wp = f"https://wa.me/595981000000?text={mensaje_wp_url}"
                 st.markdown(f'<a href="{link_wp}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">📲 Enviar Comprobante por WhatsApp</button></a>', unsafe_allow_html=True)
-            
             st.divider()
             if st.button("🏁 Finalizar y Volver al Inicio"):
                 volver_a_app()
@@ -379,7 +358,6 @@ if es_pro:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
     
-    # --- NOTIFICACIÓN VISIBLE DEL LÍMITE DE FOTOS ---
     st.markdown(f"""
     <div class="photo-limit-box">
         📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.
@@ -392,7 +370,6 @@ if es_pro:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes. Has subido {len(uploaded_files)}.")
             st.stop()
-            
         with st.expander("👁️ Ver fotos cargadas", expanded=True):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
@@ -413,12 +390,22 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
+    # --- ESTRATEGIA (Para todos los PRO) ---
     if es_pro:
         enfoque = st.selectbox("🎯 Estrategia", ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"])
     else:
         enfoque = st.selectbox("🎯 Estrategia", ["🔒 Estándar (Solo PRO)"], disabled=True)
         enfoque = "Venta Estándar"
-    
+
+    # --- TONO DE VOZ (SOLO ESTÁNDAR Y AGENCIA) ---
+    if es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]:
+        tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"])
+    else:
+        # Texto del placeholder dependiendo de si es Básico o Gratis
+        msg_bloqueo = "🔒 Neutro (Requiere Plan Estándar)" if es_pro else "🔒 Neutro (Solo PRO Estándar)"
+        tono = st.selectbox("🗣️ Tono de Voz", [msg_bloqueo], disabled=True)
+        tono = "Neutro y Descriptivo" # Valor por defecto
+
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
     if oper == "Alquiler":
@@ -438,7 +425,7 @@ with c2:
     habs = st.number_input("Habitaciones", 1)
     banos = st.number_input("Baños", 1)
     st.write("**Servicios y Extras:**")
-    # --- NUEVOS EXTRAS SOLICITADOS EN 2 COLUMNAS ---
+    # --- EXTRAS COMPLETOS ---
     col_ex1, col_ex2 = st.columns(2)
     with col_ex1:
         gar = st.checkbox("Garage")
@@ -487,13 +474,17 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- PROMPT ACTUALIZADO CON LOS NUEVOS EXTRAS ---
+                # --- PROMPT ACTUALIZADO ---
                 base_prompt = f"""Actúa como copywriter inmobiliario. Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
                 Características: Hab:{habs}, Baños:{banos}.
                 Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
                 
                 if es_pro:
-                    full_prompt = base_prompt + f""" OPCIÓN 1: Storytelling ({enfoque}). OPCIÓN 2: Venta Directa. OPCIÓN 3: Instagram. WhatsApp: https://wa.me/595{whatsapp}. REGLAS: NO Markdown. Usa EMOJIS."""
+                    full_prompt = base_prompt + f""" 
+                    TONO DE COMUNICACIÓN: {tono}.
+                    OPCIÓN 1: Storytelling ({enfoque}). OPCIÓN 2: Venta Directa. OPCIÓN 3: Instagram. 
+                    WhatsApp: https://wa.me/595{whatsapp}. REGLAS: NO Markdown. Usa EMOJIS."""
+                    
                     content = [{"type": "text", "text": full_prompt}]
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
@@ -525,7 +516,26 @@ if st.button("✨ Generar Estrategia", type="primary"):
 
 if 'generated_result' in st.session_state:
     st.success("¡Estrategia lista! Copia el texto abajo.")
-    st.write(st.session_state['generated_result'])
+    
+    texto_resultado = st.session_state['generated_result']
+    st.code(texto_resultado, language=None)
+    
+    # ZONA SOCIAL
+    st.markdown('<div class="social-area"><div class="social-title">🚀 Acciones Rápidas (Postea Ya):</div>', unsafe_allow_html=True)
+    c_wa, c_ig, c_fb = st.columns(3)
+    
+    texto_encoded = urllib.parse.quote(texto_resultado)
+    link_wa = f"https://wa.me/?text={texto_encoded}"
+    
+    with c_wa: st.link_button("📲 Enviar a WhatsApp", link_wa)
+    with c_ig:
+        st.link_button("📸 Abrir Instagram", "https://www.instagram.com/")
+        st.caption("(*Copia el texto arriba)")
+    with c_fb:
+        st.link_button("📘 Abrir Facebook", "https://www.facebook.com/")
+        st.caption("(*Copia el texto arriba)")
+    st.markdown('</div>', unsafe_allow_html=True)
+
     if es_pro and uploaded_files and len(uploaded_files) <= cupo_fotos:
         st.divider()
         st.caption("📸 Fotos analizadas:")

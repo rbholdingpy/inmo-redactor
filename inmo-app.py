@@ -99,20 +99,32 @@ st.markdown("""
     }
     [data-testid="stSidebarCollapsedControl"] { animation: pulse-blue 2s infinite; }
 
-    /* TARJETAS PLANES */
-    .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; }
-    .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
-    .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; padding: 25px 20px; border-radius: 15px; text-align: center; margin-bottom: 10px; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.05); position: relative; z-index: 10; }
+    /* TARJETAS PLANES (REDISEÑADAS PARA LISTAS) */
+    .plan-basic, .plan-standard, .plan-agency {
+        text-align: left !important; /* Alineación izquierda para listas */
+        padding: 20px; border-radius: 12px; margin-bottom: 10px;
+    }
+    .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; }
+    .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
+    .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.03); position: relative; z-index: 10; }
+
+    /* ESTILOS PARA LISTAS DE BENEFICIOS */
+    .feature-list { list-style-type: none; padding: 0; margin: 15px 0; }
+    .feature-list li { margin-bottom: 8px; font-size: 0.9em; display: flex; align-items: center; gap: 8px; }
+    .check-icon { color: #16a34a; font-weight: bold; } /* Verde check */
+    .cross-icon { color: #dc2626; opacity: 0.5; } /* Rojo cruz suave */
+    .feature-locked { opacity: 0.6; text-decoration: line-through; }
+
+    /* Centrar títulos y precios dentro de las cajas alineadas a la izquierda */
+    .plan-title-center { text-align: center; margin-bottom: 5px; }
+    .price-tag { font-size: 1.5em; font-weight: 800; margin: 10px 0; text-align: center; }
+    .agency-badge-container { text-align: center; margin-bottom: 5px; }
     
-    .price-tag { font-size: 1.5em; font-weight: 800; margin: 10px 0; }
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     .free-badge { background-color: #F1F5F9; color: #64748B; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     
     .photo-limit-box { background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1; padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .social-area { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
-    .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
     """, unsafe_allow_html=True)
@@ -167,73 +179,49 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
     # 1. Calcular duración (Máx 20s en total)
     num_fotos = len(imagenes_uploaded)
     duracion_por_foto = 20.0 / num_fotos
-    
+    if duracion_por_foto < 2.0: duracion_por_foto = 2.0 
+
     clips = []
-    
-    # Configuración 9:16
     W, H = 720, 1280
     font = ImageFont.load_default()
     temp_dir = tempfile.mkdtemp()
 
     for i, img_file in enumerate(imagenes_uploaded):
         try:
-            # PROCESAMIENTO PIL
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
-            
-            # Overlay oscuro para lectura
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 100))
             img.paste(overlay, (0, 0), overlay)
-            
             draw = ImageDraw.Draw(img)
-            
-            # Texto rotativo
             texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
-            
-            # Centrado aproximado
             draw.text((W/2, H*0.8), texto_actual, font=font, fill="white", anchor="mm", align="center")
             draw.text((W/2, H*0.95), "Generado con AppyProp IA 🚀", fill="#cccccc", anchor="mm", font=font)
-
-            # Guardar frame
             temp_img_path = os.path.join(temp_dir, f"temp_frame_{i}.jpg")
             img.save(temp_img_path)
-            
-            # CLIP MOVIEPY
             clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
             clips.append(clip)
-
         except Exception as e:
             print(f"Error procesando imagen {i}: {e}")
             continue
 
     if not clips:
-        try: shutil.rmtree(temp_dir)
-        except: pass
+        try: shutil.rmtree(temp_dir); except: pass
         return None
 
-    # 2. Concatenar
     final_clip = concatenate_videoclips(clips, method="compose")
+    if final_clip.duration > 20.0:
+         final_clip = final_clip.subclip(0, 20.0)
 
-    # 3. Exportar
     tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
     output_path = tfile.name
     tfile.close()
 
     final_clip.write_videofile(
-        output_path, 
-        codec="libx264", 
-        audio=False, 
-        fps=24, 
-        preset='ultrafast',
-        ffmpeg_params=['-pix_fmt', 'yuv420p'],
-        threads=1,
-        logger=None
+        output_path, codec="libx264", audio=False, fps=24, preset='ultrafast',
+        ffmpeg_params=['-pix_fmt', 'yuv420p'], threads=1, logger=None
     )
-    
-    try: shutil.rmtree(temp_dir)
-    except: pass
-
+    try: shutil.rmtree(temp_dir); except: pass
     return output_path
 
 # --- INICIALIZACIÓN ---
@@ -371,7 +359,7 @@ with st.sidebar:
     st.caption("© 2026 AppyProp IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS ===
+# === 💎 ZONA DE VENTAS (REDISEÑADA CON LISTAS) ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
@@ -384,22 +372,80 @@ if st.session_state.ver_planes:
         st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
         
+        # --- PLAN BÁSICO ---
         with c1:
-            st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p><p style="font-size:0.8em">Máx 3 Fotos</p></div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="plan-basic">
+                <h3 class="plan-title-center">🥉 Básico</h3>
+                <div class="price-tag">20.000 Gs</div>
+                <ul class="feature-list">
+                    <li><span class="check-icon">✅</span> 10 Créditos</li>
+                    <li><span class="check-icon">✅</span> Operación (Venta/Alquiler)</li>
+                    <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
+                    <li><span class="check-icon">✅</span> Ubicación</li>
+                    <li><span class="check-icon">✅</span> Detalles de Precio</li>
+                    <li><span class="check-icon">✅</span> Servicios Extras</li>
+                    <li><span class="check-icon">✅</span> Máx 3 Fotos (Visión IA)</li>
+                    <li class="feature-locked"><span class="cross-icon">❌</span> Estrategia de Venta</li>
+                    <li class="feature-locked"><span class="cross-icon">❌</span> Tono de Voz</li>
+                    <li class="feature-locked"><span class="cross-icon">❌</span> Link WhatsApp</li>
+                    <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
             if 'basico' in plan_usuario_actual or 'básico' in plan_usuario_actual:
                 st.button("✅ Tu Plan Actual", disabled=True, key="btn_basico_dis")
             else:
                 st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
 
+        # --- PLAN ESTÁNDAR ---
         with c2:
-            st.markdown('<div class="plan-standard"><h3>🥈 Estándar</h3><div class="price-tag" style="color:#2563EB;">35.000 Gs</div><p class="feature-text"><b>20 Estrategias</b></p><p style="font-size:0.8em">Máx 6 Fotos</p></div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="plan-standard">
+                <h3 class="plan-title-center">🥈 Estándar</h3>
+                <div class="price-tag" style="color:#2563EB;">35.000 Gs</div>
+                <ul class="feature-list">
+                    <li><span class="check-icon">✅</span> <b>20 Créditos</b></li>
+                    <li><span class="check-icon">✅</span> Operación (Venta/Alquiler)</li>
+                    <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
+                    <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
+                    <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
+                    <li><span class="check-icon">✅</span> Ubicación</li>
+                    <li><span class="check-icon">✅</span> Detalles de Precio</li>
+                    <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
+                    <li><span class="check-icon">✅</span> Servicios Extras</li>
+                    <li><span class="check-icon">✅</span> <b>Máx 6 Fotos</b> (Visión IA)</li>
+                    <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
             if 'estándar' in plan_usuario_actual or 'standar' in plan_usuario_actual:
                 st.button("✅ Tu Plan Actual", disabled=True, key="btn_estandar_dis")
             else:
                 st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
+        # --- PLAN AGENCIA ---
         with c3:
-            st.markdown('<div class="plan-agency"><div style="background:#F59E0B; color:white; font-size:0.7em; font-weight:bold; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">🔥 MEJOR OPCIÓN</div><h3 style="color:#B45309;">🥇 Agencia</h3><div class="price-tag" style="color:#D97706;">80.000 Gs</div><p class="feature-text"><b>200 Estrategias</b></p><p style="font-size:0.8em">Máx 10 Fotos</p></div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="plan-agency">
+                <div class="agency-badge-container"><span class="agency-badge">🔥 MEJOR OPCIÓN</span></div>
+                <h3 class="plan-title-center" style="color:#B45309;">🥇 Agencia</h3>
+                <div class="price-tag" style="color:#D97706;">80.000 Gs</div>
+                <ul class="feature-list">
+                    <li><span class="check-icon">✅</span> <b>80 Créditos</b></li>
+                    <li><span class="check-icon">✅</span> Operación (Venta/Alquiler)</li>
+                    <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
+                    <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
+                    <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
+                    <li><span class="check-icon">✅</span> Ubicación</li>
+                    <li><span class="check-icon">✅</span> Detalles de Precio</li>
+                    <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
+                    <li><span class="check-icon">✅</span> Servicios Extras</li>
+                    <li><span class="check-icon">✅</span> <b>Máx 10 Fotos</b> (Visión IA)</li>
+                    <li><span class="check-icon">✅</span> 🎬 <b>Video Reel 9:16 (Opcional)</b></li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
             if 'agencia' in plan_usuario_actual:
                 st.button("✅ Tu Plan Actual", disabled=True, key="btn_agencia_dis")
             else:
@@ -409,6 +455,7 @@ if st.session_state.ver_planes:
         st.button("⬅️ Volver a la App", on_click=volver_a_app)
 
     else:
+        # (El resto del flujo de pago sigue igual)
         st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
         
         if not st.session_state.pedido_registrado:
@@ -687,7 +734,8 @@ else:
 # =======================================================
 # === GENERACIÓN ===
 # =======================================================
-if st.button("✨ Generar Estrategia", type="primary"):
+# CAMBIO DE NOMBRE DEL BOTÓN AQUÍ 👇
+if st.button("✨ Generar Redacción Estratégica", type="primary"):
     if not ubicacion or not precio_val:
         st.warning("⚠️ Completa Ubicación y Precio.")
         st.stop()
@@ -738,6 +786,12 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
                 - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
                 
+                PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
+                Analiza la ubicación ingresada: "{ubicacion}".
+                - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
+                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
+                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
+
                 PASO 2: APLICAR ESTRATEGIA DE VENTA
                 Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
                 Instrucción de Tono y Enfoque: {directriz_seleccionada}
@@ -818,7 +872,7 @@ if 'generated_result' in st.session_state:
         st.markdown("---")
         st.subheader("🎬 Video Reel Automático (Agencia)")
         
-        # MENSAJE DE ENGANCHE (NUEVO)
+        # MENSAJE DE ENGANCHE
         st.markdown("""
         <div style="background-color:#F3E8FF; padding:15px; border-radius:10px; margin-bottom:15px;">
         <h4 style="margin:0; color:#6B21A8;">¿Te gustaría que genere un video con tus fotos para tus redes sociales? 🎥</h4>

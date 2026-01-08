@@ -13,6 +13,13 @@ import tempfile
 import numpy as np
 import shutil 
 
+# ==========================================
+# 🚀 CONFIGURACIÓN DE LANZAMIENTO
+# ==========================================
+# True = Invitados tienen acceso a TODO (Video, Estrategias) por 1 crédito.
+# False = Invitados restringidos (Sin video, pocas estrategias).
+MODO_LANZAMIENTO = True 
+
 # --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
 try:
     from moviepy.editor import ImageClip, concatenate_videoclips
@@ -99,31 +106,27 @@ st.markdown("""
     }
     [data-testid="stSidebarCollapsedControl"] { animation: pulse-blue 2s infinite; }
 
-    /* TARJETAS PLANES (REDISEÑADAS PARA LISTAS) */
+    /* TARJETAS PLANES */
     .plan-basic, .plan-standard, .plan-agency {
-        text-align: left !important; /* Alineación izquierda */
-        padding: 20px; border-radius: 12px; margin-bottom: 10px;
-        height: 100%;
+        text-align: left !important; padding: 20px; border-radius: 12px; margin-bottom: 10px; height: 100%;
     }
     .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; }
     .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
     .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.03); position: relative; z-index: 10; }
 
-    /* LISTA DE BENEFICIOS */
     .feature-list { list-style-type: none; padding: 0; margin: 15px 0; }
     .feature-list li { margin-bottom: 8px; font-size: 0.85em; display: flex; align-items: center; gap: 8px; line-height: 1.3; }
-    
-    .check-icon { color: #16a34a; font-weight: bold; min-width: 20px; font-size: 1.1em; } /* Verde */
-    .cross-icon { color: #dc2626; opacity: 0.6; min-width: 20px; font-size: 1.1em; } /* Rojo */
+    .check-icon { color: #16a34a; font-weight: bold; min-width: 20px; font-size: 1.1em; } 
+    .cross-icon { color: #dc2626; opacity: 0.6; min-width: 20px; font-size: 1.1em; }
     .feature-locked { opacity: 0.5; text-decoration: line-through; color: #64748B; }
-
-    /* TEXTOS PLANES */
     .plan-title-center { text-align: center; margin-bottom: 5px; font-weight: 800; font-size: 1.3em; }
     .price-tag { font-size: 1.4em; font-weight: 800; margin: 10px 0; text-align: center; }
     .agency-badge-container { text-align: center; margin-bottom: 5px; }
     
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
+    .launch-badge { background: linear-gradient(90deg, #F59E0B, #EF4444); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9em; box-shadow: 0 2px 5px rgba(0,0,0,0.2); animation: pulse 2s infinite; }
     .free-badge { background-color: #F1F5F9; color: #64748B; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
     
     .photo-limit-box { background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1; padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -172,7 +175,7 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL (CORREGIDA SINTAXIS) ---
+# --- FUNCIÓN GENERADORA DE VIDEO REEL ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave):
     """Convierte imágenes en un video vertical 9:16 concatenando clips."""
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
@@ -207,7 +210,6 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
             continue
 
     if not clips:
-        # Corrección de sintaxis multilínea
         try: 
             shutil.rmtree(temp_dir)
         except: 
@@ -227,7 +229,6 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
         ffmpeg_params=['-pix_fmt', 'yuv420p'], threads=1, logger=None
     )
     
-    # Corrección de sintaxis multilínea
     try: 
         shutil.rmtree(temp_dir)
     except: 
@@ -332,7 +333,12 @@ with st.sidebar:
     st.header("🔐 Área de Miembros")
     
     if not st.session_state['usuario_activo']:
-        st.markdown("""<div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;"><small>Estado actual:</small><br><b>👤 Invitado (Freemium)</b><br><span style="color:#64748B; font-size:0.8em;">1 Generación / 24hs</span></div>""", unsafe_allow_html=True)
+        # LOGICA MODO LANZAMIENTO
+        if MODO_LANZAMIENTO:
+            st.markdown("""<div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;"><small>Estado actual:</small><br><b>🚀 INVITADO VIP</b><br><span style="color:#B45309; font-size:0.8em;">Acceso Total (1 Crédito de Regalo)</span></div>""", unsafe_allow_html=True)
+        else:
+            st.markdown("""<div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;"><small>Estado actual:</small><br><b>👤 Invitado (Freemium)</b><br><span style="color:#64748B; font-size:0.8em;">1 Generación / 24hs</span></div>""", unsafe_allow_html=True)
+            
         with st.form("login_form"):
             codigo_input = st.text_input("¿Tienes Código?", type="password", placeholder="Ej: PRUEBA1")
             submit_login = st.form_submit_button("🔓 Entrar como Miembro")
@@ -390,12 +396,12 @@ if st.session_state.ver_planes:
                 <div class="price-tag">20.000 Gs</div>
                 <ul class="feature-list">
                     <li><span class="check-icon">✅</span> 10 Créditos</li>
-                    <li><span class="check-icon">✅</span> Tipo de Operación</li>
+                    <li><span class="check-icon">✅</span> Operación</li>
                     <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
                     <li><span class="check-icon">✅</span> Ubicación</li>
                     <li><span class="check-icon">✅</span> Detalles de Precio</li>
                     <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> Subida de Fotos (3 Max)</li>
+                    <li><span class="check-icon">✅</span> Max 3 Fotos (Visión IA)</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Estrategia de Venta</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Tono de Voz</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Link WhatsApp</li>
@@ -416,7 +422,7 @@ if st.session_state.ver_planes:
                 <div class="price-tag" style="color:#2563EB;">35.000 Gs</div>
                 <ul class="feature-list">
                     <li><span class="check-icon">✅</span> <b>20 Créditos</b></li>
-                    <li><span class="check-icon">✅</span> Tipo de Operación</li>
+                    <li><span class="check-icon">✅</span> Operación</li>
                     <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
                     <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
                     <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
@@ -424,7 +430,7 @@ if st.session_state.ver_planes:
                     <li><span class="check-icon">✅</span> Detalles de Precio</li>
                     <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
                     <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> <b>Subida Fotos (6 Max)</b></li>
+                    <li><span class="check-icon">✅</span> <b>Max 6 Fotos</b> (Visión IA)</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
                 </ul>
             </div>
@@ -443,7 +449,7 @@ if st.session_state.ver_planes:
                 <div class="price-tag" style="color:#D97706;">80.000 Gs</div>
                 <ul class="feature-list">
                     <li><span class="check-icon">✅</span> <b>80 Créditos</b></li>
-                    <li><span class="check-icon">✅</span> Tipo de Operación</li>
+                    <li><span class="check-icon">✅</span> Operación</li>
                     <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
                     <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
                     <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
@@ -451,8 +457,8 @@ if st.session_state.ver_planes:
                     <li><span class="check-icon">✅</span> Detalles de Precio</li>
                     <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
                     <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> <b>Subida Fotos (10 Max)</b></li>
-                    <li><span class="check-icon">✅</span> 🎬 <b>Video Vertical 9:16 (Opcional)</b></li>
+                    <li><span class="check-icon">✅</span> <b>Max 10 Fotos</b> (Visión IA)</li>
+                    <li><span class="check-icon">✅</span> 🎬 <b>Video 9:16 (Opcional)</b></li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)
@@ -570,6 +576,7 @@ with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
 es_pro = False
 plan_actual = "INVITADO"
 cupo_fotos = 0
+puede_video = False
 
 if st.session_state['usuario_activo']:
     es_pro = True
@@ -579,6 +586,7 @@ if st.session_state['usuario_activo']:
     if 'agencia' in plan_str:
         cupo_fotos = 10
         plan_actual = "AGENCIA"
+        puede_video = True
     elif 'estándar' in plan_str or 'standar' in plan_str:
         cupo_fotos = 6
         plan_actual = "ESTÁNDAR"
@@ -593,20 +601,22 @@ if st.session_state['usuario_activo']:
     # BADGE CENTRADO
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
+    # LÓGICA DE INVITADO / MODO LANZAMIENTO
     es_pro = False
-    st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
+    creditos_disponibles = st.session_state['guest_credits']
+    if MODO_LANZAMIENTO:
+        plan_actual = "INVITADO VIP"
+        cupo_fotos = 10
+        puede_video = True # Invitados tienen video
+        st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="launch-badge">🚀 MODO LANZAMIENTO: ACCESO TOTAL</span></div>', unsafe_allow_html=True)
+    else:
+        plan_actual = "INVITADO"
+        cupo_fotos = 0
+        puede_video = False
+        st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
-# --- AVISO PARA ABRIR MENÚ EN MÓVIL ---
-if not es_pro:
+if not es_pro and not MODO_LANZAMIENTO:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
-
-# --- GUÍA ---
-with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
-    st.markdown("""
-    <div class="step-box"><b>1. Sube tus Fotos (Solo PRO):</b> La IA analiza las imágenes.</div>
-    <div class="step-box"><b>2. Rellena Datos:</b> Indica precio, ubicación y características.</div>
-    <div class="step-box"><b>3. Genera:</b> Obtén una estrategia de venta persuasiva.</div>
-    """, unsafe_allow_html=True)
 
 # =======================================================
 # === 1. GALERÍA ===
@@ -614,7 +624,8 @@ with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
 st.write("#### 1. 📸 Galería")
 uploaded_files = []
 
-if es_pro:
+# Permitir carga si es PRO o está en MODO LANZAMIENTO
+if es_pro or MODO_LANZAMIENTO:
     if creditos_disponibles <= 0:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
@@ -661,13 +672,15 @@ with c1:
         "💼 Ejecutivo/Nómada Digital"             
     ]
 
-    if es_pro:
+    # Desbloquear estrategias si es PRO o MODO LANZAMIENTO
+    if es_pro or MODO_LANZAMIENTO:
         enfoque = st.selectbox("🎯 Estrategia de Venta", opciones_estrategia)
     else:
         enfoque = st.selectbox("🎯 Estrategia de Venta", ["🔒 Estándar (Solo PRO)"], disabled=True)
         enfoque = "Venta Estándar"
 
-    if es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]:
+    # Desbloquear tono si es Plan Alto o MODO LANZAMIENTO
+    if (es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]) or MODO_LANZAMIENTO:
         tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"])
     else:
         msg_bloqueo = "🔒 Neutro (Requiere Plan Estándar)" if es_pro else "🔒 Neutro (Solo PRO Estándar)"
@@ -677,7 +690,6 @@ with c1:
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
     st.write("💰 **Detalles de Precio:**")
-    
     if oper == "Alquiler":
         col_p1, col_p2, col_p3 = st.columns([15, 35, 50])
         with col_p1:
@@ -695,7 +707,8 @@ with c1:
             precio_val = st.text_input("Monto", placeholder="Monto Total", label_visibility="collapsed", key="input_monto")
         texto_precio = f"{precio_val} {moneda}"
         
-    if es_pro:
+    # Desbloquear WhatsApp si es PRO o MODO LANZAMIENTO
+    if es_pro or MODO_LANZAMIENTO:
         whatsapp = st.text_input("WhatsApp (Solo números)", key="input_whatsapp")
     else:
         whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True)
@@ -716,37 +729,34 @@ with c2:
 
 st.divider()
 
-if es_pro:
+if es_pro or MODO_LANZAMIENTO:
     cant_fotos = len(uploaded_files) if uploaded_files else 0
     st.info(f"🧠 **Neuro-Vision Activa:** Analizando {cant_fotos} fotos con potencia {plan_actual}... (Costo: 1 crédito)")
 else:
-    creditos_guest = st.session_state['guest_credits']
-    if creditos_guest > 0:
-        st.success(f"🎁 **Modo Invitado:** Tienes {creditos_guest} generación gratis hoy.")
+    if st.session_state['guest_credits'] > 0:
+        st.success(f"🎁 **Modo Invitado:** Tienes {st.session_state['guest_credits']} generación gratis hoy.")
     else:
         st.warning("⏳ **Has usado tu crédito diario.** Vuelve mañana o hazte PRO.")
 
 # =======================================================
 # === GENERACIÓN ===
 # =======================================================
-# CAMBIO DE NOMBRE DEL BOTÓN AQUÍ 👇
 if st.button("✨ Generar Redacción Estratégica", type="primary"):
     if not ubicacion or not precio_val:
         st.warning("⚠️ Completa Ubicación y Precio.")
         st.stop()
         
-    puede_generar = False
-    if es_pro:
-        if creditos_disponibles > 0: puede_generar = True
+    permitido = False
+    if es_pro and creditos_disponibles > 0: permitido = True
+    elif not es_pro and st.session_state['guest_credits'] > 0: permitido = True
     else:
-        if st.session_state['guest_credits'] > 0: puede_generar = True
-        else:
-            st.error("⛔ Límite diario alcanzado. Hazte Miembro para continuar.")
-            st.stop()
+        st.error("⛔ Sin créditos suficientes. Hazte Miembro para continuar.")
+        st.stop()
 
-    if puede_generar:
+    if permitido:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
+                # Prompt con Geo-Inteligencia Paraguaya
                 instrucciones_estrategia = {
                     "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
                     "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
@@ -779,13 +789,11 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
                 - Mira la luz: ¿Entra luz natural? ¿Es cálida?
                 - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
-                - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
                 
                 PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
                 Analiza la ubicación ingresada: "{ubicacion}".
-                - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
-                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
-                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
+                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona de Paraguay?
+                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia).
 
                 PASO 2: APLICAR ESTRATEGIA DE VENTA
                 Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
@@ -799,7 +807,6 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 
                 REGLAS DE FORMATO:
                 - Usa Markdown (**negritas**).
-                - NO uses frases clichés vacías.
                 - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
                 - Incluye 10 hashtags en Opción 3.
                 
@@ -809,7 +816,7 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
 
                 content = [{"type": "text", "text": prompt_avanzado}]
                 
-                if es_pro and uploaded_files and len(uploaded_files) <= cupo_fotos:
+                if (es_pro or MODO_LANZAMIENTO) and uploaded_files and len(uploaded_files) <= cupo_fotos:
                     for f in uploaded_files:
                         f.seek(0)
                         content.append({
@@ -827,22 +834,24 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 cleaned_text = cleaned_text.replace("# ", "🚀 ") 
                 cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
-                if es_pro:
-                    # EXTRAER FRASES PARA EL VIDEO
-                    frases_video = []
-                    if plan_actual == "AGENCIA":
-                        try:
-                            lines = cleaned_text.split('\n')
-                            for l in lines:
-                                l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
-                                if 10 < len(l) < 40 and not l.startswith("http"):
-                                    frases_video.append(l)
-                            if len(frases_video) < 3:
-                                frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
-                            st.session_state['video_frases'] = frases_video[:6]
-                        except:
-                            st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
+                # --- LÓGICA DE EXTRACCIÓN DE FRASES PARA VIDEO ---
+                frases_video = []
+                # Si tiene acceso a video (Agencia o Lanzamiento)
+                if puede_video:
+                    try:
+                        lines = cleaned_text.split('\n')
+                        for l in lines:
+                            l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
+                            if 10 < len(l) < 40 and not l.startswith("http"):
+                                frases_video.append(l)
+                        if len(frases_video) < 3:
+                            frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
+                        st.session_state['video_frases'] = frases_video[:6]
+                    except:
+                        st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
+                # --- DESCUENTO DE CRÉDITOS ---
+                if es_pro:
                     exito = descontar_credito(user['codigo'])
                     if exito:
                         st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
@@ -862,12 +871,12 @@ if 'generated_result' in st.session_state:
     st.markdown(st.session_state['generated_result'])
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # --- ZONA VIDEO REEL (SOLO AGENCIA, DESPUÉS DE GENERAR) ---
-    if plan_actual == "AGENCIA" and uploaded_files:
+    # --- ZONA VIDEO REEL ---
+    # Se muestra si el usuario tiene permiso (Agencia o Lanzamiento) Y subió fotos
+    if puede_video and uploaded_files:
         st.markdown("---")
-        st.subheader("🎬 Video Reel Automático (Agencia)")
+        st.subheader("🎬 Video Reel Automático")
         
-        # MENSAJE DE ENGANCHE
         st.markdown("""
         <div style="background-color:#F3E8FF; padding:15px; border-radius:10px; margin-bottom:15px;">
         <h4 style="margin:0; color:#6B21A8;">¿Te gustaría que genere un video con tus fotos para tus redes sociales? 🎥</h4>
@@ -894,9 +903,8 @@ if 'generated_result' in st.session_state:
         if 'video_path' in st.session_state:
             st.success("✅ Video Reel generado con éxito.")
             
-            # CONTENEDOR CENTRADO TIPO MÓVIL
             c_video_center = st.columns([1, 2, 1])
-            with c_video_center[1]: # Columna del medio
+            with c_video_center[1]:
                 st.markdown('<div class="video-container">', unsafe_allow_html=True)
                 st.video(st.session_state['video_path'])
                 st.markdown('</div>', unsafe_allow_html=True)

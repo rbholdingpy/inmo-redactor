@@ -20,7 +20,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS (TRADUCCIÓN UPLOADER + VISUAL) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -30,6 +30,61 @@ st.markdown("""
         border-radius: 8px; border: none; padding: 12px; font-weight: bold; width: 100%; transition: all 0.2s;
     }
     .stButton>button:hover { transform: scale(1.02); }
+
+    /* ========================================= */
+    /* 🛠️ TRADUCCIÓN DEL UPLOADER AL ESPAÑOL 🛠️ */
+    /* ========================================= */
+    
+    /* 1. Ocultar texto "Drag and drop..." */
+    [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child {
+        display: none;
+    }
+    
+    /* 2. Insertar texto en Español */
+    [data-testid='stFileUploaderDropzoneInstructions']::before {
+        content: "Arrastra y suelta tus fotos aquí";
+        visibility: visible;
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: block;
+        text-align: center;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    /* 3. Ocultar texto "Limit 200MB..." */
+    [data-testid='stFileUploaderDropzoneInstructions'] > small {
+        display: none;
+    }
+
+    /* 4. Insertar límite en Español */
+    [data-testid='stFileUploaderDropzoneInstructions']::after {
+        content: "Límite 200MB por archivo • JPG, PNG";
+        visibility: visible;
+        display: block;
+        font-size: 0.8em;
+        color: #64748B;
+        text-align: center;
+        margin-top: 5px;
+    }
+
+    /* 5. Traducir botón "Browse files" */
+    [data-testid='stFileUploader'] button {
+        color: transparent !important; /* Hacemos invisible el texto inglés */
+        position: relative;
+    }
+    
+    [data-testid='stFileUploader'] button::after {
+        content: "📂 Explorar"; /* Ponemos texto español */
+        color: #333;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-weight: bold;
+        font-size: 14px;
+    }
+    /* ========================================= */
 
     /* BOTÓN FLOTANTE MENÚ */
     [data-testid="stSidebarCollapsedControl"] {
@@ -169,56 +224,34 @@ def descontar_credito(codigo_usuario):
         return False
     return False
 
-# --- LÓGICA DE REGISTRO BLINDADA (SIN DUPLICADOS) ---
 def registrar_pedido(nombre, apellido, email, telefono, nuevo_plan):
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
-        
-        # 1. NORMALIZACIÓN DE DATOS (Minúsculas y sin espacios para comparar bien)
         email_input_clean = str(email).strip().lower()
-        
-        # Obtener toda la columna de correos (Columna F es la 6)
         lista_correos_raw = sheet.col_values(6)
-        
-        # Convertir lista del sheet a formato limpio para buscar
         lista_correos_clean = [str(e).strip().lower() for e in lista_correos_raw]
-        
         fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
         nombre_completo = f"{nombre} {apellido}"
         
-        # A. SI EL CORREO YA EXISTE
         if email_input_clean in lista_correos_clean:
-            # Encontrar el índice real (sumamos 1 porque gspread es base 1)
-            # Nota: .index() encuentra la primera coincidencia
             row_index = lista_correos_clean.index(email_input_clean) + 1
-            
-            # Obtener el plan que ya tiene (Columna C es la 3)
             plan_actual_sheet = str(sheet.cell(row_index, 3).value).strip().lower()
             nuevo_plan_check = str(nuevo_plan).strip().lower()
-            
-            # Verificar si intenta comprar LO MISMO (Básico == Básico)
-            # Usamos "in" por si el plan en excel dice "Plan Básico" y el nuevo es "Básico"
             if nuevo_plan_check in plan_actual_sheet or plan_actual_sheet in nuevo_plan_check:
-                return "SAME_PLAN" # ERROR: Ya tiene este plan
-            
-            # Si es diferente, ACTUALIZAMOS la fila existente (Cambio de Plan)
+                return "SAME_PLAN"
             else:
-                sheet.update_cell(row_index, 3, nuevo_plan) # Actualizar Plan
-                sheet.update_cell(row_index, 5, telefono)   # Actualizar Tel
-                sheet.update_cell(row_index, 7, "SOLICITUD CAMBIO PLAN") # Estado
-                sheet.update_cell(row_index, 8, fecha)      # Fecha
+                sheet.update_cell(row_index, 3, nuevo_plan) 
+                sheet.update_cell(row_index, 5, telefono)   
+                sheet.update_cell(row_index, 7, "SOLICITUD CAMBIO PLAN") 
+                sheet.update_cell(row_index, 8, fecha)      
                 return "UPDATED"
-
-        # B. SI EL CORREO NO EXISTE (NUEVO USUARIO)
         else:
-            # [Codigo, Cliente, Plan, Limite, Telefono, Correo, Estado, Fecha]
             nueva_fila = ["PENDIENTE", nombre_completo, nuevo_plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
             sheet.append_row(nueva_fila)
             return "CREATED"
             
     except Exception as e:
-        print(f"Error en registro: {e}")
         return "ERROR"
 
 # =======================================================
@@ -270,7 +303,6 @@ with st.sidebar:
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
     
-    # DETECTAR PLAN ACTUAL
     plan_usuario_actual = ""
     if st.session_state['usuario_activo']:
         plan_usuario_actual = str(st.session_state['usuario_activo'].get('plan', '')).lower()
@@ -281,7 +313,6 @@ if st.session_state.ver_planes:
         
         with c1:
             st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p><p style="font-size:0.8em">Máx 3 Fotos</p></div>', unsafe_allow_html=True)
-            # Bloquear si ya tiene este plan
             if 'basico' in plan_usuario_actual or 'básico' in plan_usuario_actual:
                 st.button("✅ Tu Plan Actual", disabled=True, key="btn_basico_dis")
             else:
@@ -337,20 +368,18 @@ if st.session_state.ver_planes:
                             if status == "SAME_PLAN":
                                 st.error(f"⛔ **¡Atención!** El correo {email} ya tiene activo el plan **{st.session_state.plan_seleccionado}**. No puedes comprar el mismo plan.")
                                 st.warning("Si necesitas más créditos, contacta a soporte.")
-                            
                             elif status == "UPDATED":
                                 st.session_state.pedido_registrado = True
                                 st.session_state['temp_nombre'] = f"{nombre} {apellido}"
                                 st.session_state['tipo_pedido'] = "CAMBIO DE PLAN"
                                 st.rerun()
-                                
                             elif status == "CREATED":
                                 st.session_state.pedido_registrado = True
                                 st.session_state['temp_nombre'] = f"{nombre} {apellido}"
                                 st.session_state['tipo_pedido'] = "NUEVO ALTA"
                                 st.rerun()
                             else:
-                                st.error("Hubo un error de conexión. Intenta de nuevo.")
+                                st.error("Hubo un error de conexión.")
                     else:
                         st.warning("⚠️ Completa todos los campos.")
             st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
@@ -358,7 +387,7 @@ if st.session_state.ver_planes:
         else:
             tipo = st.session_state.get('tipo_pedido', 'PEDIDO')
             if tipo == "CAMBIO DE PLAN":
-                st.success("✅ **¡Cambio de Plan Detectado!** Tu cuenta se actualizará tras el pago.")
+                st.success("✅ **¡Solicitud de Cambio Recibida!** Tu cuenta se actualizará tras el pago.")
             else:
                 st.success("✅ **¡Datos recibidos!** Tu cuenta está lista para activarse.")
 
@@ -378,9 +407,9 @@ if st.session_state.ver_planes:
             with col_wa:
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
                 if tipo == "CAMBIO DE PLAN":
-                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Quiero cambiar mi cuenta actual al *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
+                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Quiero actualizar mi cuenta al *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
                 else:
-                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Nuevo registro para el *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
+                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Me acabo de registrar para el *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
                 
                 mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
                 link_wp = f"https://wa.me/{ADMIN_WHATSAPP}?text={mensaje_wp_url}"

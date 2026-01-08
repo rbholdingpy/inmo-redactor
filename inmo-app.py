@@ -33,63 +33,31 @@ st.markdown("""
 
     /* --- BOTÓN FLOTANTE DE MENÚ (FIX MÓVIL) --- */
     [data-testid="stSidebarCollapsedControl"] {
-        position: fixed !important;
-        top: 15px !important;
-        left: 15px !important;
-        z-index: 1000001 !important;
-        background-color: #2563EB !important;
-        color: white !important;
-        border: 2px solid white !important;
-        border-radius: 12px !important;
-        padding: 10px 15px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
-        width: auto !important;
-        height: auto !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 5px !important;
+        position: fixed !important; top: 15px !important; left: 15px !important; z-index: 1000001 !important;
+        background-color: #2563EB !important; color: white !important;
+        border: 2px solid white !important; border-radius: 12px !important;
+        padding: 10px 15px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        width: auto !important; height: auto !important;
+        display: flex !important; align-items: center !important; gap: 5px !important;
     }
-
-    [data-testid="stSidebarCollapsedControl"] svg {
-        fill: white !important;
-        color: white !important;
-        width: 24px !important;
-        height: 24px !important;
-    }
-
-    [data-testid="stSidebarCollapsedControl"]::after {
-        content: "MENÚ";
-        font-weight: 800;
-        font-size: 16px;
-        color: white;
-        letter-spacing: 1px;
-    }
-
+    [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; width: 24px !important; height: 24px !important; }
+    [data-testid="stSidebarCollapsedControl"]::after { content: "MENÚ"; font-weight: 800; font-size: 16px; color: white; letter-spacing: 1px; }
     @keyframes pulse-blue {
         0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
         70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
         100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
     }
-    [data-testid="stSidebarCollapsedControl"] {
-        animation: pulse-blue 2s infinite;
-    }
-    /* ------------------------------------------- */
+    [data-testid="stSidebarCollapsedControl"] { animation: pulse-blue 2s infinite; }
 
+    /* TARJETAS DE PLANES */
     .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; }
     .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
     .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; padding: 25px 20px; border-radius: 15px; text-align: center; margin-bottom: 10px; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.05); position: relative; z-index: 10; }
     
-    .price-tag { font-size: 1.5em; font-weight: 800; margin: 10px 0; }
-    .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
-    .free-badge { background-color: #F1F5F9; color: #64748B; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
-    
     .photo-limit-box { background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1; padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    
     .social-area { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
     .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    
-    .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -195,20 +163,59 @@ def descontar_credito(codigo_usuario):
         return False
     return False
 
-def registrar_pedido(nombre, apellido, email, telefono, plan):
+# --- FUNCIÓN INTELIGENTE: REGISTRAR O ACTUALIZAR PEDIDO ---
+def registrar_pedido(nombre, apellido, email, telefono, nuevo_plan):
+    """
+    1. Busca si el email ya existe.
+    2. Si existe y el plan es el mismo -> ERROR.
+    3. Si existe y el plan es diferente -> ACTUALIZA fila (Estado: SOLICITUD CAMBIO).
+    4. Si no existe -> CREA fila nueva.
+    """
     try:
         client_gs = get_gspread_client()
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
+        
+        # Obtener columna de correos (Columna F -> índice 6)
+        correos = sheet.col_values(6) 
         fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
         nombre_completo = f"{nombre} {apellido}"
-        nueva_fila = ["PENDIENTE", nombre_completo, plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
-        sheet.append_row(nueva_fila)
-        return True
+        
+        # A. EL USUARIO YA EXISTE
+        if email in correos:
+            row_index = correos.index(email) + 1 # +1 porque gspread es 1-based
+            
+            # Obtener plan actual de ese usuario (Columna C -> índice 3)
+            plan_actual = sheet.cell(row_index, 3).value
+            
+            # Limpieza de strings para comparar (quitar espacios, mayúsculas)
+            plan_actual_clean = str(plan_actual).strip().lower().split(' ')[0] # "Básico"
+            nuevo_plan_clean = str(nuevo_plan).strip().lower().split(' ')[0]   # "Estándar"
+            
+            # 1. Validación: No comprar el mismo plan
+            if plan_actual_clean == nuevo_plan_clean:
+                return "SAME_PLAN"
+            
+            # 2. Actualización: Es un cambio de nivel (Upgrade/Downgrade)
+            # Actualizamos: Plan (3), Telefono (5), Estado (7), Fecha (8)
+            sheet.update_cell(row_index, 3, nuevo_plan)
+            sheet.update_cell(row_index, 5, telefono)
+            sheet.update_cell(row_index, 7, "SOLICITUD CAMBIO PLAN")
+            sheet.update_cell(row_index, 8, fecha)
+            return "UPDATED"
+
+        # B. USUARIO NUEVO (No existe el correo)
+        else:
+            # Estructura: [Codigo, Cliente, Plan, Limite, Telefono, Correo, Estado, Fecha]
+            nueva_fila = ["PENDIENTE", nombre_completo, nuevo_plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
+            sheet.append_row(nueva_fila)
+            return "CREATED"
+            
     except Exception as e:
-        return False
+        print(f"Error: {e}")
+        return "ERROR"
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (PANEL FLOTANTE) ===
+# === 🏗️ BARRA LATERAL ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -255,47 +262,107 @@ with st.sidebar:
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
+    
+    # DETECTAR PLAN ACTUAL (Si está logueado)
+    plan_usuario_actual = ""
+    if st.session_state['usuario_activo']:
+        plan_usuario_actual = str(st.session_state['usuario_activo'].get('plan', '')).lower()
+
     if st.session_state.plan_seleccionado is None:
+        st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
+        
+        # --- PLAN BÁSICO ---
         with c1:
             st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p><p style="font-size:0.8em">Máx 3 Fotos</p></div>', unsafe_allow_html=True)
-            st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
+            if 'basico' in plan_usuario_actual or 'básico' in plan_usuario_actual:
+                st.button("✅ Tu Plan Actual", disabled=True, key="btn_basico_dis")
+            else:
+                st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
+
+        # --- PLAN ESTÁNDAR ---
         with c2:
             st.markdown('<div class="plan-standard"><h3>🥈 Estándar</h3><div class="price-tag" style="color:#2563EB;">35.000 Gs</div><p class="feature-text"><b>20 Estrategias</b></p><p style="font-size:0.8em">Máx 6 Fotos</p></div>', unsafe_allow_html=True)
-            st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
+            if 'estándar' in plan_usuario_actual or 'standar' in plan_usuario_actual:
+                st.button("✅ Tu Plan Actual", disabled=True, key="btn_estandar_dis")
+            else:
+                st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
+
+        # --- PLAN AGENCIA ---
         with c3:
             st.markdown('<div class="plan-agency"><div style="background:#F59E0B; color:white; font-size:0.7em; font-weight:bold; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">🔥 MEJOR OPCIÓN</div><h3 style="color:#B45309;">🥇 Agencia</h3><div class="price-tag" style="color:#D97706;">80.000 Gs</div><p class="feature-text"><b>200 Estrategias</b></p><p style="font-size:0.8em">Máx 10 Fotos</p></div>', unsafe_allow_html=True)
-            st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
+            if 'agencia' in plan_usuario_actual:
+                st.button("✅ Tu Plan Actual", disabled=True, key="btn_agencia_dis")
+            else:
+                st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
+        
         st.divider()
         st.button("⬅️ Volver a la App", on_click=volver_a_app)
+
     else:
         st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
+        
         if not st.session_state.pedido_registrado:
             st.write("### 📝 Paso 1: Tus Datos")
+            
+            # PRE-LLENAR DATOS SI ESTÁ LOGUEADO
+            def_nombre = ""
+            def_email = ""
+            def_tel = ""
+            if st.session_state['usuario_activo']:
+                u = st.session_state['usuario_activo']
+                try:
+                    def_nombre = u.get('cliente', '').split(' ')[0]
+                    # Asumimos que cliente puede tener "Nombre Apellido"
+                except: pass
+                def_email = u.get('correo', '')
+                def_tel = str(u.get('telefono', ''))
+
             with st.form("form_registro_pedido"):
                 c_nom, c_ape = st.columns(2)
-                nombre = c_nom.text_input("Nombre")
+                nombre = c_nom.text_input("Nombre", value=def_nombre)
                 apellido = c_ape.text_input("Apellido")
-                email = st.text_input("Correo Electrónico")
-                telefono = st.text_input("Número de WhatsApp")
+                email = st.text_input("Correo Electrónico (Para tu código de acceso)", value=def_email)
+                telefono = st.text_input("Número de WhatsApp", value=def_tel)
+                
                 submitted = st.form_submit_button("✅ Confirmar y Ver Datos de Pago", type="primary")
+                
                 if submitted:
                     if nombre and apellido and email and telefono:
-                        with st.spinner("Registrando pedido..."):
-                            exito = registrar_pedido(nombre, apellido, email, telefono, st.session_state.plan_seleccionado)
-                            if exito:
+                        with st.spinner("Procesando solicitud..."):
+                            status = registrar_pedido(nombre, apellido, email, telefono, st.session_state.plan_seleccionado)
+                            
+                            if status == "SAME_PLAN":
+                                st.error(f"⚠️ Ya tienes activo el plan **{st.session_state.plan_seleccionado}**. Por favor elige otro para cambiar de nivel.")
+                            
+                            elif status == "UPDATED":
                                 st.session_state.pedido_registrado = True
                                 st.session_state['temp_nombre'] = f"{nombre} {apellido}"
+                                st.session_state['tipo_pedido'] = "CAMBIO DE PLAN" # Marca interna
                                 st.rerun()
+                                
+                            elif status == "CREATED":
+                                st.session_state.pedido_registrado = True
+                                st.session_state['temp_nombre'] = f"{nombre} {apellido}"
+                                st.session_state['tipo_pedido'] = "NUEVO ALTA" # Marca interna
+                                st.rerun()
+                            else:
+                                st.error("Hubo un error de conexión. Intenta de nuevo.")
                     else:
                         st.warning("⚠️ Completa todos los campos.")
             st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
+
         else:
-            st.success("✅ **¡Datos recibidos!** Tu solicitud ha sido registrada.")
+            # MENSAJE DINÁMICO SEGÚN TIPO DE PEDIDO
+            tipo = st.session_state.get('tipo_pedido', 'PEDIDO')
+            if tipo == "CAMBIO DE PLAN":
+                st.success("✅ **¡Solicitud de Cambio Recibida!** Paga la diferencia o el nuevo plan para activar.")
+            else:
+                st.success("✅ **¡Datos recibidos!** Tu cuenta está lista para activarse.")
+
             st.write("### 💳 Paso 2: Realiza el Pago")
             col_bank, col_wa = st.columns(2)
             with col_bank:
-                # AQUÍ SE MUESTRA EL ALIAS RUC
                 st.markdown("""
                 <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;">
                 <b>Banco:</b> ITAÚ <br>
@@ -308,8 +375,12 @@ if st.session_state.ver_planes:
                 """, unsafe_allow_html=True)
             with col_wa:
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
-                # MENSAJE A TU NUMERO DE ADMINISTRADOR
-                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos en la App y realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Quedo a la espera de mi código."
+                # Mensaje personalizado según si es nuevo o cambio
+                if tipo == "CAMBIO DE PLAN":
+                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Quiero actualizar mi cuenta al *Plan {st.session_state.plan_seleccionado}*. Ya envié mis datos. Aquí está el comprobante."
+                else:
+                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Me acabo de registrar para el *Plan {st.session_state.plan_seleccionado}*. Aquí está el pago, espero mi código."
+                
                 mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
                 link_wp = f"https://wa.me/{ADMIN_WHATSAPP}?text={mensaje_wp_url}"
                 

@@ -393,7 +393,7 @@ c_title, c_badge = st.columns([2, 1])
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
-# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? (NUEVO) ---
+# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? ---
 with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
     st.markdown("""
     ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
@@ -496,10 +496,23 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
+    # --- NUEVAS ESTRATEGIAS DE NEUROVENTAS ---
+    opciones_estrategia = [
+        "⚖️ Equilibrado (Balanceado)",
+        "🔥 Urgencia (Oportunidad Flash)",
+        "🔑 Primera Vivienda (Sueño Familiar)",
+        "💎 Lujo & Exclusividad (High-Ticket)",
+        "💰 Inversión & Rentabilidad (ROI)",
+        "🛠️ Potencial de Reforma (Flipping)",
+        "🌿 Vida Natural & Relax (Green Living)",
+        "🏢 Comercial & Corporativo",
+        "🌍 Airbnb/Alquiler Temporal"
+    ]
+
     if es_pro:
-        enfoque = st.selectbox("🎯 Estrategia", ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"])
+        enfoque = st.selectbox("🎯 Estrategia de Venta", opciones_estrategia)
     else:
-        enfoque = st.selectbox("🎯 Estrategia", ["🔒 Estándar (Solo PRO)"], disabled=True)
+        enfoque = st.selectbox("🎯 Estrategia de Venta", ["🔒 Estándar (Solo PRO)"], disabled=True)
         enfoque = "Venta Estándar"
 
     if es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]:
@@ -573,6 +586,21 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
+                # --- MOTOR DE INSTRUCCIONES AVANZADO ---
+                instrucciones_estrategia = {
+                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
+                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado, última oportunidad). Frases cortas y directas.",
+                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños, cercanía a colegios. Tono emotivo y cálido.",
+                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium, Diseñador). Vende estatus y privacidad. Evita la urgencia barata.",
+                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión, demanda de alquiler en la zona. Tono racional y de negocios.",
+                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad de valorizar'. Ideal para constructores.",
+                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro, jardín. Tono zen y relajado.",
+                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas, visibilidad y éxito comercial.",
+                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, cercanía a puntos turísticos y comodidad para viajeros."
+                }
+                
+                directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
+
                 base_prompt = f"""Actúa como copywriter inmobiliario experto.
                 Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
                 Características: Hab:{habs}, Baños:{banos}.
@@ -580,20 +608,25 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 
                 instrucciones_visuales = """
                 INSTRUCCIONES VISUALES (CRÍTICO):
-                1. 👁️ ANÁLISIS DE FOTOS: Si recibes imágenes, OBSERVA DETENIDAMENTE y menciona al menos 3 detalles visuales específicos que veas (ej: tipo de piso, color de paredes, estilo de cocina, iluminación). ¡Demuestra que las has visto!
+                1. 👁️ ANÁLISIS DE FOTOS: Si recibes imágenes, OBSERVA DETENIDAMENTE y menciona al menos 3 detalles visuales específicos (ej: tipo de piso, luz, acabados). ¡Demuestra que las has visto!
                 2. FORMATO: Usa Markdown (**negritas**) para resaltar Títulos, Precio y Llamadas a la Acción.
-                3. ESTRUCTURA: Usa listas verticales con emojis para características. Párrafos cortos.
+                3. ESTRUCTURA: Usa listas verticales con emojis. Párrafos cortos.
                 4. HASHTAGS: Al final de la opción 3, incluye 10 hashtags relevantes.
                 """
 
                 if es_pro:
-                    full_prompt = base_prompt + f""" 
+                    full_prompt = f""" 
+                    ESTRATEGIA SELECCIONADA: {enfoque}
+                    INSTRUCCIÓN DE NEUROVENTAS: {directriz_seleccionada}
                     TONO: {tono}.
+                    
                     Genera 3 opciones:
-                    1. Storytelling Emotivo ({enfoque}).
+                    1. Storytelling Emotivo (Basado en la estrategia).
                     2. Venta Directa (Datos y Lista).
                     3. Instagram (Viral + Hashtags).
                     Link WhatsApp: https://wa.me/595{whatsapp}.
+                    
+                    {base_prompt}
                     {instrucciones_visuales}
                     """
                     content = [{"type": "text", "text": full_prompt}]
@@ -609,7 +642,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
                                 }
                             })
                 else:
-                    full_prompt = base_prompt + f"""Genera 1 Descripción básica. {instrucciones_visuales}"""
+                    full_prompt = f"""Genera 1 Descripción básica atractiva. {base_prompt} {instrucciones_visuales}"""
                     content = [{"type": "text", "text": full_prompt}]
 
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
@@ -665,7 +698,7 @@ with st.expander("⚖️ Aviso Legal y Privacidad (Importante)"):
     st.markdown("""
     <div class="legal-text">
     <b>1. Protección de Datos y Privacidad:</b><br>
-    VendeMás IA es una herramienta de procesamiento en tiempo real. Queremos informarle que:
+    AppyProp IA es una herramienta de procesamiento en tiempo real. Queremos informarle que:
     <ul>
         <li><b>Eliminación Automática:</b> Todas las fotos, números de teléfono y datos ingresados se eliminan automáticamente de la memoria del sistema al cerrar o recargar la página.</li>
         <li><b>Sin Base de Datos de Respaldo:</b> No guardamos copias de seguridad de sus fotos o descripciones generadas.</li>

@@ -14,10 +14,10 @@ st.set_page_config(
     page_title="VendeMás IA",
     page_icon="🚀",
     layout="centered",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed" # En móvil siempre inicia colapsado, pero ahora el botón será visible
 )
 
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS (MARKETING VISUAL + SOCIAL + FIX MÓVIL) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -27,6 +27,40 @@ st.markdown("""
         border-radius: 8px; border: none; padding: 12px; font-weight: bold; width: 100%; transition: all 0.2s;
     }
     .stButton>button:hover { transform: scale(1.02); }
+
+    /* --- HACK PARA EL BOTÓN DE MENÚ EN MÓVIL --- */
+    /* Hacemos el botón de colapsar la barra lateral GIGANTE y AZUL */
+    [data-testid="stSidebarCollapsedControl"] {
+        background-color: #2563EB; /* Azul fuerte */
+        color: white !important;
+        border-radius: 0 10px 10px 0;
+        padding: 10px;
+        margin-top: 10px;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+        border: 2px solid white;
+        transition: all 0.3s ease;
+    }
+    
+    /* Agregamos la palabra "MENÚ" al lado de la flecha */
+    [data-testid="stSidebarCollapsedControl"]::after {
+        content: "MENÚ 🔓";
+        font-weight: bold;
+        font-size: 1rem;
+        margin-left: 5px;
+        color: white;
+    }
+
+    /* Animación para que llame la atención */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    [data-testid="stSidebarCollapsedControl"] {
+        animation: pulse 2s infinite;
+    }
+    /* ------------------------------------------- */
 
     .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; }
     .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
@@ -162,7 +196,7 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (PANEL FLOTANTE) ===
+# === 🏗️ BARRA LATERAL (CON BOTÓN FLOTANTE GESTIÓN) ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -300,6 +334,10 @@ else:
     with c_badge:
         st.markdown('<div style="text-align:right"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
+# --- AVISO PARA ABRIR MENÚ EN MÓVIL (SI NO ESTÁ LOGUEADO) ---
+if not es_pro:
+    st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
+
 # --- GUÍA ---
 with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
     st.markdown("""
@@ -321,14 +359,11 @@ if es_pro:
     
     st.markdown(f"""<div class="photo-limit-box">📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.</div>""", unsafe_allow_html=True)
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
-    
-    # --- VISTA PREVIA RECUPERADA (Solo durante la carga) ---
     if uploaded_files:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
-        
-        # MOSTRAR FOTOS AQUÍ para que el usuario sepa qué subió
+        # VISTA PREVIA RECUPERADA
         with st.expander("👁️ Vista Previa de Imágenes Seleccionadas", expanded=True):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
@@ -507,7 +542,9 @@ if 'generated_result' in st.session_state:
 
     st.markdown("---")
     st.subheader("¿Terminaste?")
-    st.info("👈 Usa el botón 'Nueva Propiedad' en el menú lateral para empezar otra.")
+    # Botón de limpiar extra en el footer por si acaso
+    if st.button("🔄 Nueva Propiedad (Limpiar) ", type="secondary"):
+        limpiar_formulario()
 
 # =======================================================
 # === ⚖️ AVISO LEGAL ===

@@ -95,7 +95,8 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def limpiar_formulario():
-    keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_moneda', 'input_monto']
+    # Incluimos input_moneda e input_monto en la limpieza
+    keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda']
     for key in keys_a_borrar:
         if key in st.session_state:
             del st.session_state[key]
@@ -495,7 +496,7 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
-    # --- NUEVAS ESTRATEGIAS ---
+    # --- NUEVAS ESTRATEGIAS (ACTUALIZADAS) ---
     opciones_estrategia = [
         "⚖️ Equilibrado (Balanceado)",
         "🔥 Urgencia (Oportunidad Flash)",
@@ -506,10 +507,10 @@ with c1:
         "🌿 Vida Natural & Relax (Green Living)",
         "🏢 Comercial & Corporativo",
         "🌍 Airbnb/Alquiler Temporal",
-        "💑 Recién Casados (Inicio Ideal)",       # NUEVO
-        "🔒 Barrio Cerrado/Condominio (Seguridad)", # NUEVO
-        "🎒 Estudiantes/Universitario",           # NUEVO
-        "💼 Ejecutivo/Nómada Digital"             # NUEVO
+        "💑 Recién Casados (Inicio Ideal)",       
+        "🔒 Barrio Cerrado/Condominio (Seguridad)", 
+        "🎒 Estudiantes/Universitario",           
+        "💼 Ejecutivo/Nómada Digital"             
     ]
 
     if es_pro:
@@ -527,19 +528,27 @@ with c1:
 
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
-    # --- SELECTOR DE PRECIO + MONEDA (SOLICITUD: Gs/$us) ---
-    st.write("Precio:")
-    c_moneda, c_monto = st.columns([1, 2])
-    with c_moneda:
-        moneda = st.selectbox("Moneda", ["Gs.", "$us"], key="input_moneda")
-    with c_monto:
-        precio_val = st.text_input("Monto", label_visibility="collapsed", key="input_monto")
+    # --- SECCIÓN DE PRECIO (LAYOUT CORREGIDO: UNA FILA) ---
+    st.write("💰 **Detalles de Precio:**")
     
-    # --- FRECUENCIA DE ALQUILER EXPANDIDA ---
+    # Si es alquiler, usamos 3 columnas (Divisa, Monto, Periodo)
     if oper == "Alquiler":
-        frec = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Semestral", "Anual"])
+        col_p1, col_p2, col_p3 = st.columns([1, 2, 2])
+        with col_p1:
+            moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed", key="input_moneda")
+        with col_p2:
+            precio_val = st.text_input("Monto", placeholder="Monto", label_visibility="collapsed", key="input_monto")
+        with col_p3:
+            frec = st.selectbox("Frecuencia", ["Mensual", "Diario", "Semanal", "Semestral", "Anual"], label_visibility="collapsed")
         texto_precio = f"{precio_val} {moneda} ({frec})"
+    
+    # Si es venta, usamos 2 columnas (Divisa, Monto)
     else:
+        col_p1, col_p2 = st.columns([1, 3])
+        with col_p1:
+            moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed", key="input_moneda")
+        with col_p2:
+            precio_val = st.text_input("Monto", placeholder="Monto Total", label_visibility="collapsed", key="input_monto")
         texto_precio = f"{precio_val} {moneda}"
         
     if es_pro:
@@ -596,10 +605,10 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- DICCIONARIO DE INSTRUCCIONES DE ESTRATEGIA (CEREBRO) ---
+                # --- DICCIONARIO DE INSTRUCCIONES DE ESTRATEGIA (ACTUALIZADO) ---
                 instrucciones_estrategia = {
                     "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
-                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado, última oportunidad). Frases cortas.",
+                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
                     "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
                     "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
                     "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",

@@ -13,17 +13,17 @@ import tempfile
 import numpy as np
 import shutil 
 
+# ==========================================
+# 🚀 CONFIGURACIÓN DE LANZAMIENTO
+# ==========================================
+MODO_LANZAMIENTO = True 
+
 # --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
 try:
     from moviepy.editor import ImageClip, concatenate_videoclips
     MOVIEPY_AVAILABLE = True
 except ImportError:
     MOVIEPY_AVAILABLE = False
-
-# ==========================================
-# 🚀 CONFIGURACIÓN DE LANZAMIENTO
-# ==========================================
-MODO_LANZAMIENTO = True 
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL PERFECTO) ---
+# --- ESTILOS CSS (MODO MÓVIL BLINDADO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,23 +47,34 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* --- CORRECCIÓN CRÍTICA PARA MÓVIL (ADIÓS CAPA TRANSLÚCIDA) --- */
-    /* Fuerza a que el contenedor principal nunca baje su opacidad al cargar */
-    [data-testid="stAppViewContainer"], .stApp {
+    /* --- ESCUDO ANTI-MENSAJES MOLESTOS (NUCLEAR) --- */
+    
+    /* 1. Ocultar el texto "Press Enter to apply" */
+    [data-testid="InputInstructions"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        opacity: 0 !important;
+    }
+    
+    /* 2. Ocultar tooltips nativos que puedan estorbar */
+    div[data-baseweb="tooltip"] {
+        display: none !important;
+    }
+
+    /* 3. Evitar que la pantalla se ponga gris/translúcida al cargar */
+    [data-testid="stAppViewContainer"] {
+        will-change: auto !important;
+        transition: none !important;
         opacity: 1 !important;
         filter: none !important;
-        transition: none !important;
-        will-change: auto !important;
     }
-    /* Oculta la animación de carga superior si molesta */
-    [data-testid="stStatusWidget"] {
-        visibility: hidden;
+    
+    /* 4. Limpieza visual de inputs */
+    .stTextInput > div > div {
+        box-shadow: none !important;
     }
-    /* Elimina el texto "Press Enter to apply" que tapa los campos */
-    [data-testid="InputInstructions"] { 
-        display: none !important; 
-    }
-    /* --------------------------------------------------------------- */
+    /* ---------------------------------------------------- */
 
     /* ESTILOS VIDEO REEL */
     .video-container {
@@ -104,7 +115,7 @@ st.markdown("""
         font-weight: bold; font-size: 14px;
     }
 
-    /* BOTÓN FLOTANTE MENÚ (ESTÁTICO PARA EVITAR BUG TÁCTIL) */
+    /* BOTÓN FLOTANTE MENÚ */
     [data-testid="stSidebarCollapsedControl"] {
         background-color: #2563EB !important; color: white !important;
         border-radius: 8px !important; padding: 5px !important;
@@ -815,7 +826,6 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 
                 REGLAS DE FORMATO:
                 - Usa Markdown (**negritas**).
-                - NO uses frases clichés vacías.
                 - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
                 - Incluye 10 hashtags en Opción 3.
                 

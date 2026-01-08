@@ -11,7 +11,7 @@ import urllib.parse
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="AppyProp IA", # CAMBIO: Nueva Marca
+    page_title="AppyProp IA", 
     page_icon="🚀",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -31,9 +31,7 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* ========================================= */
-    /* 🛠️ TRADUCCIÓN DEL UPLOADER AL ESPAÑOL 🛠️ */
-    /* ========================================= */
+    /* UPLOADER ESPAÑOL */
     [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
     [data-testid='stFileUploaderDropzoneInstructions']::before {
         content: "Arrastra y suelta tus fotos aquí"; visibility: visible;
@@ -394,6 +392,29 @@ c_title, c_badge = st.columns([2, 1])
 # --- TITULO PRINCIPAL CENTRADO ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
+
+# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? (NUEVO) ---
+with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
+    st.markdown("""
+    ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
+    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades. Una plataforma inteligente que combina **Visión Artificial** con **Psicología de Ventas**.
+
+    ---
+    #### 💎 ¿En qué te beneficia?
+    1.  **👁️ Ojos que Ven, Cerebro que Vende:** La IA "mira" tus fotos, detecta acabados e iluminación, e integra esos detalles para enamorar al cliente.
+    2.  **⚡ Velocidad Supersónica:** De 30 minutos a **10 segundos**. Genera descripciones, guiones y posts virales en un clic.
+    3.  **🎯 Estrategia Total:** No es solo texto. Recibes **Storytelling** (emoción), **Venta Directa** (datos) y **Formato Viral** (redes).
+
+    ---
+    #### 🚀 ¿Por qué utilizarlo?
+    * **Adiós al bloqueo creativo:** Nunca más una pantalla en blanco.
+    * **Ahorro:** Tu propia agencia de marketing de bolsillo.
+    * **Profesionalismo:** Textos persuasivos y sin errores.
+
+    ---
+    #### 🤖 El Factor Diferencial
+    **AppyProp IA es un hito tecnológico: Una aplicación 100% creada con Inteligencia Artificial.** Innovación pura, eficiencia y evolución constante para el mercado inmobiliario.
+    """)
 
 es_pro = False
 plan_actual = "INVITADO"

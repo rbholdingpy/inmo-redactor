@@ -162,7 +162,7 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL ===
+# === 🏗️ BARRA LATERAL (PANEL FLOTANTE) ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -321,11 +321,18 @@ if es_pro:
     
     st.markdown(f"""<div class="photo-limit-box">📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.</div>""", unsafe_allow_html=True)
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
+    
+    # --- VISTA PREVIA RECUPERADA (Solo durante la carga) ---
     if uploaded_files:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
-        # NOTA: Ya no mostramos la galería aquí para limpiar la pantalla, como pediste
+        
+        # MOSTRAR FOTOS AQUÍ para que el usuario sepa qué subió
+        with st.expander("👁️ Vista Previa de Imágenes Seleccionadas", expanded=True):
+            cols = st.columns(4)
+            for i, f in enumerate(uploaded_files):
+                with cols[i%4]: st.image(Image.open(f), use_container_width=True)
 else:
     st.info("🔒 **La carga de fotos y Visión IA es exclusiva para Miembros.**")
     st.markdown('<div style="opacity:0.6; pointer-events:none; border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 10px;">📂 Subir fotos (Bloqueado)</div>', unsafe_allow_html=True)
@@ -419,27 +426,17 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- PROMPT REFORZADO PARA VISIÓN ---
-                base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
-                DATOS TÉCNICOS:
-                - {oper} {tipo} en {ubicacion}.
-                - Precio: {texto_precio}.
-                - {habs} Habitaciones, {banos} Baños.
-                - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Wifi={wifi}.
-                """
+                base_prompt = f"""Actúa como copywriter inmobiliario experto.
+                Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
+                Características: Hab:{habs}, Baños:{banos}.
+                Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
                 
                 instrucciones_visuales = """
-                🔍 INSTRUCCIONES DE VISIÓN (MUY IMPORTANTE):
-                He adjuntado fotos de la propiedad. TU TAREA PRINCIPAL ES DESCRIBIR LO QUE VES.
-                1. NO inventes. Mira las fotos y describe: tipo de suelo (cerámica, madera), iluminación (natural, cálida), estado de las paredes, estilo de la cocina o muebles.
-                2. Integra estos detalles visuales en el texto para que el comprador "sienta" que está ahí.
-                3. Si ves un jardín, piscina o fachada, descríbelos con adjetivos atractivos.
-                
-                ⚠️ FORMATO DE SALIDA (ESTRICTO):
-                - Usa Markdown con **negritas** para resaltar lo importante.
-                - Usa Emojis al inicio de cada punto clave.
-                - Párrafos CORTOS (máximo 2-3 líneas).
-                - Estructura limpia y vertical.
+                INSTRUCCIONES VISUALES (CRÍTICO):
+                1. 👁️ ANÁLISIS DE FOTOS: Si recibes imágenes, OBSERVA DETENIDAMENTE y menciona al menos 3 detalles visuales específicos que veas (ej: tipo de piso, color de paredes, estilo de cocina, iluminación). ¡Demuestra que las has visto!
+                2. FORMATO: Usa Markdown (**negritas**) para resaltar Títulos, Precio y Llamadas a la Acción.
+                3. ESTRUCTURA: Usa listas verticales con emojis para características. Párrafos cortos.
+                4. HASHTAGS: Al final de la opción 3, incluye 10 hashtags relevantes.
                 """
 
                 if es_pro:
@@ -454,7 +451,6 @@ if st.button("✨ Generar Estrategia", type="primary"):
                     """
                     content = [{"type": "text", "text": full_prompt}]
                     
-                    # ENVIAR IMÁGENES EN ALTA RESOLUCIÓN
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
                             f.seek(0)
@@ -462,7 +458,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
                                 "type": "image_url", 
                                 "image_url": {
                                     "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
-                                    "detail": "high" # FORZAR ALTA RESOLUCIÓN
+                                    "detail": "high"
                                 }
                             })
                 else:
@@ -472,8 +468,9 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                 generated_text = res.choices[0].message.content
 
-                # LIMPIEZA LIGERA (MANTIENE EL FORMATO DE LA IA)
                 cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
+                cleaned_text = cleaned_text.replace("# ", "🚀 ") 
+                cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
                 if es_pro:
                     exito = descontar_credito(user['codigo'])
@@ -507,6 +504,10 @@ if 'generated_result' in st.session_state:
     with c_ig: st.link_button("📸 Abrir Instagram", "https://www.instagram.com/")
     with c_fb: st.link_button("📘 Abrir Facebook", "https://www.facebook.com/")
     st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.subheader("¿Terminaste?")
+    st.info("👈 Usa el botón 'Nueva Propiedad' en el menú lateral para empezar otra.")
 
 # =======================================================
 # === ⚖️ AVISO LEGAL ===

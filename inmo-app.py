@@ -40,8 +40,6 @@ st.markdown("""
     
     .social-area { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
     .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
-    
-    /* Estilo para el resultado visual */
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
@@ -163,7 +161,7 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL ===
+# === 🏗️ BARRA LATERAL (PANEL FLOTANTE DE GESTIÓN) ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -191,6 +189,14 @@ with st.sidebar:
         st.success(f"✅ ¡Hola {user.get('cliente', 'Usuario')}!")
         color_cred = "blue" if creditos_disponibles > 0 else "red"
         st.markdown(f":{color_cred}[**🪙 Créditos: {creditos_disponibles}**]")
+        
+        # --- BOTÓN FLOTANTE EN SIDEBAR (NUEVO LUGAR) ---
+        st.markdown("---")
+        st.markdown("### 🛠️ Gestión Rápida")
+        # Este botón siempre estará visible porque la sidebar sigue el scroll
+        if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
+            limpiar_formulario()
+            
         st.markdown("---")
         st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary", on_click=ir_a_planes)
         st.markdown("---")
@@ -417,7 +423,6 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- PROMPT MARKETING AVANZADO (VISUAL + VISIÓN) ---
                 base_prompt = f"""Actúa como copywriter inmobiliario experto.
                 Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
                 Características: Hab:{habs}, Baños:{banos}.
@@ -442,7 +447,6 @@ if st.button("✨ Generar Estrategia", type="primary"):
                     {instrucciones_visuales}
                     """
                     content = [{"type": "text", "text": full_prompt}]
-                    # Aseguramos enviar las fotos si existen y cumplen el límite
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
                             f.seek(0)
@@ -457,11 +461,8 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                 generated_text = res.choices[0].message.content
 
-                # LIMPIEZA SUAVE (Solo quitamos headers markdown grandes, permitimos negritas)
                 cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
-                # Solo reemplazamos # si es título, no hashtag
                 cleaned_text = cleaned_text.replace("# ", "🚀 ") 
-                # YA NO QUITAMOS NEGRITAS (**)
                 cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
                 if es_pro:
@@ -479,21 +480,20 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 st.error(f"Error: {e}")
 
 if 'generated_result' in st.session_state:
-    # --- RESULTADO VISUAL BONITO ---
+    st.success("¡Estrategia lista! Copia el texto abajo.")
+    
+    texto_resultado = st.session_state['generated_result']
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
     st.subheader("🎉 Estrategia Generada:")
-    # Usamos markdown para que renderice las negritas y emojis
-    st.markdown(st.session_state['generated_result'])
+    st.markdown(texto_resultado)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # --- CAJA DE COPIA (TEXTO CRUDO) ---
-    with st.expander("📋 Ver Texto para Copiar (Formato WhatsApp/Instagram)"):
-        st.code(st.session_state['generated_result'], language=None)
+    with st.expander("📋 Ver Texto sin Formato (Para Copiar)"):
+        st.code(texto_resultado, language=None)
     
-    # ZONA SOCIAL
     st.markdown('<div class="social-area"><div class="social-title">🚀 Acciones Rápidas (Postea Ya):</div>', unsafe_allow_html=True)
     c_wa, c_ig, c_fb = st.columns(3)
-    texto_encoded = urllib.parse.quote(st.session_state['generated_result'])
+    texto_encoded = urllib.parse.quote(texto_resultado)
     link_wa = f"https://wa.me/?text={texto_encoded}"
     
     with c_wa: st.link_button("📲 Enviar a WhatsApp", link_wa)
@@ -505,16 +505,9 @@ if 'generated_result' in st.session_state:
         st.caption("(*Copia el texto arriba)")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if es_pro and uploaded_files and len(uploaded_files) <= cupo_fotos:
-        st.divider()
-        st.caption("📸 Fotos analizadas:")
-        cols_out = st.columns(4)
-        for i, f in enumerate(uploaded_files):
-             f.seek(0)
-             with cols_out[i%4]: st.image(Image.open(f), use_container_width=True)
     st.markdown("---")
     st.subheader("¿Terminaste?")
-    st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary", on_click=limpiar_formulario)
+    st.info("👈 Usa el botón 'Nueva Propiedad' en el menú lateral para empezar otra.")
 
 # =======================================================
 # === ⚖️ AVISO LEGAL ===

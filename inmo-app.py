@@ -13,18 +13,17 @@ import tempfile
 import numpy as np
 import shutil 
 
-# ==========================================
-# 🚀 CONFIGURACIÓN DE LANZAMIENTO
-# ==========================================
-# True = Invitados tienen acceso a TODO (Video, Estrategias) por 1 crédito.
-MODO_LANZAMIENTO = True 
-
 # --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
 try:
     from moviepy.editor import ImageClip, concatenate_videoclips
     MOVIEPY_AVAILABLE = True
 except ImportError:
     MOVIEPY_AVAILABLE = False
+
+# ==========================================
+# 🚀 CONFIGURACIÓN DE LANZAMIENTO
+# ==========================================
+MODO_LANZAMIENTO = True 
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
@@ -37,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (CORREGIDOS PARA MÓVIL) ---
+# --- ESTILOS CSS (MODO MÓVIL PERFECTO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -48,14 +47,32 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
+    /* --- CORRECCIÓN CRÍTICA PARA MÓVIL (ADIÓS CAPA TRANSLÚCIDA) --- */
+    /* Fuerza a que el contenedor principal nunca baje su opacidad al cargar */
+    [data-testid="stAppViewContainer"], .stApp {
+        opacity: 1 !important;
+        filter: none !important;
+        transition: none !important;
+        will-change: auto !important;
+    }
+    /* Oculta la animación de carga superior si molesta */
+    [data-testid="stStatusWidget"] {
+        visibility: hidden;
+    }
+    /* Elimina el texto "Press Enter to apply" que tapa los campos */
+    [data-testid="InputInstructions"] { 
+        display: none !important; 
+    }
+    /* --------------------------------------------------------------- */
+
     /* ESTILOS VIDEO REEL */
     .video-container {
         background-color: #000; 
         border-radius: 20px; 
         padding: 10px; 
         box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        max-width: 350px; /* Ancho de celular */
-        margin: 0 auto; /* Centrado */
+        max-width: 350px; 
+        margin: 0 auto; 
     }
     .video-box { 
         border: 2px solid #8B5CF6; 
@@ -67,9 +84,6 @@ st.markdown("""
     }
     .agency-badge { background-color: #F59E0B; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; vertical-align: middle; }
 
-    /* ELIMINAR MOLESTIAS MÓVILES (ENTER TO APPLY) */
-    [data-testid="InputInstructions"] { display: none !important; }
-    
     /* UPLOADER ESPAÑOL */
     [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
     [data-testid='stFileUploaderDropzoneInstructions']::before {
@@ -90,11 +104,10 @@ st.markdown("""
         font-weight: bold; font-size: 14px;
     }
 
-    /* BOTÓN FLOTANTE MENÚ (Simplificado para evitar overlay en móvil) */
+    /* BOTÓN FLOTANTE MENÚ (ESTÁTICO PARA EVITAR BUG TÁCTIL) */
     [data-testid="stSidebarCollapsedControl"] {
         background-color: #2563EB !important; color: white !important;
-        border-radius: 8px !important;
-        padding: 5px !important;
+        border-radius: 8px !important; padding: 5px !important;
     }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
@@ -167,7 +180,7 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL (CORREGIDA SINTAXIS) ---
+# --- FUNCIÓN GENERADORA DE VIDEO REEL ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave):
     """Convierte imágenes en un video vertical 9:16 concatenando clips."""
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
@@ -733,6 +746,7 @@ else:
 # =======================================================
 # === GENERACIÓN ===
 # =======================================================
+# CAMBIO DE NOMBRE DEL BOTÓN AQUÍ 👇
 if st.button("✨ Generar Redacción Estratégica", type="primary"):
     if not ubicacion or not precio_val:
         st.warning("⚠️ Completa Ubicación y Precio.")
@@ -781,11 +795,13 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
                 - Mira la luz: ¿Entra luz natural? ¿Es cálida?
                 - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
+                - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
                 
                 PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
                 Analiza la ubicación ingresada: "{ubicacion}".
-                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona de Paraguay?
-                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia).
+                - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
+                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
+                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
 
                 PASO 2: APLICAR ESTRATEGIA DE VENTA
                 Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
@@ -799,6 +815,7 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 
                 REGLAS DE FORMATO:
                 - Usa Markdown (**negritas**).
+                - NO uses frases clichés vacías.
                 - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
                 - Incluye 10 hashtags en Opción 3.
                 

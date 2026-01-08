@@ -95,7 +95,7 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def limpiar_formulario():
-    keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result']
+    keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_moneda', 'input_monto']
     for key in keys_a_borrar:
         if key in st.session_state:
             del st.session_state[key]
@@ -527,13 +527,13 @@ with c1:
 
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
-    # --- SELECTOR DE PRECIO + MONEDA ---
+    # --- SELECTOR DE PRECIO + MONEDA (SOLICITUD: Gs/$us) ---
     st.write("Precio:")
     c_moneda, c_monto = st.columns([1, 2])
     with c_moneda:
-        moneda = st.selectbox("Moneda", ["Gs.", "$us"])
+        moneda = st.selectbox("Moneda", ["Gs.", "$us"], key="input_moneda")
     with c_monto:
-        precio_val = st.text_input("Monto", label_visibility="collapsed")
+        precio_val = st.text_input("Monto", label_visibility="collapsed", key="input_monto")
     
     # --- FRECUENCIA DE ALQUILER EXPANDIDA ---
     if oper == "Alquiler":
@@ -599,7 +599,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 # --- DICCIONARIO DE INSTRUCCIONES DE ESTRATEGIA (CEREBRO) ---
                 instrucciones_estrategia = {
                     "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
-                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
+                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado, última oportunidad). Frases cortas.",
                     "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
                     "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
                     "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",

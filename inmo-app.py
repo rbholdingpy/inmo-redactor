@@ -28,37 +28,21 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    .plan-basic {
-        background-color: #F8FAFC; border: 2px solid #475569; color: #334155;
-        padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
-    }
-    .plan-standard {
-        background-color: white; border: 2px solid #3B82F6; color: #0F172A;
-        padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px;
-        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
-    }
-    .plan-agency {
-        background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%);
-        border: 2px solid #F59E0B; color: #0F172A;
-        padding: 25px 20px; border-radius: 15px; text-align: center; margin-bottom: 10px;
-        box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.05); position: relative; z-index: 10;
-    }
+    .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; }
+    .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
+    .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; padding: 25px 20px; border-radius: 15px; text-align: center; margin-bottom: 10px; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.05); position: relative; z-index: 10; }
     
     .price-tag { font-size: 1.5em; font-weight: 800; margin: 10px 0; }
     .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     .free-badge { background-color: #F1F5F9; color: #64748B; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
     
-    .photo-limit-box {
-        background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1;
-        padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em;
-        font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+    .photo-limit-box { background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1; padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
-    .social-area {
-        background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px;
-        border-radius: 10px; margin-top: 20px; text-align: center;
-    }
+    .social-area { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
     .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
+    
+    /* Estilo para el resultado visual */
+    .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
@@ -105,7 +89,7 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- INICIALIZACIÓN DE ESTADO ---
+# --- INICIALIZACIÓN ---
 if 'uploader_key' not in st.session_state: st.session_state['uploader_key'] = 0
 if 'usuario_activo' not in st.session_state: st.session_state['usuario_activo'] = None
 if 'ver_planes' not in st.session_state: st.session_state['ver_planes'] = False
@@ -185,50 +169,34 @@ with st.sidebar:
     st.header("🔐 Área de Miembros")
     
     if not st.session_state['usuario_activo']:
-        st.markdown("""
-        <div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;">
-            <small>Estado actual:</small><br>
-            <b>👤 Invitado (Freemium)</b><br>
-            <span style="color:#64748B; font-size:0.8em;">1 Generación / 24hs</span>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown("""<div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;"><small>Estado actual:</small><br><b>👤 Invitado (Freemium)</b><br><span style="color:#64748B; font-size:0.8em;">1 Generación / 24hs</span></div>""", unsafe_allow_html=True)
         with st.form("login_form"):
             codigo_input = st.text_input("¿Tienes Código?", type="password", placeholder="Ej: PRUEBA1")
             submit_login = st.form_submit_button("🔓 Entrar como Miembro")
-            
         if submit_login and codigo_input:
             usuarios_db = obtener_usuarios_sheet()
             usuario_encontrado = next((u for u in usuarios_db if str(u.get('codigo', '')).strip().upper() == codigo_input.strip().upper()), None)
-            
             if usuario_encontrado:
                 st.session_state['usuario_activo'] = usuario_encontrado
                 st.session_state['ver_planes'] = False
                 st.rerun()
             else:
                 st.error("❌ Código incorrecto.")
-        
         st.markdown("---")
-        st.info("💡 **Los Invitados tienen funciones limitadas.** Sube de nivel para usar Visión IA y Estrategias.")
+        st.info("💡 **Los Invitados tienen funciones limitadas.**")
         st.button("🚀 VER PLANES PRO", on_click=ir_a_planes)
-    
     else:
         user = st.session_state['usuario_activo']
         creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
-        
         st.success(f"✅ ¡Hola {user.get('cliente', 'Usuario')}!")
-        
         color_cred = "blue" if creditos_disponibles > 0 else "red"
         st.markdown(f":{color_cred}[**🪙 Créditos: {creditos_disponibles}**]")
-        
         st.markdown("---")
         st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary", on_click=ir_a_planes)
-
         st.markdown("---")
         if st.button("🔒 Cerrar Sesión"):
             cerrar_sesion()
             st.rerun()
-
     st.caption("© 2026 VendeMás IA")
 
 # =======================================================
@@ -236,9 +204,7 @@ with st.sidebar:
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
-    
     if st.session_state.plan_seleccionado is None:
-        st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown('<div class="plan-basic"><h3>🥉 Básico</h3><div class="price-tag">20.000 Gs</div><p class="feature-text">10 Estrategias</p><p style="font-size:0.8em">Máx 3 Fotos</p></div>', unsafe_allow_html=True)
@@ -249,13 +215,10 @@ if st.session_state.ver_planes:
         with c3:
             st.markdown('<div class="plan-agency"><div style="background:#F59E0B; color:white; font-size:0.7em; font-weight:bold; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:5px;">🔥 MEJOR OPCIÓN</div><h3 style="color:#B45309;">🥇 Agencia</h3><div class="price-tag" style="color:#D97706;">80.000 Gs</div><p class="feature-text"><b>200 Estrategias</b></p><p style="font-size:0.8em">Máx 10 Fotos</p></div>', unsafe_allow_html=True)
             st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
-        
         st.divider()
         st.button("⬅️ Volver a la App", on_click=volver_a_app)
-
     else:
         st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
-        
         if not st.session_state.pedido_registrado:
             st.write("### 📝 Paso 1: Tus Datos")
             with st.form("form_registro_pedido"):
@@ -265,7 +228,6 @@ if st.session_state.ver_planes:
                 email = st.text_input("Correo Electrónico")
                 telefono = st.text_input("Número de WhatsApp")
                 submitted = st.form_submit_button("✅ Confirmar y Ver Datos de Pago", type="primary")
-                
                 if submitted:
                     if nombre and apellido and email and telefono:
                         with st.spinner("Registrando pedido..."):
@@ -326,7 +288,6 @@ if st.session_state['usuario_activo']:
         plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
-    
     with c_badge:
         st.markdown(f'<div style="text-align:right"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
@@ -354,9 +315,7 @@ if es_pro:
         st.stop()
     
     st.markdown(f"""<div class="photo-limit-box">📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.</div>""", unsafe_allow_html=True)
-    
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
-    
     if uploaded_files:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
@@ -456,22 +415,20 @@ if st.button("✨ Generar Estrategia", type="primary"):
             st.stop()
 
     if puede_generar:
-        with st.spinner('🧠 Redactando estrategia ganadora...'):
+        with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- PROMPT MARKETING AVANZADO (VISUAL) ---
-                base_prompt = f"""Actúa como copywriter inmobiliario experto. 
+                # --- PROMPT MARKETING AVANZADO (VISUAL + VISIÓN) ---
+                base_prompt = f"""Actúa como copywriter inmobiliario experto.
                 Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
                 Características: Hab:{habs}, Baños:{banos}.
                 Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
                 
-                # INSTRUCCIONES CLAVE PARA FORMATO VISUAL
                 instrucciones_visuales = """
-                FORMATO OBLIGATORIO DE SALIDA:
-                - Usa MAYÚSCULAS para resaltar Ubicación, Precio y Call to Action (NO uses negritas markdown **).
-                - Usa EMOJIS al inicio de cada característica.
-                - Estructura en listas verticales limpias.
-                - Párrafos cortos (máximo 2 líneas) para fácil lectura en móvil.
-                - OPCIÓN 3 DEBE INCLUIR UN BLOQUE DE 10 HASHTAGS VIRALES DE NICHO AL FINAL.
+                INSTRUCCIONES VISUALES (CRÍTICO):
+                1. 👁️ ANÁLISIS DE FOTOS: Si recibes imágenes, OBSERVA DETENIDAMENTE y menciona al menos 3 detalles visuales específicos que veas (ej: tipo de piso, color de paredes, estilo de cocina, iluminación). ¡Demuestra que las has visto!
+                2. FORMATO: Usa Markdown (**negritas**) para resaltar Títulos, Precio y Llamadas a la Acción.
+                3. ESTRUCTURA: Usa listas verticales con emojis para características. Párrafos cortos.
+                4. HASHTAGS: Al final de la opción 3, incluye 10 hashtags relevantes.
                 """
 
                 if es_pro:
@@ -479,13 +436,13 @@ if st.button("✨ Generar Estrategia", type="primary"):
                     TONO: {tono}.
                     Genera 3 opciones distintas:
                     OPCIÓN 1: Storytelling Emotivo ({enfoque}).
-                    OPCIÓN 2: Venta Directa (Datos duros y lista de características).
-                    OPCIÓN 3: Instagram/TikTok (Viral, corto, con hashtags de Paraguay).
-                    
+                    OPCIÓN 2: Venta Directa (Datos duros y lista).
+                    OPCIÓN 3: Instagram/TikTok (Viral, corto).
                     Link WhatsApp: https://wa.me/595{whatsapp}.
                     {instrucciones_visuales}
                     """
                     content = [{"type": "text", "text": full_prompt}]
+                    # Aseguramos enviar las fotos si existen y cumplen el límite
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
                             f.seek(0)
@@ -500,12 +457,11 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                 generated_text = res.choices[0].message.content
 
-                # LIMPIEZA INTELIGENTE (RESPETA HASHTAGS)
-                # Reemplazamos encabezados markdown por adornos, pero NO tocamos el # de hashtags
+                # LIMPIEZA SUAVE (Solo quitamos headers markdown grandes, permitimos negritas)
                 cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
-                # Solo reemplazamos # si tiene espacio después (ej: "# Título"), no si es hashtag (ej: "#Casa")
+                # Solo reemplazamos # si es título, no hashtag
                 cleaned_text = cleaned_text.replace("# ", "🚀 ") 
-                cleaned_text = cleaned_text.replace("**", "") # Quitamos negritas markdown para limpieza visual
+                # YA NO QUITAMOS NEGRITAS (**)
                 cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
                 if es_pro:
@@ -523,15 +479,21 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 st.error(f"Error: {e}")
 
 if 'generated_result' in st.session_state:
-    st.success("¡Estrategia lista! Copia el texto abajo.")
+    # --- RESULTADO VISUAL BONITO ---
+    st.markdown('<div class="output-box">', unsafe_allow_html=True)
+    st.subheader("🎉 Estrategia Generada:")
+    # Usamos markdown para que renderice las negritas y emojis
+    st.markdown(st.session_state['generated_result'])
+    st.markdown('</div>', unsafe_allow_html=True)
     
-    texto_resultado = st.session_state['generated_result']
-    st.code(texto_resultado, language=None)
+    # --- CAJA DE COPIA (TEXTO CRUDO) ---
+    with st.expander("📋 Ver Texto para Copiar (Formato WhatsApp/Instagram)"):
+        st.code(st.session_state['generated_result'], language=None)
     
+    # ZONA SOCIAL
     st.markdown('<div class="social-area"><div class="social-title">🚀 Acciones Rápidas (Postea Ya):</div>', unsafe_allow_html=True)
     c_wa, c_ig, c_fb = st.columns(3)
-    
-    texto_encoded = urllib.parse.quote(texto_resultado)
+    texto_encoded = urllib.parse.quote(st.session_state['generated_result'])
     link_wa = f"https://wa.me/?text={texto_encoded}"
     
     with c_wa: st.link_button("📲 Enviar a WhatsApp", link_wa)

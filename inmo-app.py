@@ -11,10 +11,12 @@ import urllib.parse
 import os
 import tempfile
 import numpy as np
+import shutil # Necesario para limpieza
 
-# --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
+# --- IMPORTACIÓN CONDICIONAL DE MOVIEPY (ROBUSTA) ---
 try:
-    from moviepy.editor import ImageSequenceClip
+    # Importamos las herramientas específicas necesarias para concatenar
+    from moviepy.editor import ImageClip, concatenate_videoclips
     MOVIEPY_AVAILABLE = True
 except ImportError:
     MOVIEPY_AVAILABLE = False
@@ -142,75 +144,81 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL (CORREGIDA - PIX_FMT FIX) ---
+# --- FUNCIÓN GENERADORA DE VIDEO REEL (NUEVA VERSIÓN ROBUSTA) ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave):
-    """Convierte imágenes en un video vertical 9:16 con texto superpuesto."""
+    """Convierte imágenes en un video vertical 9:16 concatenando clips."""
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
         return None
     
-    temp_dir = tempfile.mkdtemp()
-    clips_images = []
+    # 1. Calcular duración por foto para un total máx de 20s
+    num_fotos = len(imagenes_uploaded)
+    duracion_por_foto = 20.0 / num_fotos
+    
+    clips = [] # Lista para guardar los clips individuales
     
     # Configuración 9:16
     W, H = 720, 1280
+    font = ImageFont.load_default()
     
-    # Duración fija de 3 segundos por foto
-    duracion_foto = 3.0
+    # Directorio temporal para las imágenes procesadas
+    temp_dir = tempfile.mkdtemp()
 
     for i, img_file in enumerate(imagenes_uploaded):
         try:
-            # 1. Resetear puntero y abrir
+            # --- PROCESAMIENTO PIL (Igual que antes) ---
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
-            
-            # 2. Redimensionar (Center Crop 9:16)
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
-            
-            # 3. Oscurecer ligeramente para leer texto
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 100))
             img.paste(overlay, (0, 0), overlay)
-            
-            # 4. Escribir texto
             draw = ImageDraw.Draw(img)
-            
-            # Cargar fuente por defecto (más segura)
-            font = ImageFont.load_default()
-            # Si quieres una fuente más grande por defecto, tendrías que subir un .ttf al repo
-            # Aquí usamos default para evitar errores
-            
-            # Texto rotativo
             texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
-            
-            # Posición aproximada centro
-            # Nota: PIL default font es pequeño, pero seguro.
             draw.text((W/2, H*0.8), texto_actual, font=font, fill="white", anchor="mm", align="center")
             draw.text((W/2, H*0.95), "Generado con AppyProp IA 🚀", fill="#cccccc", anchor="mm", font=font)
 
-            # 5. Guardar frame
-            frame_path = os.path.join(temp_dir, f"frame_{i}.jpg")
-            img.save(frame_path)
-            clips_images.append(frame_path)
+            # Guardar imagen intermedia
+            temp_img_path = os.path.join(temp_dir, f"temp_frame_{i}.jpg")
+            img.save(temp_img_path)
+            
+            # --- CREACIÓN DE CLIP MOVIEPY (La mejora clave) ---
+            # Creamos un clip individual para esta imagen y le asignamos su duración
+            clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
+            clips.append(clip)
+
         except Exception as e:
             print(f"Error procesando imagen {i}: {e}")
             continue
 
-    if not clips_images:
+    if not clips:
+        try: shutil.rmtree(temp_dir) # Limpieza
+        except: pass
         return None
 
-    # 6. Crear video con parámetros de compatibilidad web
-    clip = ImageSequenceClip(clips_images, fps=24, durations=[duracion_foto]*len(clips_images))
-    
-    # Exportar con pixel format yuv420p (CRÍTICO PARA QUE SE VEA EN WEB)
-    output_path = os.path.join(temp_dir, "reel_final.mp4")
-    clip.write_videofile(
+    # 2. Concatenar todos los clips en uno solo
+    final_clip = concatenate_videoclips(clips, method="compose")
+
+    # 3. Crear archivo temporal persistente para el output
+    tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+    output_path = tfile.name
+    tfile.close() # Cerramos el handle para que moviepy pueda escribir
+
+    # 4. Exportar con parámetros de compatibilidad web
+    # threads=1 ayuda a la estabilidad en servidores con pocos recursos
+    final_clip.write_videofile(
         output_path, 
         codec="libx264", 
         audio=False, 
         fps=24, 
         preset='ultrafast',
-        ffmpeg_params=['-pix_fmt', 'yuv420p'] # <--- EL FIX MÁGICO
+        ffmpeg_params=['-pix_fmt', 'yuv420p'],
+        threads=1,
+        logger=None # Menos ruido en logs
     )
     
+    # Limpieza del directorio de imágenes intermedias
+    try: shutil.rmtree(temp_dir)
+    except: pass
+
     return output_path
 
 # --- INICIALIZACIÓN ---

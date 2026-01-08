@@ -40,6 +40,7 @@ st.markdown("""
     
     .social-area { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
     .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
+    
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
@@ -161,7 +162,7 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (PANEL FLOTANTE DE GESTIÓN) ===
+# === 🏗️ BARRA LATERAL ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -190,10 +191,8 @@ with st.sidebar:
         color_cred = "blue" if creditos_disponibles > 0 else "red"
         st.markdown(f":{color_cred}[**🪙 Créditos: {creditos_disponibles}**]")
         
-        # --- BOTÓN FLOTANTE EN SIDEBAR (NUEVO LUGAR) ---
         st.markdown("---")
         st.markdown("### 🛠️ Gestión Rápida")
-        # Este botón siempre estará visible porque la sidebar sigue el scroll
         if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
             limpiar_formulario()
             
@@ -326,10 +325,7 @@ if es_pro:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
-        with st.expander("👁️ Ver fotos cargadas", expanded=True):
-            cols = st.columns(4)
-            for i, f in enumerate(uploaded_files):
-                with cols[i%4]: st.image(Image.open(f), use_container_width=True)
+        # NOTA: Ya no mostramos la galería aquí para limpiar la pantalla, como pediste
 else:
     st.info("🔒 **La carga de fotos y Visión IA es exclusiva para Miembros.**")
     st.markdown('<div style="opacity:0.6; pointer-events:none; border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 10px;">📂 Subir fotos (Bloqueado)</div>', unsafe_allow_html=True)
@@ -423,47 +419,61 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                base_prompt = f"""Actúa como copywriter inmobiliario experto.
-                Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
-                Características: Hab:{habs}, Baños:{banos}.
-                Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
+                # --- PROMPT REFORZADO PARA VISIÓN ---
+                base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
+                DATOS TÉCNICOS:
+                - {oper} {tipo} en {ubicacion}.
+                - Precio: {texto_precio}.
+                - {habs} Habitaciones, {banos} Baños.
+                - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Wifi={wifi}.
+                """
                 
                 instrucciones_visuales = """
-                INSTRUCCIONES VISUALES (CRÍTICO):
-                1. 👁️ ANÁLISIS DE FOTOS: Si recibes imágenes, OBSERVA DETENIDAMENTE y menciona al menos 3 detalles visuales específicos que veas (ej: tipo de piso, color de paredes, estilo de cocina, iluminación). ¡Demuestra que las has visto!
-                2. FORMATO: Usa Markdown (**negritas**) para resaltar Títulos, Precio y Llamadas a la Acción.
-                3. ESTRUCTURA: Usa listas verticales con emojis para características. Párrafos cortos.
-                4. HASHTAGS: Al final de la opción 3, incluye 10 hashtags relevantes.
+                🔍 INSTRUCCIONES DE VISIÓN (MUY IMPORTANTE):
+                He adjuntado fotos de la propiedad. TU TAREA PRINCIPAL ES DESCRIBIR LO QUE VES.
+                1. NO inventes. Mira las fotos y describe: tipo de suelo (cerámica, madera), iluminación (natural, cálida), estado de las paredes, estilo de la cocina o muebles.
+                2. Integra estos detalles visuales en el texto para que el comprador "sienta" que está ahí.
+                3. Si ves un jardín, piscina o fachada, descríbelos con adjetivos atractivos.
+                
+                ⚠️ FORMATO DE SALIDA (ESTRICTO):
+                - Usa Markdown con **negritas** para resaltar lo importante.
+                - Usa Emojis al inicio de cada punto clave.
+                - Párrafos CORTOS (máximo 2-3 líneas).
+                - Estructura limpia y vertical.
                 """
 
                 if es_pro:
                     full_prompt = base_prompt + f""" 
                     TONO: {tono}.
-                    Genera 3 opciones distintas:
-                    OPCIÓN 1: Storytelling Emotivo ({enfoque}).
-                    OPCIÓN 2: Venta Directa (Datos duros y lista).
-                    OPCIÓN 3: Instagram/TikTok (Viral, corto).
+                    Genera 3 opciones:
+                    1. Storytelling Emotivo ({enfoque}).
+                    2. Venta Directa (Datos y Lista).
+                    3. Instagram (Viral + Hashtags).
                     Link WhatsApp: https://wa.me/595{whatsapp}.
                     {instrucciones_visuales}
                     """
                     content = [{"type": "text", "text": full_prompt}]
+                    
+                    # ENVIAR IMÁGENES EN ALTA RESOLUCIÓN
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
                             f.seek(0)
-                            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}"}})
+                            content.append({
+                                "type": "image_url", 
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
+                                    "detail": "high" # FORZAR ALTA RESOLUCIÓN
+                                }
+                            })
                 else:
-                    full_prompt = base_prompt + f"""
-                    Genera 1 Descripción de Venta atractiva y básica.
-                    {instrucciones_visuales}
-                    """
+                    full_prompt = base_prompt + f"""Genera 1 Descripción básica. {instrucciones_visuales}"""
                     content = [{"type": "text", "text": full_prompt}]
 
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                 generated_text = res.choices[0].message.content
 
+                # LIMPIEZA LIGERA (MANTIENE EL FORMATO DE LA IA)
                 cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
-                cleaned_text = cleaned_text.replace("# ", "🚀 ") 
-                cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
                 if es_pro:
                     exito = descontar_credito(user['codigo'])
@@ -480,34 +490,23 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 st.error(f"Error: {e}")
 
 if 'generated_result' in st.session_state:
-    st.success("¡Estrategia lista! Copia el texto abajo.")
-    
-    texto_resultado = st.session_state['generated_result']
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
     st.subheader("🎉 Estrategia Generada:")
-    st.markdown(texto_resultado)
+    st.markdown(st.session_state['generated_result'])
     st.markdown('</div>', unsafe_allow_html=True)
     
     with st.expander("📋 Ver Texto sin Formato (Para Copiar)"):
-        st.code(texto_resultado, language=None)
+        st.code(st.session_state['generated_result'], language=None)
     
     st.markdown('<div class="social-area"><div class="social-title">🚀 Acciones Rápidas (Postea Ya):</div>', unsafe_allow_html=True)
     c_wa, c_ig, c_fb = st.columns(3)
-    texto_encoded = urllib.parse.quote(texto_resultado)
+    texto_encoded = urllib.parse.quote(st.session_state['generated_result'])
     link_wa = f"https://wa.me/?text={texto_encoded}"
     
     with c_wa: st.link_button("📲 Enviar a WhatsApp", link_wa)
-    with c_ig:
-        st.link_button("📸 Abrir Instagram", "https://www.instagram.com/")
-        st.caption("(*Copia el texto arriba)")
-    with c_fb:
-        st.link_button("📘 Abrir Facebook", "https://www.facebook.com/")
-        st.caption("(*Copia el texto arriba)")
+    with c_ig: st.link_button("📸 Abrir Instagram", "https://www.instagram.com/")
+    with c_fb: st.link_button("📘 Abrir Facebook", "https://www.facebook.com/")
     st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.subheader("¿Terminaste?")
-    st.info("👈 Usa el botón 'Nueva Propiedad' en el menú lateral para empezar otra.")
 
 # =======================================================
 # === ⚖️ AVISO LEGAL ===

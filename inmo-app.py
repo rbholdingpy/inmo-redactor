@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL FLUIDO - SIN CAPAS GRISES) ---
+# --- ESTILOS CSS (MODO MÓVIL SÚPER ESTÁTICO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,9 +47,9 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA MOLESTOS --- */
+    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA --- */
     
-    /* 1. Prohibir que la pantalla se ponga gris/translúcida al interactuar */
+    /* 1. Forzar opacidad total siempre */
     .stApp, [data-testid="stAppViewContainer"] {
         opacity: 1 !important;
         filter: none !important;
@@ -57,21 +57,11 @@ st.markdown("""
         will-change: auto !important;
     }
     
-    /* 2. Ocultar la animación de "Corriendo" arriba a la derecha */
-    [data-testid="stStatusWidget"] {
-        display: none !important;
-    }
+    /* 2. Ocultar animación de carga superior */
+    [data-testid="stStatusWidget"] { display: none !important; }
 
-    /* 3. Eliminar el texto "Press Enter to apply" que tapa el teclado */
-    [data-testid="InputInstructions"] {
-        display: none !important;
-    }
-    
-    /* 4. Forzar que los inputs se mantengan visibles y nítidos */
-    .stTextInput input {
-        opacity: 1 !important;
-        color: #333 !important;
-    }
+    /* 3. Eliminar "Press Enter to apply" */
+    [data-testid="InputInstructions"] { display: none !important; }
     
     /* ---------------------------------------------------- */
 
@@ -770,9 +760,9 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
         st.stop()
 
     if permitido:
-        # === NUEVA LÓGICA SIN SPINNER (PARA EVITAR CAPA GRIS) ===
-        estado_ia = st.empty()
-        estado_ia.info("🧠 **Analizando propiedad...** Por favor espera un momento.")
+        # === AQUI EL CAMBIO: MENSAJE DE TEXTO SIMPLE EN LUGAR DE SPINNER ===
+        mensaje_carga = st.empty()
+        mensaje_carga.markdown("##### ⏳ La IA está procesando tu información... (Esto toma unos segundos)")
         
         try:
             # Prompt con Geo-Inteligencia Paraguaya
@@ -828,7 +818,6 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
             
             REGLAS DE FORMATO:
             - Usa Markdown (**negritas**).
-            - NO uses frases clichés vacías.
             - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
             - Incluye 10 hashtags en Opción 3.
             
@@ -884,11 +873,11 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
                 st.toast("✅ Crédito gratuito usado", icon="🎁")
 
             st.session_state['generated_result'] = cleaned_text
-            estado_ia.empty() # Limpiar mensaje de carga
+            mensaje_carga.empty() # BORRAR EL MENSAJE
             
         except Exception as e:
             st.error(f"Error: {e}")
-            estado_ia.empty()
+            mensaje_carga.empty()
 
 if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
@@ -914,21 +903,20 @@ if 'generated_result' in st.session_state:
                 if not MOVIEPY_AVAILABLE:
                     st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
                 else:
-                    # USAMOS ST.STATUS EN LUGAR DE SPINNER PARA EL VIDEO TAMBIÉN
-                    estado_video = st.status("🎞️ Renderizando video...", expanded=True)
+                    # === MENSAJE DE TEXTO SIMPLE TAMBIÉN PARA VIDEO ===
+                    msg_video = st.empty()
+                    msg_video.markdown("##### 🎞️ Generando video (esto toma unos segundos)...")
                     try:
-                        estado_video.write("Procesando imágenes...")
                         frases = st.session_state.get('video_frases', ["AppyProp IA"])
                         path_video = crear_reel_vertical(uploaded_files, frases)
                         if path_video:
                             st.session_state['video_path'] = path_video
-                            estado_video.update(label="✅ ¡Video Listo!", state="complete", expanded=False)
                         else:
                             st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
-                            estado_video.update(label="❌ Error", state="error")
+                        msg_video.empty() # Borrar mensaje
                     except Exception as e:
                         st.error(f"Error video: {e}")
-                        estado_video.update(label="❌ Error", state="error")
+                        msg_video.empty()
 
         if 'video_path' in st.session_state:
             st.success("✅ Video Reel generado con éxito.")

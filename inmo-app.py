@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL BLINDADO) ---
+# --- ESTILOS CSS (MODO MÓVIL FLUIDO - SIN CAPAS GRISES) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,33 +47,32 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* --- ESCUDO ANTI-MENSAJES MOLESTOS (NUCLEAR) --- */
+    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA MOLESTOS --- */
     
-    /* 1. Ocultar el texto "Press Enter to apply" */
-    [data-testid="InputInstructions"] {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        opacity: 0 !important;
+    /* 1. Prohibir que la pantalla se ponga gris/translúcida al interactuar */
+    .stApp, [data-testid="stAppViewContainer"] {
+        opacity: 1 !important;
+        filter: none !important;
+        transition: none !important;
+        will-change: auto !important;
     }
     
-    /* 2. Ocultar tooltips nativos que puedan estorbar */
-    div[data-baseweb="tooltip"] {
+    /* 2. Ocultar la animación de "Corriendo" arriba a la derecha */
+    [data-testid="stStatusWidget"] {
         display: none !important;
     }
 
-    /* 3. Evitar que la pantalla se ponga gris/translúcida al cargar */
-    [data-testid="stAppViewContainer"] {
-        will-change: auto !important;
-        transition: none !important;
-        opacity: 1 !important;
-        filter: none !important;
+    /* 3. Eliminar el texto "Press Enter to apply" que tapa el teclado */
+    [data-testid="InputInstructions"] {
+        display: none !important;
     }
     
-    /* 4. Limpieza visual de inputs */
-    .stTextInput > div > div {
-        box-shadow: none !important;
+    /* 4. Forzar que los inputs se mantengan visibles y nítidos */
+    .stTextInput input {
+        opacity: 1 !important;
+        color: #333 !important;
     }
+    
     /* ---------------------------------------------------- */
 
     /* ESTILOS VIDEO REEL */
@@ -771,118 +770,125 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
         st.stop()
 
     if permitido:
-        with st.spinner('🧠 Redactando estrategia...'):
-            try:
-                # Prompt con Geo-Inteligencia Paraguaya
-                instrucciones_estrategia = {
-                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
-                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
-                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
-                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
-                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",
-                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad'.",
-                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro. Tono zen y relajado.",
-                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas y éxito comercial.",
-                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, wifi, cercanía a turismo y comodidad total.",
-                    "💑 Recién Casados (Inicio Ideal)": "Enfócate en 'el comienzo de una historia', intimidad, espacio práctico y acogedor.",
-                    "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total, vigilancia 24/7, amenities compartidos y vida social segura.",
-                    "🎒 Estudiantes/Universitario": "Destaca cercanía a universidades, transporte público, bajo mantenimiento y wifi.",
-                    "💼 Ejecutivo/Nómada Digital": "Enfócate en conectividad, escritorio/home office, cercanía al centro financiero y estilo moderno."
-                }
-                
-                directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
+        # === NUEVA LÓGICA SIN SPINNER (PARA EVITAR CAPA GRIS) ===
+        estado_ia = st.empty()
+        estado_ia.info("🧠 **Analizando propiedad...** Por favor espera un momento.")
+        
+        try:
+            # Prompt con Geo-Inteligencia Paraguaya
+            instrucciones_estrategia = {
+                "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
+                "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
+                "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
+                "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
+                "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",
+                "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad'.",
+                "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro. Tono zen y relajado.",
+                "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas y éxito comercial.",
+                "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, wifi, cercanía a turismo y comodidad total.",
+                "💑 Recién Casados (Inicio Ideal)": "Enfócate en 'el comienzo de una historia', intimidad, espacio práctico y acogedor.",
+                "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total, vigilancia 24/7, amenities compartidos y vida social segura.",
+                "🎒 Estudiantes/Universitario": "Destaca cercanía a universidades, transporte público, bajo mantenimiento y wifi.",
+                "💼 Ejecutivo/Nómada Digital": "Enfócate en conectividad, escritorio/home office, cercanía al centro financiero y estilo moderno."
+            }
+            
+            directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
 
-                base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
-                DATOS TÉCNICOS:
-                - {oper} {tipo} en {ubicacion}.
-                - Precio: {texto_precio}.
-                - {habs} Habitaciones, {banos} Baños.
-                - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
-                
-                prompt_avanzado = f"""
-                TUS INSTRUCCIONES MAESTRAS:
-                PASO 1: ANÁLISIS VISUAL (OBLIGATORIO)
-                Si recibes fotos, ACTÚA COMO UN INSPECTOR. No inventes.
-                - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
-                - Mira la luz: ¿Entra luz natural? ¿Es cálida?
-                - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
-                - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
-                
-                PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
-                Analiza la ubicación ingresada: "{ubicacion}".
-                - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
-                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
-                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
+            base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
+            DATOS TÉCNICOS:
+            - {oper} {tipo} en {ubicacion}.
+            - Precio: {texto_precio}.
+            - {habs} Habitaciones, {banos} Baños.
+            - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
+            
+            prompt_avanzado = f"""
+            TUS INSTRUCCIONES MAESTRAS:
+            PASO 1: ANÁLISIS VISUAL (OBLIGATORIO)
+            Si recibes fotos, ACTÚA COMO UN INSPECTOR. No inventes.
+            - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
+            - Mira la luz: ¿Entra luz natural? ¿Es cálida?
+            - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
+            - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
+            
+            PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
+            Analiza la ubicación ingresada: "{ubicacion}".
+            - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
+            - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
+            - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
 
-                PASO 2: APLICAR ESTRATEGIA DE VENTA
-                Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
-                Instrucción de Tono y Enfoque: {directriz_seleccionada}
-                
-                PASO 3: REDACCIÓN (OUTPUT)
-                Escribe 3 opciones distintas:
-                OPCIÓN 1: Storytelling Emotivo.
-                OPCIÓN 2: Venta Directa (Datos duros).
-                OPCIÓN 3: Formato Viral (Instagram/TikTok).
-                
-                REGLAS DE FORMATO:
-                - Usa Markdown (**negritas**).
-                - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
-                - Incluye 10 hashtags en Opción 3.
-                
-                TONO DE VOZ SOLICITADO: {tono}
-                {base_prompt}
-                """
+            PASO 2: APLICAR ESTRATEGIA DE VENTA
+            Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
+            Instrucción de Tono y Enfoque: {directriz_seleccionada}
+            
+            PASO 3: REDACCIÓN (OUTPUT)
+            Escribe 3 opciones distintas:
+            OPCIÓN 1: Storytelling Emotivo.
+            OPCIÓN 2: Venta Directa (Datos duros).
+            OPCIÓN 3: Formato Viral (Instagram/TikTok).
+            
+            REGLAS DE FORMATO:
+            - Usa Markdown (**negritas**).
+            - NO uses frases clichés vacías.
+            - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
+            - Incluye 10 hashtags en Opción 3.
+            
+            TONO DE VOZ SOLICITADO: {tono}
+            {base_prompt}
+            """
 
-                content = [{"type": "text", "text": prompt_avanzado}]
-                
-                if (es_pro or MODO_LANZAMIENTO) and uploaded_files and len(uploaded_files) <= cupo_fotos:
-                    for f in uploaded_files:
-                        f.seek(0)
-                        content.append({
-                            "type": "image_url", 
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
-                                "detail": "high"
-                            }
-                        })
+            content = [{"type": "text", "text": prompt_avanzado}]
+            
+            if (es_pro or MODO_LANZAMIENTO) and uploaded_files and len(uploaded_files) <= cupo_fotos:
+                for f in uploaded_files:
+                    f.seek(0)
+                    content.append({
+                        "type": "image_url", 
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
+                            "detail": "high"
+                        }
+                    })
 
-                res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) 
-                generated_text = res.choices[0].message.content
+            res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) 
+            generated_text = res.choices[0].message.content
 
-                cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
-                cleaned_text = cleaned_text.replace("# ", "🚀 ") 
-                cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
-                
-                # --- LÓGICA DE EXTRACCIÓN DE FRASES PARA VIDEO ---
-                frases_video = []
-                # Si tiene acceso a video (Agencia o Lanzamiento)
-                if puede_video:
-                    try:
-                        lines = cleaned_text.split('\n')
-                        for l in lines:
-                            l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
-                            if 10 < len(l) < 40 and not l.startswith("http"):
-                                frases_video.append(l)
-                        if len(frases_video) < 3:
-                            frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
-                        st.session_state['video_frases'] = frases_video[:6]
-                    except:
-                        st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
+            cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
+            cleaned_text = cleaned_text.replace("# ", "🚀 ") 
+            cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
+            
+            # --- LÓGICA DE EXTRACCIÓN DE FRASES PARA VIDEO ---
+            frases_video = []
+            # Si tiene acceso a video (Agencia o Lanzamiento)
+            if puede_video:
+                try:
+                    lines = cleaned_text.split('\n')
+                    for l in lines:
+                        l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
+                        if 10 < len(l) < 40 and not l.startswith("http"):
+                            frases_video.append(l)
+                    if len(frases_video) < 3:
+                        frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
+                    st.session_state['video_frases'] = frases_video[:6]
+                except:
+                    st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
-                # --- DESCUENTO DE CRÉDITOS ---
-                if es_pro:
-                    exito = descontar_credito(user['codigo'])
-                    if exito:
-                        st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
-                        st.toast("✅ Crédito PRO descontado", icon="🪙")
-                else:
-                    st.session_state['guest_credits'] = 0
-                    st.session_state['guest_last_use'] = datetime.now()
-                    st.toast("✅ Crédito gratuito usado", icon="🎁")
+            # --- DESCUENTO DE CRÉDITOS ---
+            if es_pro:
+                exito = descontar_credito(user['codigo'])
+                if exito:
+                    st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
+                    st.toast("✅ Crédito PRO descontado", icon="🪙")
+            else:
+                st.session_state['guest_credits'] = 0
+                st.session_state['guest_last_use'] = datetime.now()
+                st.toast("✅ Crédito gratuito usado", icon="🎁")
 
-                st.session_state['generated_result'] = cleaned_text
-            except Exception as e:
-                st.error(f"Error: {e}")
+            st.session_state['generated_result'] = cleaned_text
+            estado_ia.empty() # Limpiar mensaje de carga
+            
+        except Exception as e:
+            st.error(f"Error: {e}")
+            estado_ia.empty()
 
 if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
@@ -908,16 +914,21 @@ if 'generated_result' in st.session_state:
                 if not MOVIEPY_AVAILABLE:
                     st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
                 else:
-                    with st.spinner("🎞️ Renderizando video (aprox. 20s)..."):
-                        try:
-                            frases = st.session_state.get('video_frases', ["AppyProp IA"])
-                            path_video = crear_reel_vertical(uploaded_files, frases)
-                            if path_video:
-                                st.session_state['video_path'] = path_video
-                            else:
-                                st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
-                        except Exception as e:
-                            st.error(f"Error video: {e}")
+                    # USAMOS ST.STATUS EN LUGAR DE SPINNER PARA EL VIDEO TAMBIÉN
+                    estado_video = st.status("🎞️ Renderizando video...", expanded=True)
+                    try:
+                        estado_video.write("Procesando imágenes...")
+                        frases = st.session_state.get('video_frases', ["AppyProp IA"])
+                        path_video = crear_reel_vertical(uploaded_files, frases)
+                        if path_video:
+                            st.session_state['video_path'] = path_video
+                            estado_video.update(label="✅ ¡Video Listo!", state="complete", expanded=False)
+                        else:
+                            st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
+                            estado_video.update(label="❌ Error", state="error")
+                    except Exception as e:
+                        st.error(f"Error video: {e}")
+                        estado_video.update(label="❌ Error", state="error")
 
         if 'video_path' in st.session_state:
             st.success("✅ Video Reel generado con éxito.")

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="VendeMás IA",
+    page_title="VendeMás IA - Marketing con Estrategia para Gestiones Inmobiliaria ",
     page_icon="🚀",
     layout="centered",
     initial_sidebar_state="expanded"
@@ -53,11 +53,11 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* NUEVO ESTILO PARA NOTIFICACIÓN DE LÍMITE DE FOTOS */
+    /* ESTILO PARA NOTIFICACIÓN DE LÍMITE DE FOTOS */
     .photo-limit-box {
-        background-color: #E0F2FE; /* Azul claro muy visible */
-        border: 2px solid #0284C7; /* Borde azul fuerte */
-        color: #0369A1; /* Texto azul oscuro */
+        background-color: #E0F2FE;
+        border: 2px solid #0284C7;
+        color: #0369A1;
         padding: 15px;
         border-radius: 10px;
         text-align: center;
@@ -181,7 +181,6 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         sheet = client_gs.open("Usuarios_InmoApp").get_worksheet(0)
         fecha = datetime.now().strftime("%Y-%m-%d %H:%M")
         nombre_completo = f"{nombre} {apellido}"
-        # ORDEN: A:codigo|B:cliente|C:plan|D:limite|E:telefono|F:correo|G:estado|H:fecha
         nueva_fila = ["PENDIENTE", nombre_completo, plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
         sheet.append_row(nueva_fila)
         return True
@@ -380,7 +379,7 @@ if es_pro:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
     
-    # --- NUEVO: NOTIFICACIÓN VISIBLE DEL LÍMITE DE FOTOS ---
+    # --- NOTIFICACIÓN VISIBLE DEL LÍMITE DE FOTOS ---
     st.markdown(f"""
     <div class="photo-limit-box">
         📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.
@@ -390,7 +389,6 @@ if es_pro:
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
     
     if uploaded_files:
-        # VALIDACIÓN DEL LÍMITE DE FOTOS
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes. Has subido {len(uploaded_files)}.")
             st.stop()
@@ -439,15 +437,24 @@ with c1:
 with c2:
     habs = st.number_input("Habitaciones", 1)
     banos = st.number_input("Baños", 1)
-    st.write("**Extras:**")
-    q = st.checkbox("Quincho")
-    p = st.checkbox("Piscina")
-    c = st.checkbox("Cochera")
+    st.write("**Servicios y Extras:**")
+    # --- NUEVOS EXTRAS SOLICITADOS EN 2 COLUMNAS ---
+    col_ex1, col_ex2 = st.columns(2)
+    with col_ex1:
+        gar = st.checkbox("Garage")
+        qui = st.checkbox("Quincho")
+        pis = st.checkbox("Piscina")
+        aa = st.checkbox("Aire Acond.")
+        vent = st.checkbox("Ventilador")
+    with col_ex2:
+        wifi = st.checkbox("Wifi")
+        tv = st.checkbox("TV Cable")
+        agua = st.checkbox("Agua")
+        luz = st.checkbox("Luz")
 
 st.divider()
 
 if es_pro:
-    # Verifica si subió fotos para mostrar el mensaje correcto
     cant_fotos = len(uploaded_files) if uploaded_files else 0
     if cant_fotos > 0:
         st.info(f"🧠 **Neuro-Vision Activa:** Analizando {cant_fotos} fotos con potencia {plan_actual}... (Costo: 1 crédito)")
@@ -480,12 +487,14 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                base_prompt = f"""Actúa como copywriter inmobiliario. Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. Extras: Q={q}, P={p}, C={c}. Hab:{habs}, Baños:{banos}."""
+                # --- PROMPT ACTUALIZADO CON LOS NUEVOS EXTRAS ---
+                base_prompt = f"""Actúa como copywriter inmobiliario. Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
+                Características: Hab:{habs}, Baños:{banos}.
+                Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
                 
                 if es_pro:
                     full_prompt = base_prompt + f""" OPCIÓN 1: Storytelling ({enfoque}). OPCIÓN 2: Venta Directa. OPCIÓN 3: Instagram. WhatsApp: https://wa.me/595{whatsapp}. REGLAS: NO Markdown. Usa EMOJIS."""
                     content = [{"type": "text", "text": full_prompt}]
-                    # Solo añade fotos si se subieron y están dentro del límite
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
                             f.seek(0)
@@ -517,7 +526,6 @@ if st.button("✨ Generar Estrategia", type="primary"):
 if 'generated_result' in st.session_state:
     st.success("¡Estrategia lista! Copia el texto abajo.")
     st.write(st.session_state['generated_result'])
-    # Solo muestra fotos al final si es PRO y subió fotos válidas
     if es_pro and uploaded_files and len(uploaded_files) <= cupo_fotos:
         st.divider()
         st.caption("📸 Fotos analizadas:")

@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (ANTI-CONGELAMIENTO REFORZADO) ---
+# --- ESTILOS CSS (SOLUCIÓN DEFINITIVA UI) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,14 +47,31 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA --- */
-    .stApp, [data-testid="stAppViewContainer"] {
-        opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important;
+    /* --- 1. ELIMINAR EL TEXTO "PRESS ENTER TO APPLY" --- */
+    /* Este es el selector exacto que usa Streamlit para ese texto molesto */
+    div[data-testid="InputInstructions"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
     }
-    [data-testid="stStatusWidget"] { display: none !important; }
-    [data-testid="InputInstructions"] { display: none !important; }
-    /* ------------------------------------------- */
+    
+    /* --- 2. ELIMINAR CAPA GRIS/TRANSLÚCIDA AL CARGAR --- */
+    /* Forzamos a que la app mantenga su opacidad al 100% siempre */
+    .stApp, [data-testid="stAppViewContainer"] {
+        opacity: 1 !important;
+        filter: none !important;
+        transition: none !important;
+        will-change: auto !important;
+    }
+    
+    /* --- 3. LIMPIEZA DE INPUTS EN MÓVIL --- */
+    /* Evita sombras extrañas al escribir */
+    .stTextInput > div > div {
+        box-shadow: none !important;
+    }
 
+    /* ESTILOS VIDEO REEL */
     .video-container { background-color: #000; border-radius: 20px; padding: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 350px; margin: 0 auto; }
     .agency-badge { background-color: #F59E0B; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; vertical-align: middle; }
 
@@ -98,9 +115,9 @@ st.markdown("""
 def encode_image(image):
     buffered = io.BytesIO()
     if image.mode in ("RGBA", "P"): image = image.convert("RGB")
-    # COMPRESIÓN AGRESIVA PARA API OPENAI (Máx 800px para análisis rápido)
+    # COMPRESIÓN AGRESIVA (Velocidad para video y análisis)
     image.thumbnail((800, 800))
-    image.save(buffered, format="JPEG", quality=70) # Calidad media/baja para velocidad
+    image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def limpiar_formulario():
@@ -137,9 +154,8 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL (ULTRA OPTIMIZADA) ---
-def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
-    """Convierte imágenes en un video vertical 9:16 con compresión extrema."""
+# --- FUNCIÓN GENERADORA DE VIDEO REEL ---
+def crear_reel_vertical(imagenes_uploaded, textos_clave):
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
         return None
     
@@ -148,58 +164,45 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
     if duracion_por_foto < 2.0: duracion_por_foto = 2.0 
 
     clips = []
-    # Usar resolución 720p es CLAVE para velocidad en la nube
     W, H = 720, 1280 
     font = ImageFont.load_default()
     temp_dir = tempfile.mkdtemp()
 
-    total_steps = len(imagenes_uploaded) + 2
-    current_step = 0
-
     for i, img_file in enumerate(imagenes_uploaded):
         try:
-            # 1. CARGA Y COMPRESIÓN INMEDIATA
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
             
-            # --- EL SECRETO DEL RENDIMIENTO ---
-            # Reducir imagen gigante (ej: 4000x3000) a algo manejable (ej: 800px)
-            # ANTES de cualquier otro proceso.
+            # OPTIMIZACIÓN PREVIA
             img.thumbnail((1200, 1200)) 
             
-            # Ajustar a formato vertical
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
-            
-            # Overlay simple (sin blur ni efectos pesados)
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 80))
             img.paste(overlay, (0, 0), overlay)
-            
             draw = ImageDraw.Draw(img)
-            texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
             
+            texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
             draw.text((W/2, H*0.8), texto_actual, font=font, fill="white", anchor="mm", align="center")
             draw.text((W/2, H*0.95), "Generado con AppyProp IA 🚀", fill="#cccccc", anchor="mm", font=font)
             
-            # Guardar frame COMPRIMIDO (Calidad 70 es suficiente para video web)
             temp_img_path = os.path.join(temp_dir, f"temp_frame_{i}.jpg")
             img.save(temp_img_path, quality=70, optimize=True)
             
             clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
             clips.append(clip)
-            
-            current_step += 1
-            if progress_bar: progress_bar.progress(int((current_step / total_steps) * 100))
 
         except Exception as e:
             print(f"Error procesando imagen {i}: {e}")
             continue
 
     if not clips:
-        try: shutil.rmtree(temp_dir)
-        except: pass
+        # CORRECCIÓN DE SINTAXIS (IMPORTANTE)
+        try:
+            shutil.rmtree(temp_dir)
+        except:
+            pass
         return None
 
-    # Concatenar
     final_clip = concatenate_videoclips(clips, method="compose")
     if final_clip.duration > 20.0: final_clip = final_clip.subclip(0, 20.0)
 
@@ -207,16 +210,16 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
     output_path = tfile.name
     tfile.close()
 
-    # RENDERIZADO RÁPIDO (FPS 15 es aceptable para preview móvil y vuela)
     final_clip.write_videofile(
         output_path, codec="libx264", audio=False, fps=15, preset='ultrafast',
         ffmpeg_params=['-pix_fmt', 'yuv420p'], threads=1, logger=None
     )
     
-    if progress_bar: progress_bar.progress(100)
-    
-    try: shutil.rmtree(temp_dir)
-    except: pass
+    # CORRECCIÓN DE SINTAXIS
+    try:
+        shutil.rmtree(temp_dir)
+    except:
+        pass
         
     return output_path
 
@@ -317,7 +320,6 @@ with st.sidebar:
     st.header("🔐 Área de Miembros")
     
     if not st.session_state['usuario_activo']:
-        # LOGICA MODO LANZAMIENTO
         if MODO_LANZAMIENTO:
             st.markdown("""<div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;"><small>Estado actual:</small><br><b>🚀 INVITADO VIP</b><br><span style="color:#B45309; font-size:0.8em;">Acceso Total (1 Crédito de Regalo)</span></div>""", unsafe_allow_html=True)
         else:
@@ -739,137 +741,121 @@ if st.button("✨ Generar Redacción Estratégica", type="primary"):
         st.stop()
 
     if permitido:
-        # === AQUI EL CAMBIO: BARRA DE PROGRESO ===
-        progress_text = "🧠 La IA está analizando tu propiedad..."
-        my_bar = st.progress(0, text=progress_text)
-        
-        try:
-            # 10% - Inicio
-            my_bar.progress(10, text="🧠 La IA está analizando tu propiedad...")
-            
-            # Prompt con Geo-Inteligencia Paraguaya
-            instrucciones_estrategia = {
-                "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
-                "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
-                "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
-                "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
-                "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",
-                "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad'.",
-                "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro. Tono zen y relajado.",
-                "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas y éxito comercial.",
-                "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, wifi, cercanía a turismo y comodidad total.",
-                "💑 Recién Casados (Inicio Ideal)": "Enfócate en 'el comienzo de una historia', intimidad, espacio práctico y acogedor.",
-                "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total, vigilancia 24/7, amenities compartidos y vida social segura.",
-                "🎒 Estudiantes/Universitario": "Destaca cercanía a universidades, transporte público, bajo mantenimiento y wifi.",
-                "💼 Ejecutivo/Nómada Digital": "Enfócate en conectividad, escritorio/home office, cercanía al centro financiero y estilo moderno."
-            }
-            
-            directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
+        # === AQUI: USAR SPINNER CONVENCIONAL CON MENSAJE PERSONALIZADO ===
+        # Con el CSS "anti-congelamiento", este spinner se verá bien
+        with st.spinner('⏳ La IA está procesando tu información... (Esto toma unos segundos)'):
+            try:
+                # Prompt con Geo-Inteligencia Paraguaya
+                instrucciones_estrategia = {
+                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
+                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
+                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
+                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
+                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",
+                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad'.",
+                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro. Tono zen y relajado.",
+                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas y éxito comercial.",
+                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, wifi, cercanía a turismo y comodidad total.",
+                    "💑 Recién Casados (Inicio Ideal)": "Enfócate en 'el comienzo de una historia', intimidad, espacio práctico y acogedor.",
+                    "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total, vigilancia 24/7, amenities compartidos y vida social segura.",
+                    "🎒 Estudiantes/Universitario": "Destaca cercanía a universidades, transporte público, bajo mantenimiento y wifi.",
+                    "💼 Ejecutivo/Nómada Digital": "Enfócate en conectividad, escritorio/home office, cercanía al centro financiero y estilo moderno."
+                }
+                
+                directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
 
-            base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
-            DATOS TÉCNICOS:
-            - {oper} {tipo} en {ubicacion}.
-            - Precio: {texto_precio}.
-            - {habs} Habitaciones, {banos} Baños.
-            - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
-            
-            prompt_avanzado = f"""
-            TUS INSTRUCCIONES MAESTRAS:
-            PASO 1: ANÁLISIS VISUAL (OBLIGATORIO)
-            Si recibes fotos, ACTÚA COMO UN INSPECTOR. No inventes.
-            - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
-            - Mira la luz: ¿Entra luz natural? ¿Es cálida?
-            - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
-            - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
-            
-            PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
-            Analiza la ubicación ingresada: "{ubicacion}".
-            - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
-            - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
-            - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
+                base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
+                DATOS TÉCNICOS:
+                - {oper} {tipo} en {ubicacion}.
+                - Precio: {texto_precio}.
+                - {habs} Habitaciones, {banos} Baños.
+                - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
+                
+                prompt_avanzado = f"""
+                TUS INSTRUCCIONES MAESTRAS:
+                PASO 1: ANÁLISIS VISUAL (OBLIGATORIO)
+                Si recibes fotos, ACTÚA COMO UN INSPECTOR. No inventes.
+                - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
+                - Mira la luz: ¿Entra luz natural? ¿Es cálida?
+                - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
+                - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
+                
+                PASO EXTRA: INTELIGENCIA GEOGRÁFICA (PARAGUAY)
+                Analiza la ubicación ingresada: "{ubicacion}".
+                - Si es un barrio/ciudad conocido de Paraguay, NO solo lo menciones.
+                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esa zona? (Ej: "La histórica ciudad de Piribebuy", "El exclusivo Barrio Carmelitas cerca del eje corporativo", "La tranquilidad de San Bernardino").
+                - Menciona 1 dato de valor sobre la zona (historia, naturaleza, seguridad o conveniencia) para elevar el valor percibido.
 
-            PASO 2: APLICAR ESTRATEGIA DE VENTA
-            Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
-            Instrucción de Tono y Enfoque: {directriz_seleccionada}
-            
-            PASO 3: REDACCIÓN (OUTPUT)
-            Escribe 3 opciones distintas:
-            OPCIÓN 1: Storytelling Emotivo.
-            OPCIÓN 2: Venta Directa (Datos duros).
-            OPCIÓN 3: Formato Viral (Instagram/TikTok).
-            
-            REGLAS DE FORMATO:
-            - Usa Markdown (**negritas**).
-            - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
-            - Incluye 10 hashtags en Opción 3.
-            
-            TONO DE VOZ SOLICITADO: {tono}
-            {base_prompt}
-            """
+                PASO 2: APLICAR ESTRATEGIA DE VENTA
+                Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
+                Instrucción de Tono y Enfoque: {directriz_seleccionada}
+                
+                PASO 3: REDACCIÓN (OUTPUT)
+                Escribe 3 opciones distintas:
+                OPCIÓN 1: Storytelling Emotivo.
+                OPCIÓN 2: Venta Directa (Datos duros).
+                OPCIÓN 3: Formato Viral (Instagram/TikTok).
+                
+                REGLAS DE FORMATO:
+                - Usa Markdown (**negritas**).
+                - Incluye Link a WhatsApp: https://wa.me/595{whatsapp}
+                - Incluye 10 hashtags en Opción 3.
+                
+                TONO DE VOZ SOLICITADO: {tono}
+                {base_prompt}
+                """
 
-            content = [{"type": "text", "text": prompt_avanzado}]
-            
-            # 30% - Procesando Imágenes
-            my_bar.progress(30, text="📸 Analizando fotos...")
-            
-            if (es_pro or MODO_LANZAMIENTO) and uploaded_files and len(uploaded_files) <= cupo_fotos:
-                for f in uploaded_files:
-                    f.seek(0)
-                    content.append({
-                        "type": "image_url", 
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
-                            "detail": "high"
-                        }
-                    })
+                content = [{"type": "text", "text": prompt_avanzado}]
+                
+                if (es_pro or MODO_LANZAMIENTO) and uploaded_files and len(uploaded_files) <= cupo_fotos:
+                    for f in uploaded_files:
+                        f.seek(0)
+                        content.append({
+                            "type": "image_url", 
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
+                                "detail": "high"
+                            }
+                        })
 
-            # 60% - Conectando con IA
-            my_bar.progress(60, text="🤖 Redactando estrategia ganadora...")
-            
-            res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) 
-            generated_text = res.choices[0].message.content
+                res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) 
+                generated_text = res.choices[0].message.content
 
-            cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
-            cleaned_text = cleaned_text.replace("# ", "🚀 ") 
-            cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
-            
-            # --- LÓGICA DE EXTRACCIÓN DE FRASES PARA VIDEO ---
-            frases_video = []
-            # Si tiene acceso a video (Agencia o Lanzamiento)
-            if puede_video:
-                try:
-                    lines = cleaned_text.split('\n')
-                    for l in lines:
-                        l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
-                        if 10 < len(l) < 40 and not l.startswith("http"):
-                            frases_video.append(l)
-                    if len(frases_video) < 3:
-                        frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
-                    st.session_state['video_frases'] = frases_video[:6]
-                except:
-                    st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
+                cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
+                cleaned_text = cleaned_text.replace("# ", "🚀 ") 
+                cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
+                
+                # --- LÓGICA DE EXTRACCIÓN DE FRASES PARA VIDEO ---
+                frases_video = []
+                # Si tiene acceso a video (Agencia o Lanzamiento)
+                if puede_video:
+                    try:
+                        lines = cleaned_text.split('\n')
+                        for l in lines:
+                            l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
+                            if 10 < len(l) < 40 and not l.startswith("http"):
+                                frases_video.append(l)
+                        if len(frases_video) < 3:
+                            frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
+                        st.session_state['video_frases'] = frases_video[:6]
+                    except:
+                        st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
-            # --- DESCUENTO DE CRÉDITOS ---
-            if es_pro:
-                exito = descontar_credito(user['codigo'])
-                if exito:
-                    st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
-                    st.toast("✅ Crédito PRO descontado", icon="🪙")
-            else:
-                st.session_state['guest_credits'] = 0
-                st.session_state['guest_last_use'] = datetime.now()
-                st.toast("✅ Crédito gratuito usado", icon="🎁")
+                # --- DESCUENTO DE CRÉDITOS ---
+                if es_pro:
+                    exito = descontar_credito(user['codigo'])
+                    if exito:
+                        st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
+                        st.toast("✅ Crédito PRO descontado", icon="🪙")
+                else:
+                    st.session_state['guest_credits'] = 0
+                    st.session_state['guest_last_use'] = datetime.now()
+                    st.toast("✅ Crédito gratuito usado", icon="🎁")
 
-            # 100% - Final
-            my_bar.progress(100, text="✨ ¡Listo!")
-            time.sleep(0.5)
-            my_bar.empty()
+                st.session_state['generated_result'] = cleaned_text
             
-            st.session_state['generated_result'] = cleaned_text
-            
-        except Exception as e:
-            st.error(f"Error: {e}")
-            my_bar.empty()
+            except Exception as e:
+                st.error(f"Error: {e}")
 
 if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
@@ -895,19 +881,17 @@ if 'generated_result' in st.session_state:
                 if not MOVIEPY_AVAILABLE:
                     st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
                 else:
-                    # === BARRA DE PROGRESO PARA VIDEO ===
-                    progress_video = st.progress(0, text="🎞️ Iniciando motor de video...")
-                    try:
-                        frases = st.session_state.get('video_frases', ["AppyProp IA"])
-                        path_video = crear_reel_vertical(uploaded_files, frases, progress_video)
-                        if path_video:
-                            st.session_state['video_path'] = path_video
-                        else:
-                            st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
-                        progress_video.empty()
-                    except Exception as e:
-                        st.error(f"Error video: {e}")
-                        progress_video.empty()
+                    # === SPINNER PARA VIDEO TAMBIÉN ===
+                    with st.spinner("🎞️ Renderizando video (esto toma unos segundos)..."):
+                        try:
+                            frases = st.session_state.get('video_frases', ["AppyProp IA"])
+                            path_video = crear_reel_vertical(uploaded_files, frases)
+                            if path_video:
+                                st.session_state['video_path'] = path_video
+                            else:
+                                st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
+                        except Exception as e:
+                            st.error(f"Error video: {e}")
 
         if 'video_path' in st.session_state:
             st.success("✅ Video Reel generado con éxito.")

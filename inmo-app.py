@@ -389,31 +389,23 @@ if st.session_state.ver_planes:
 # === APP PRINCIPAL ===
 # =======================================================
 c_title, c_badge = st.columns([2, 1])
-# --- TITULO PRINCIPAL CENTRADO ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
-# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? ---
 with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
     st.markdown("""
     ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
-    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades. Una plataforma inteligente que combina **Visión Artificial** con **Psicología de Ventas**.
-
+    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades.
     ---
-    #### 💎 ¿En qué te beneficia?
-    1.  **👁️ Ojos que Ven, Cerebro que Vende:** La IA "mira" tus fotos, detecta acabados e iluminación, e integra esos detalles para enamorar al cliente.
-    2.  **⚡ Velocidad Supersónica:** De 30 minutos a **10 segundos**. Genera descripciones, guiones y posts virales en un clic.
-    3.  **🎯 Estrategia Total:** No es solo texto. Recibes **Storytelling** (emoción), **Venta Directa** (datos) y **Formato Viral** (redes).
-
+    #### 💎 Beneficios
+    1.  **👁️ Ojos que Ven, Cerebro que Vende:** La IA "mira" tus fotos, detecta acabados e iluminación.
+    2.  **⚡ Velocidad Supersónica:** De 30 minutos a **10 segundos**.
+    3.  **🎯 Estrategia Total:** Recibes Storytelling, Venta Directa y Posts Virales.
     ---
-    #### 🚀 ¿Por qué utilizarlo?
-    * **Adiós al bloqueo creativo:** Nunca más una pantalla en blanco.
-    * **Ahorro:** Tu propia agencia de marketing de bolsillo.
-    * **Profesionalismo:** Textos persuasivos y sin errores.
-
-    ---
-    #### 🤖 El Factor Diferencial
-    **AppyProp IA es un hito tecnológico: Una aplicación 100% creada con Inteligencia Artificial.** Innovación pura, eficiencia y evolución constante para el mercado inmobiliario.
+    #### 🚀 ¿Por qué usarla?
+    * Adiós al bloqueo creativo.
+    * Ahorro de tiempo y dinero.
+    * Profesionalismo instantáneo.
     """)
 
 es_pro = False
@@ -440,17 +432,14 @@ if st.session_state['usuario_activo']:
         plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
-    # BADGE CENTRADO
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
     st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
-# --- AVISO PARA ABRIR MENÚ EN MÓVIL ---
 if not es_pro:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
 
-# --- GUÍA ---
 with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
     st.markdown("""
     <div class="step-box"><b>1. Sube tus Fotos (Solo PRO):</b> La IA analiza las imágenes.</div>
@@ -475,7 +464,6 @@ if es_pro:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
-        # VISTA PREVIA
         with st.expander("👁️ Vista Previa de Imágenes Seleccionadas", expanded=True):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
@@ -586,66 +574,74 @@ if st.button("✨ Generar Estrategia", type="primary"):
     if puede_generar:
         with st.spinner('🧠 Redactando estrategia...'):
             try:
-                # --- MOTOR DE INSTRUCCIONES AVANZADO ---
+                # --- DICCIONARIO DE INSTRUCCIONES DE ESTRATEGIA (CEREBRO) ---
                 instrucciones_estrategia = {
-                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
-                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado, última oportunidad). Frases cortas y directas.",
-                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños, cercanía a colegios. Tono emotivo y cálido.",
-                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium, Diseñador). Vende estatus y privacidad. Evita la urgencia barata.",
-                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión, demanda de alquiler en la zona. Tono racional y de negocios.",
-                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad de valorizar'. Ideal para constructores.",
-                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro, jardín. Tono zen y relajado.",
-                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas, visibilidad y éxito comercial.",
-                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, cercanía a puntos turísticos y comodidad para viajeros."
+                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable. Usa palabras como 'equilibrio', 'comodidad', 'funcionalidad'.",
+                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado, última oportunidad). Frases cortas y directas. Enfócate en que 'se va rápido'.",
+                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños, cercanía a colegios. Tono emotivo y cálido. Usa palabras como 'hogar', 'familia', 'comienzo'.",
+                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium, Diseñador, Importado). Vende estatus y privacidad. Evita la urgencia barata. Describe materiales con adjetivos sofisticados.",
+                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión, demanda de alquiler en la zona. Tono racional y de negocios. Usa términos como 'capitalización', 'renta inmediata'.",
+                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad de valorizar'. Ideal para constructores o inversores que buscan remodelar.",
+                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro, jardín. Tono zen y relajado. Enfócate en la luz natural, el verde y el silencio.",
+                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas, visibilidad y éxito comercial. Ideal para locales u oficinas.",
+                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, cercanía a puntos turísticos, wifi de alta velocidad y comodidad para viajeros."
                 }
                 
                 directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
 
-                base_prompt = f"""Actúa como copywriter inmobiliario experto.
-                Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
-                Características: Hab:{habs}, Baños:{banos}.
-                Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
+                base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
+                DATOS TÉCNICOS:
+                - {oper} {tipo} en {ubicacion}.
+                - Precio: {texto_precio}.
+                - {habs} Habitaciones, {banos} Baños.
+                - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
                 
-                instrucciones_visuales = """
-                INSTRUCCIONES VISUALES (CRÍTICO):
-                1. 👁️ ANÁLISIS DE FOTOS: Si recibes imágenes, OBSERVA DETENIDAMENTE y menciona al menos 3 detalles visuales específicos (ej: tipo de piso, luz, acabados). ¡Demuestra que las has visto!
-                2. FORMATO: Usa Markdown (**negritas**) para resaltar Títulos, Precio y Llamadas a la Acción.
-                3. ESTRUCTURA: Usa listas verticales con emojis. Párrafos cortos.
-                4. HASHTAGS: Al final de la opción 3, incluye 10 hashtags relevantes.
+                # --- PROMPT REFORZADO PARA FORZAR ANÁLISIS VISUAL ---
+                prompt_avanzado = f"""
+                TUS INSTRUCCIONES MAESTRAS:
+                
+                PASO 1: ANÁLISIS VISUAL (OBLIGATORIO)
+                Si recibes fotos, ACTÚA COMO UN INSPECTOR. No inventes.
+                - Mira el suelo: ¿Es madera, porcelanato, cerámica? Menciónalo.
+                - Mira la luz: ¿Entra luz natural? ¿Es cálida?
+                - Mira la cocina/baños: Describe los materiales (granito, moderno, clásico).
+                - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
+                
+                PASO 2: APLICAR ESTRATEGIA DE VENTA
+                Tu objetivo es vender usando esta estrategia específica: "{enfoque}".
+                Instrucción de Tono y Enfoque: {directriz_seleccionada}
+                
+                PASO 3: REDACCIÓN (OUTPUT)
+                Escribe 3 opciones distintas:
+                
+                OPCIÓN 1: Storytelling Emotivo (Enfocado en la estrategia seleccionada y lo que ves en las fotos).
+                OPCIÓN 2: Venta Directa (Datos duros, lista de beneficios, ideal para lectura rápida).
+                OPCIÓN 3: Formato Viral (Para Instagram/TikTok. Corto, con gancho inicial fuerte y emojis).
+                
+                REGLAS DE FORMATO:
+                - Usa Markdown (**negritas**) para resaltar lo importante.
+                - NO uses frases clichés vacías como "linda casa" sin justificar por qué.
+                - Incluye Link a WhatsApp al final: https://wa.me/595{whatsapp}
+                - Incluye 10 hashtags relevantes al final de la Opción 3.
+                
+                TONO DE VOZ SOLICITADO: {tono}
+                {base_prompt}
                 """
 
-                if es_pro:
-                    full_prompt = f""" 
-                    ESTRATEGIA SELECCIONADA: {enfoque}
-                    INSTRUCCIÓN DE NEUROVENTAS: {directriz_seleccionada}
-                    TONO: {tono}.
-                    
-                    Genera 3 opciones:
-                    1. Storytelling Emotivo (Basado en la estrategia).
-                    2. Venta Directa (Datos y Lista).
-                    3. Instagram (Viral + Hashtags).
-                    Link WhatsApp: https://wa.me/595{whatsapp}.
-                    
-                    {base_prompt}
-                    {instrucciones_visuales}
-                    """
-                    content = [{"type": "text", "text": full_prompt}]
-                    
-                    if uploaded_files and len(uploaded_files) <= cupo_fotos:
-                        for f in uploaded_files:
-                            f.seek(0)
-                            content.append({
-                                "type": "image_url", 
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
-                                    "detail": "high"
-                                }
-                            })
-                else:
-                    full_prompt = f"""Genera 1 Descripción básica atractiva. {base_prompt} {instrucciones_visuales}"""
-                    content = [{"type": "text", "text": full_prompt}]
+                content = [{"type": "text", "text": prompt_avanzado}]
+                
+                if es_pro and uploaded_files and len(uploaded_files) <= cupo_fotos:
+                    for f in uploaded_files:
+                        f.seek(0)
+                        content.append({
+                            "type": "image_url", 
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}",
+                                "detail": "high"
+                            }
+                        })
 
-                res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
+                res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) # Temperatura más alta para creatividad
                 generated_text = res.choices[0].message.content
 
                 cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")

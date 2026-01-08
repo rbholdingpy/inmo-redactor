@@ -3,3 +3,5 @@ openai
 gspread
 oauth2client
 Pillow
+moviepy
+numpy

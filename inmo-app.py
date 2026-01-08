@@ -11,7 +11,7 @@ import urllib.parse
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="VendeMás IA",
+    page_title="AppyProp IA", # CAMBIO: Nueva Marca
     page_icon="🚀",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -20,7 +20,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (TRADUCCIÓN UPLOADER + VISUAL) ---
+# --- ESTILOS CSS ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -34,57 +34,24 @@ st.markdown("""
     /* ========================================= */
     /* 🛠️ TRADUCCIÓN DEL UPLOADER AL ESPAÑOL 🛠️ */
     /* ========================================= */
-    
-    /* 1. Ocultar texto "Drag and drop..." */
-    [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child {
-        display: none;
-    }
-    
-    /* 2. Insertar texto en Español */
+    [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
     [data-testid='stFileUploaderDropzoneInstructions']::before {
-        content: "Arrastra y suelta tus fotos aquí";
-        visibility: visible;
-        font-size: 1.1rem;
-        font-weight: bold;
-        display: block;
-        text-align: center;
-        color: #333;
-        margin-bottom: 5px;
+        content: "Arrastra y suelta tus fotos aquí"; visibility: visible;
+        font-size: 1.1rem; font-weight: bold; display: block;
+        text-align: center; color: #333; margin-bottom: 5px;
     }
-
-    /* 3. Ocultar texto "Limit 200MB..." */
-    [data-testid='stFileUploaderDropzoneInstructions'] > small {
-        display: none;
-    }
-
-    /* 4. Insertar límite en Español */
+    [data-testid='stFileUploaderDropzoneInstructions'] > small { display: none; }
     [data-testid='stFileUploaderDropzoneInstructions']::after {
-        content: "Límite 200MB por archivo • JPG, PNG";
-        visibility: visible;
-        display: block;
-        font-size: 0.8em;
-        color: #64748B;
-        text-align: center;
-        margin-top: 5px;
+        content: "Límite 200MB por archivo • JPG, PNG"; visibility: visible;
+        display: block; font-size: 0.8em; color: #64748B;
+        text-align: center; margin-top: 5px;
     }
-
-    /* 5. Traducir botón "Browse files" */
-    [data-testid='stFileUploader'] button {
-        color: transparent !important; /* Hacemos invisible el texto inglés */
-        position: relative;
-    }
-    
+    [data-testid='stFileUploader'] button { color: transparent !important; position: relative; }
     [data-testid='stFileUploader'] button::after {
-        content: "📂 Explorar"; /* Ponemos texto español */
-        color: #333;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        font-weight: bold;
-        font-size: 14px;
+        content: "📂 Explorar"; color: #333; position: absolute;
+        left: 50%; top: 50%; transform: translate(-50%, -50%);
+        font-weight: bold; font-size: 14px;
     }
-    /* ========================================= */
 
     /* BOTÓN FLOTANTE MENÚ */
     [data-testid="stSidebarCollapsedControl"] {
@@ -295,7 +262,7 @@ with st.sidebar:
         if st.button("🔒 Cerrar Sesión"):
             cerrar_sesion()
             st.rerun()
-    st.caption("© 2026 VendeMás IA")
+    st.caption("© 2026 AppyProp IA")
 
 # =======================================================
 # === 💎 ZONA DE VENTAS ===
@@ -407,7 +374,7 @@ if st.session_state.ver_planes:
             with col_wa:
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
                 if tipo == "CAMBIO DE PLAN":
-                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Quiero actualizar mi cuenta al *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
+                    mensaje_wp = f"Hola, soy *{nombre_cliente}*. Quiero cambiar mi cuenta actual al *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
                 else:
                     mensaje_wp = f"Hola, soy *{nombre_cliente}*. Me acabo de registrar para el *Plan {st.session_state.plan_seleccionado}*. Adjunto comprobante."
                 
@@ -424,9 +391,9 @@ if st.session_state.ver_planes:
 # === APP PRINCIPAL ===
 # =======================================================
 c_title, c_badge = st.columns([2, 1])
-with c_title:
-    st.title("🚀 VendeMás IA")
-    st.caption("Experto en Neuroventas Inmobiliarias.")
+# --- TITULO PRINCIPAL CENTRADO ---
+st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
 es_pro = False
 plan_actual = "INVITADO"
@@ -452,12 +419,11 @@ if st.session_state['usuario_activo']:
         plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
-    with c_badge:
-        st.markdown(f'<div style="text-align:right"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
+    # BADGE CENTRADO
+    st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
-    with c_badge:
-        st.markdown('<div style="text-align:right"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
 # --- AVISO PARA ABRIR MENÚ EN MÓVIL ---
 if not es_pro:

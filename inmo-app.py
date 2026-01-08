@@ -11,11 +11,10 @@ import urllib.parse
 import os
 import tempfile
 import numpy as np
-import shutil # Necesario para limpieza
+import shutil 
 
-# --- IMPORTACIÓN CONDICIONAL DE MOVIEPY (ROBUSTA) ---
+# --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
 try:
-    # Importamos las herramientas específicas necesarias para concatenar
     from moviepy.editor import ImageClip, concatenate_videoclips
     MOVIEPY_AVAILABLE = True
 except ImportError:
@@ -44,7 +43,22 @@ st.markdown("""
     .stButton>button:hover { transform: scale(1.02); }
 
     /* ESTILOS VIDEO REEL */
-    .video-box { border: 2px solid #8B5CF6; background-color: #F3E8FF; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; }
+    .video-container {
+        background-color: #000; 
+        border-radius: 20px; 
+        padding: 10px; 
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        max-width: 350px; /* Ancho de celular */
+        margin: 0 auto; /* Centrado */
+    }
+    .video-box { 
+        border: 2px solid #8B5CF6; 
+        background-color: #F3E8FF; 
+        padding: 20px; 
+        border-radius: 15px; 
+        text-align: center; 
+        margin-top: 30px; 
+    }
     .agency-badge { background-color: #F59E0B; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; vertical-align: middle; }
 
     /* UPLOADER ESPAÑOL */
@@ -144,44 +158,48 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL (NUEVA VERSIÓN ROBUSTA) ---
+# --- FUNCIÓN GENERADORA DE VIDEO REEL ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave):
     """Convierte imágenes en un video vertical 9:16 concatenando clips."""
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
         return None
     
-    # 1. Calcular duración por foto para un total máx de 20s
+    # 1. Calcular duración (Máx 20s en total)
     num_fotos = len(imagenes_uploaded)
     duracion_por_foto = 20.0 / num_fotos
     
-    clips = [] # Lista para guardar los clips individuales
+    clips = []
     
     # Configuración 9:16
     W, H = 720, 1280
     font = ImageFont.load_default()
-    
-    # Directorio temporal para las imágenes procesadas
     temp_dir = tempfile.mkdtemp()
 
     for i, img_file in enumerate(imagenes_uploaded):
         try:
-            # --- PROCESAMIENTO PIL (Igual que antes) ---
+            # PROCESAMIENTO PIL
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
+            
+            # Overlay oscuro para lectura
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 100))
             img.paste(overlay, (0, 0), overlay)
+            
             draw = ImageDraw.Draw(img)
+            
+            # Texto rotativo
             texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
+            
+            # Centrado aproximado
             draw.text((W/2, H*0.8), texto_actual, font=font, fill="white", anchor="mm", align="center")
             draw.text((W/2, H*0.95), "Generado con AppyProp IA 🚀", fill="#cccccc", anchor="mm", font=font)
 
-            # Guardar imagen intermedia
+            # Guardar frame
             temp_img_path = os.path.join(temp_dir, f"temp_frame_{i}.jpg")
             img.save(temp_img_path)
             
-            # --- CREACIÓN DE CLIP MOVIEPY (La mejora clave) ---
-            # Creamos un clip individual para esta imagen y le asignamos su duración
+            # CLIP MOVIEPY
             clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
             clips.append(clip)
 
@@ -190,20 +208,18 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
             continue
 
     if not clips:
-        try: shutil.rmtree(temp_dir) # Limpieza
+        try: shutil.rmtree(temp_dir)
         except: pass
         return None
 
-    # 2. Concatenar todos los clips en uno solo
+    # 2. Concatenar
     final_clip = concatenate_videoclips(clips, method="compose")
 
-    # 3. Crear archivo temporal persistente para el output
+    # 3. Exportar
     tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
     output_path = tfile.name
-    tfile.close() # Cerramos el handle para que moviepy pueda escribir
+    tfile.close()
 
-    # 4. Exportar con parámetros de compatibilidad web
-    # threads=1 ayuda a la estabilidad en servidores con pocos recursos
     final_clip.write_videofile(
         output_path, 
         codec="libx264", 
@@ -212,10 +228,9 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
         preset='ultrafast',
         ffmpeg_params=['-pix_fmt', 'yuv420p'],
         threads=1,
-        logger=None # Menos ruido en logs
+        logger=None
     )
     
-    # Limpieza del directorio de imágenes intermedias
     try: shutil.rmtree(temp_dir)
     except: pass
 
@@ -802,9 +817,17 @@ if 'generated_result' in st.session_state:
     if plan_actual == "AGENCIA" and uploaded_files:
         st.markdown("---")
         st.subheader("🎬 Video Reel Automático (Agencia)")
-        # Botón aparece solo si no se ha generado video aún
+        
+        # MENSAJE DE ENGANCHE (NUEVO)
+        st.markdown("""
+        <div style="background-color:#F3E8FF; padding:15px; border-radius:10px; margin-bottom:15px;">
+        <h4 style="margin:0; color:#6B21A8;">¿Te gustaría que genere un video con tus fotos para tus redes sociales? 🎥</h4>
+        <p style="margin:5px 0 0 0; font-size:0.9em;">Crea un Reel vertical automático de 20 segundos listo para TikTok o Instagram.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
         if 'video_path' not in st.session_state:
-            if st.button("🎥 GENERAR VIDEO REEL (BETA)"):
+            if st.button("🎥 SÍ, GENERAR VIDEO REEL"):
                 if not MOVIEPY_AVAILABLE:
                     st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
                 else:
@@ -819,12 +842,18 @@ if 'generated_result' in st.session_state:
                         except Exception as e:
                             st.error(f"Error video: {e}")
 
-        # Mostrar video si existe
         if 'video_path' in st.session_state:
             st.success("✅ Video Reel generado con éxito.")
-            st.video(st.session_state['video_path'])
-            with open(st.session_state['video_path'], "rb") as file:
-                st.download_button("⬇️ Descargar Video (MP4)", file, "reel_appyprop.mp4", "video/mp4", type="primary")
+            
+            # CONTENEDOR CENTRADO TIPO MÓVIL
+            c_video_center = st.columns([1, 2, 1])
+            with c_video_center[1]: # Columna del medio
+                st.markdown('<div class="video-container">', unsafe_allow_html=True)
+                st.video(st.session_state['video_path'])
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                with open(st.session_state['video_path'], "rb") as file:
+                    st.download_button("⬇️ Descargar Video (MP4)", file, "reel_appyprop.mp4", "video/mp4", type="primary")
 
     st.markdown("---")
     st.subheader("¿Terminaste?")

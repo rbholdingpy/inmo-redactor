@@ -17,7 +17,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- ESTILOS CSS (FIX MÓVIL AGRESIVO) ---
+# --- TU NÚMERO DE ADMINISTRADOR ---
+# Aquí configuramos tu número para que todos los mensajes lleguen a ti
+ADMIN_WHATSAPP = "595961871700" 
+
+# --- ESTILOS CSS ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -29,12 +33,11 @@ st.markdown("""
     .stButton>button:hover { transform: scale(1.02); }
 
     /* --- BOTÓN FLOTANTE DE MENÚ (FIX MÓVIL) --- */
-    /* Forzamos posición fija para que flote sobre todo */
     [data-testid="stSidebarCollapsedControl"] {
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
-        z-index: 1000001 !important; /* Por encima de todo */
+        z-index: 1000001 !important;
         background-color: #2563EB !important;
         color: white !important;
         border: 2px solid white !important;
@@ -48,7 +51,6 @@ st.markdown("""
         gap: 5px !important;
     }
 
-    /* Hacemos la flecha blanca y visible */
     [data-testid="stSidebarCollapsedControl"] svg {
         fill: white !important;
         color: white !important;
@@ -56,7 +58,6 @@ st.markdown("""
         height: 24px !important;
     }
 
-    /* Agregamos la palabra MENÚ explícitamente */
     [data-testid="stSidebarCollapsedControl"]::after {
         content: "MENÚ";
         font-weight: 800;
@@ -65,7 +66,6 @@ st.markdown("""
         letter-spacing: 1px;
     }
 
-    /* Animación de latido para que se vea */
     @keyframes pulse-blue {
         0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
         70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
@@ -299,9 +299,11 @@ if st.session_state.ver_planes:
                 st.markdown('<div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;"><b>Banco:</b> ITAÚ <br><b>Titular:</b> Ricardo Blanco <br><b>C.I.:</b> 1911221 <br><b>Cuenta:</b> 320595209 <br><b>RUC:</b> 1911221-1</div>', unsafe_allow_html=True)
             with col_wa:
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
-                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos y pagué el *Plan {st.session_state.plan_seleccionado}*. Espero mi código."
+                # MENSAJE A TU NUMERO
+                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos en la App y realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Quedo a la espera de mi código."
                 mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
-                link_wp = f"https://wa.me/595981000000?text={mensaje_wp_url}"
+                link_wp = f"https://wa.me/{ADMIN_WHATSAPP}?text={mensaje_wp_url}"
+                
                 st.markdown(f'<a href="{link_wp}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">📲 Enviar Comprobante por WhatsApp</button></a>', unsafe_allow_html=True)
             st.divider()
             if st.button("🏁 Finalizar y Volver al Inicio"):
@@ -347,7 +349,7 @@ else:
     with c_badge:
         st.markdown('<div style="text-align:right"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
-# --- AVISO PARA ABRIR MENÚ EN MÓVIL (SI NO ESTÁ LOGUEADO) ---
+# --- AVISO PARA ABRIR MENÚ EN MÓVIL ---
 if not es_pro:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
 
@@ -376,7 +378,7 @@ if es_pro:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
-        # VISTA PREVIA RECUPERADA
+        # VISTA PREVIA
         with st.expander("👁️ Vista Previa de Imágenes Seleccionadas", expanded=True):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
@@ -555,7 +557,6 @@ if 'generated_result' in st.session_state:
 
     st.markdown("---")
     st.subheader("¿Terminaste?")
-    # Botón de limpiar extra en el footer
     if st.button("🔄 Nueva Propiedad (Limpiar) ", type="secondary"):
         limpiar_formulario()
 

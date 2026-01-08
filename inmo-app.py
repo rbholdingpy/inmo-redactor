@@ -95,7 +95,6 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def limpiar_formulario():
-    # Incluimos input_moneda e input_monto en la limpieza
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda']
     for key in keys_a_borrar:
         if key in st.session_state:
@@ -490,7 +489,8 @@ st.divider()
 # === 2. DATOS ===
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
-c1, c2 = st.columns(2)
+# CAMBIO IMPORTANTE: AUMENTAMOS EL ANCHO DE LA COLUMNA IZQUIERDA (2) VS DERECHA (1)
+c1, c2 = st.columns([2, 1])
 
 with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
@@ -528,11 +528,11 @@ with c1:
 
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
-    # --- SECCIÓN DE PRECIO (LAYOUT CORREGIDO: UNA FILA) ---
+    # --- SECCIÓN DE PRECIO (LAYOUT CORREGIDO: UNA FILA, ANCHO COMPLETO) ---
     st.write("💰 **Detalles de Precio:**")
     
-    # Si es alquiler, usamos 3 columnas (Divisa, Monto, Periodo)
     if oper == "Alquiler":
+        # 3 columnas dentro de la columna ancha: Divisa(1) | Monto(2) | Frecuencia(2)
         col_p1, col_p2, col_p3 = st.columns([1, 2, 2])
         with col_p1:
             moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed", key="input_moneda")
@@ -541,9 +541,8 @@ with c1:
         with col_p3:
             frec = st.selectbox("Frecuencia", ["Mensual", "Diario", "Semanal", "Semestral", "Anual"], label_visibility="collapsed")
         texto_precio = f"{precio_val} {moneda} ({frec})"
-    
-    # Si es venta, usamos 2 columnas (Divisa, Monto)
     else:
+        # 2 columnas dentro de la columna ancha: Divisa(1) | Monto(3)
         col_p1, col_p2 = st.columns([1, 3])
         with col_p1:
             moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed", key="input_moneda")
@@ -560,18 +559,16 @@ with c2:
     habs = st.number_input("Habitaciones", 1)
     banos = st.number_input("Baños", 1)
     st.write("**Servicios y Extras:**")
-    col_ex1, col_ex2 = st.columns(2)
-    with col_ex1:
-        gar = st.checkbox("Garage")
-        qui = st.checkbox("Quincho")
-        pis = st.checkbox("Piscina")
-        aa = st.checkbox("Aire Acond.")
-        vent = st.checkbox("Ventilador")
-    with col_ex2:
-        wifi = st.checkbox("Wifi")
-        tv = st.checkbox("TV Cable")
-        agua = st.checkbox("Agua")
-        luz = st.checkbox("Luz")
+    # Checkboxes en una columna compacta
+    gar = st.checkbox("Garage")
+    qui = st.checkbox("Quincho")
+    pis = st.checkbox("Piscina")
+    aa = st.checkbox("Aire Acond.")
+    vent = st.checkbox("Ventilador")
+    wifi = st.checkbox("Wifi")
+    tv = st.checkbox("TV Cable")
+    agua = st.checkbox("Agua")
+    luz = st.checkbox("Luz")
 
 st.divider()
 

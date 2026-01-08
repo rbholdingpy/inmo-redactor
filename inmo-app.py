@@ -142,56 +142,74 @@ def cancelar_seleccion():
     st.session_state.ver_planes = True
     st.session_state.pedido_registrado = False
 
-# --- FUNCIÓN GENERADORA DE VIDEO REEL ---
+# --- FUNCIÓN GENERADORA DE VIDEO REEL (CORREGIDA - PIX_FMT FIX) ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave):
     """Convierte imágenes en un video vertical 9:16 con texto superpuesto."""
-    if not MOVIEPY_AVAILABLE:
+    if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
         return None
     
     temp_dir = tempfile.mkdtemp()
     clips_images = []
     
-    # Configuración 9:16 ligera
+    # Configuración 9:16
     W, H = 720, 1280
     
-    # Duración por foto (Mínimo 2 segs)
-    duracion_foto = 20.0 / len(imagenes_uploaded) if imagenes_uploaded else 3.0
-    if duracion_foto < 2.5: duracion_foto = 2.5 
+    # Duración fija de 3 segundos por foto
+    duracion_foto = 3.0
 
     for i, img_file in enumerate(imagenes_uploaded):
-        # 1. Abrir y redimensionar imagen a vertical (Center Crop)
-        img_file.seek(0) # Resetear puntero
-        img = Image.open(img_file).convert("RGB")
-        img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
-        
-        # 2. Oscurecer ligeramente para que el texto se lea (Overlay negro 30%)
-        overlay = Image.new('RGBA', (W, H), (0, 0, 0, 80))
-        img.paste(overlay, (0, 0), overlay)
-        
-        # 3. Escribir texto
-        draw = ImageDraw.Draw(img)
-        
-        # Cargar fuente por defecto
-        font = ImageFont.load_default()
-        
-        # Texto rotativo
-        texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
-        
-        # Posición aproximada centro
-        draw.text((W/2, H*0.8), texto_actual, font=font, fill="white", anchor="mm", align="center")
-        draw.text((W/2, H*0.95), "Generado con AppyProp IA 🚀", fill="#cccccc", anchor="mm", font=font)
+        try:
+            # 1. Resetear puntero y abrir
+            img_file.seek(0)
+            img = Image.open(img_file).convert("RGB")
+            
+            # 2. Redimensionar (Center Crop 9:16)
+            img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
+            
+            # 3. Oscurecer ligeramente para leer texto
+            overlay = Image.new('RGBA', (W, H), (0, 0, 0, 100))
+            img.paste(overlay, (0, 0), overlay)
+            
+            # 4. Escribir texto
+            draw = ImageDraw.Draw(img)
+            
+            # Cargar fuente por defecto (más segura)
+            font = ImageFont.load_default()
+            # Si quieres una fuente más grande por defecto, tendrías que subir un .ttf al repo
+            # Aquí usamos default para evitar errores
+            
+            # Texto rotativo
+            texto_actual = textos_clave[i % len(textos_clave)] if textos_clave else "AppyProp IA"
+            
+            # Posición aproximada centro
+            # Nota: PIL default font es pequeño, pero seguro.
+            draw.text((W/2, H*0.8), texto_actual, font=font, fill="white", anchor="mm", align="center")
+            draw.text((W/2, H*0.95), "Generado con AppyProp IA 🚀", fill="#cccccc", anchor="mm", font=font)
 
-        # 4. Guardar frame procesado
-        frame_path = os.path.join(temp_dir, f"frame_{i}.jpg")
-        img.save(frame_path)
-        clips_images.append(frame_path)
+            # 5. Guardar frame
+            frame_path = os.path.join(temp_dir, f"frame_{i}.jpg")
+            img.save(frame_path)
+            clips_images.append(frame_path)
+        except Exception as e:
+            print(f"Error procesando imagen {i}: {e}")
+            continue
 
-    # 5. Crear video
+    if not clips_images:
+        return None
+
+    # 6. Crear video con parámetros de compatibilidad web
     clip = ImageSequenceClip(clips_images, fps=24, durations=[duracion_foto]*len(clips_images))
     
-    # Exportar
+    # Exportar con pixel format yuv420p (CRÍTICO PARA QUE SE VEA EN WEB)
     output_path = os.path.join(temp_dir, "reel_final.mp4")
-    clip.write_videofile(output_path, codec="libx264", audio=False, fps=24, preset='ultrafast')
+    clip.write_videofile(
+        output_path, 
+        codec="libx264", 
+        audio=False, 
+        fps=24, 
+        preset='ultrafast',
+        ffmpeg_params=['-pix_fmt', 'yuv420p'] # <--- EL FIX MÁGICO
+    )
     
     return output_path
 
@@ -456,6 +474,7 @@ if st.session_state.ver_planes:
 # === APP PRINCIPAL ===
 # =======================================================
 c_title, c_badge = st.columns([2, 1])
+# --- TITULO PRINCIPAL CENTRADO ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
@@ -506,14 +525,17 @@ if st.session_state['usuario_activo']:
         plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
+    # BADGE CENTRADO
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
     st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
+# --- AVISO PARA ABRIR MENÚ EN MÓVIL ---
 if not es_pro:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
 
+# --- GUÍA ---
 with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
     st.markdown("""
     <div class="step-box"><b>1. Sube tus Fotos (Solo PRO):</b> La IA analiza las imágenes.</div>
@@ -734,11 +756,10 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
                 if es_pro:
-                    # EXTRAER FRASES PARA EL VIDEO ANTES DE LIMPIAR
+                    # EXTRAER FRASES PARA EL VIDEO
                     frases_video = []
                     if plan_actual == "AGENCIA":
                         try:
-                            # Intento simple de extraer frases cortas del texto generado
                             lines = cleaned_text.split('\n')
                             for l in lines:
                                 l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
@@ -746,7 +767,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
                                     frases_video.append(l)
                             if len(frases_video) < 3:
                                 frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
-                            st.session_state['video_frases'] = frases_video[:6] # Max 6 frases
+                            st.session_state['video_frases'] = frases_video[:6]
                         except:
                             st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
@@ -769,26 +790,33 @@ if 'generated_result' in st.session_state:
     st.markdown(st.session_state['generated_result'])
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # --- ZONA VIDEO REEL (SOLO AGENCIA) ---
+    # --- ZONA VIDEO REEL (SOLO AGENCIA, DESPUÉS DE GENERAR) ---
     if plan_actual == "AGENCIA" and uploaded_files:
         st.markdown("---")
         st.subheader("🎬 Video Reel Automático (Agencia)")
-        if st.button("🎥 GENERAR VIDEO REEL (BETA)"):
-            if not MOVIEPY_AVAILABLE:
-                st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
-            else:
-                with st.spinner("🎞️ Renderizando video..."):
-                    try:
-                        frases = st.session_state.get('video_frases', ["AppyProp IA"])
-                        path_video = crear_reel_vertical(uploaded_files, frases)
-                        st.session_state['video_path'] = path_video
-                    except Exception as e:
-                        st.error(f"Error video: {e}")
+        # Botón aparece solo si no se ha generado video aún
+        if 'video_path' not in st.session_state:
+            if st.button("🎥 GENERAR VIDEO REEL (BETA)"):
+                if not MOVIEPY_AVAILABLE:
+                    st.error("⚠️ Librería MoviePy no instalada. Revisa requirements.txt")
+                else:
+                    with st.spinner("🎞️ Renderizando video (aprox. 20s)..."):
+                        try:
+                            frases = st.session_state.get('video_frases', ["AppyProp IA"])
+                            path_video = crear_reel_vertical(uploaded_files, frases)
+                            if path_video:
+                                st.session_state['video_path'] = path_video
+                            else:
+                                st.warning("⚠️ No se pudo generar el video (quizás pocas fotos).")
+                        except Exception as e:
+                            st.error(f"Error video: {e}")
 
+        # Mostrar video si existe
         if 'video_path' in st.session_state:
+            st.success("✅ Video Reel generado con éxito.")
             st.video(st.session_state['video_path'])
             with open(st.session_state['video_path'], "rb") as file:
-                st.download_button("⬇️ Descargar Video", file, "reel_appyprop.mp4", "video/mp4")
+                st.download_button("⬇️ Descargar Video (MP4)", file, "reel_appyprop.mp4", "video/mp4", type="primary")
 
     st.markdown("---")
     st.subheader("¿Terminaste?")

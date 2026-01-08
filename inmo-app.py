@@ -101,23 +101,24 @@ st.markdown("""
 
     /* TARJETAS PLANES (REDISEÑADAS PARA LISTAS) */
     .plan-basic, .plan-standard, .plan-agency {
-        text-align: left !important; /* Alineación izquierda para listas */
+        text-align: left !important; /* Alineación izquierda */
         padding: 20px; border-radius: 12px; margin-bottom: 10px;
-        height: 100%; /* Altura igual */
+        height: 100%;
     }
     .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; }
     .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
     .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.03); position: relative; z-index: 10; }
 
-    /* ESTILOS PARA LISTAS DE BENEFICIOS */
+    /* LISTA DE BENEFICIOS */
     .feature-list { list-style-type: none; padding: 0; margin: 15px 0; }
     .feature-list li { margin-bottom: 8px; font-size: 0.85em; display: flex; align-items: center; gap: 8px; line-height: 1.3; }
-    .check-icon { color: #16a34a; font-weight: bold; min-width: 20px; } /* Verde check */
-    .cross-icon { color: #dc2626; opacity: 0.5; min-width: 20px; } /* Rojo cruz suave */
-    .feature-locked { opacity: 0.5; text-decoration: line-through; }
+    
+    .check-icon { color: #16a34a; font-weight: bold; min-width: 20px; font-size: 1.1em; } /* Verde */
+    .cross-icon { color: #dc2626; opacity: 0.6; min-width: 20px; font-size: 1.1em; } /* Rojo */
+    .feature-locked { opacity: 0.5; text-decoration: line-through; color: #64748B; }
 
-    /* Centrar títulos y precios */
-    .plan-title-center { text-align: center; margin-bottom: 5px; font-weight: 800; }
+    /* TEXTOS PLANES */
+    .plan-title-center { text-align: center; margin-bottom: 5px; font-weight: 800; font-size: 1.3em; }
     .price-tag { font-size: 1.4em; font-weight: 800; margin: 10px 0; text-align: center; }
     .agency-badge-container { text-align: center; margin-bottom: 5px; }
     
@@ -206,7 +207,7 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
             continue
 
     if not clips:
-        # CORRECCIÓN DE SINTAXIS AQUÍ (Multilínea)
+        # Corrección de sintaxis multilínea
         try: 
             shutil.rmtree(temp_dir)
         except: 
@@ -226,7 +227,7 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave):
         ffmpeg_params=['-pix_fmt', 'yuv420p'], threads=1, logger=None
     )
     
-    # CORRECCIÓN DE SINTAXIS AQUÍ (Multilínea)
+    # Corrección de sintaxis multilínea
     try: 
         shutil.rmtree(temp_dir)
     except: 
@@ -321,7 +322,6 @@ def registrar_pedido(nombre, apellido, email, telefono, nuevo_plan):
             nueva_fila = ["PENDIENTE", nombre_completo, nuevo_plan, 0, telefono, email, "NUEVO PEDIDO", fecha]
             sheet.append_row(nueva_fila)
             return "CREATED"
-            
     except Exception as e:
         return "ERROR"
 
@@ -390,12 +390,12 @@ if st.session_state.ver_planes:
                 <div class="price-tag">20.000 Gs</div>
                 <ul class="feature-list">
                     <li><span class="check-icon">✅</span> 10 Créditos</li>
-                    <li><span class="check-icon">✅</span> Operación</li>
+                    <li><span class="check-icon">✅</span> Tipo de Operación</li>
                     <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
                     <li><span class="check-icon">✅</span> Ubicación</li>
                     <li><span class="check-icon">✅</span> Detalles de Precio</li>
                     <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> Max 3 Fotos (Visión IA)</li>
+                    <li><span class="check-icon">✅</span> Subida de Fotos (3 Max)</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Estrategia de Venta</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Tono de Voz</li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Link WhatsApp</li>
@@ -416,7 +416,7 @@ if st.session_state.ver_planes:
                 <div class="price-tag" style="color:#2563EB;">35.000 Gs</div>
                 <ul class="feature-list">
                     <li><span class="check-icon">✅</span> <b>20 Créditos</b></li>
-                    <li><span class="check-icon">✅</span> Operación</li>
+                    <li><span class="check-icon">✅</span> Tipo de Operación</li>
                     <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
                     <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
                     <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
@@ -424,7 +424,7 @@ if st.session_state.ver_planes:
                     <li><span class="check-icon">✅</span> Detalles de Precio</li>
                     <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
                     <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> <b>Max 6 Fotos</b> (Visión IA)</li>
+                    <li><span class="check-icon">✅</span> <b>Subida Fotos (6 Max)</b></li>
                     <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
                 </ul>
             </div>
@@ -443,7 +443,7 @@ if st.session_state.ver_planes:
                 <div class="price-tag" style="color:#D97706;">80.000 Gs</div>
                 <ul class="feature-list">
                     <li><span class="check-icon">✅</span> <b>80 Créditos</b></li>
-                    <li><span class="check-icon">✅</span> Operación</li>
+                    <li><span class="check-icon">✅</span> Tipo de Operación</li>
                     <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
                     <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
                     <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
@@ -451,8 +451,8 @@ if st.session_state.ver_planes:
                     <li><span class="check-icon">✅</span> Detalles de Precio</li>
                     <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
                     <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> <b>Max 10 Fotos</b> (Visión IA)</li>
-                    <li><span class="check-icon">✅</span> 🎬 <b>Video 9:16 (Opcional)</b></li>
+                    <li><span class="check-icon">✅</span> <b>Subida Fotos (10 Max)</b></li>
+                    <li><span class="check-icon">✅</span> 🎬 <b>Video Vertical 9:16 (Opcional)</b></li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)

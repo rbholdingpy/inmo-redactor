@@ -389,23 +389,31 @@ if st.session_state.ver_planes:
 # === APP PRINCIPAL ===
 # =======================================================
 c_title, c_badge = st.columns([2, 1])
+# --- TITULO PRINCIPAL CENTRADO ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
+# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? ---
 with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
     st.markdown("""
     ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
-    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades.
+    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades. Una plataforma inteligente que combina **Visión Artificial** con **Psicología de Ventas**.
+
     ---
-    #### 💎 Beneficios
-    1.  **👁️ Ojos que Ven, Cerebro que Vende:** La IA "mira" tus fotos, detecta acabados e iluminación.
-    2.  **⚡ Velocidad Supersónica:** De 30 minutos a **10 segundos**.
-    3.  **🎯 Estrategia Total:** Recibes Storytelling, Venta Directa y Posts Virales.
+    #### 💎 ¿En qué te beneficia?
+    1.  **👁️ Ojos que Ven, Cerebro que Vende:** La IA "mira" tus fotos, detecta acabados e iluminación, e integra esos detalles para enamorar al cliente.
+    2.  **⚡ Velocidad Supersónica:** De 30 minutos a **10 segundos**. Genera descripciones, guiones y posts virales en un clic.
+    3.  **🎯 Estrategia Total:** No es solo texto. Recibes **Storytelling** (emoción), **Venta Directa** (datos) y **Formato Viral** (redes).
+
     ---
-    #### 🚀 ¿Por qué usarla?
-    * Adiós al bloqueo creativo.
-    * Ahorro de tiempo y dinero.
-    * Profesionalismo instantáneo.
+    #### 🚀 ¿Por qué utilizarlo?
+    * **Adiós al bloqueo creativo:** Nunca más una pantalla en blanco.
+    * **Ahorro:** Tu propia agencia de marketing de bolsillo.
+    * **Profesionalismo:** Textos persuasivos y sin errores.
+
+    ---
+    #### 🤖 El Factor Diferencial
+    **AppyProp IA es un hito tecnológico: Una aplicación 100% creada con Inteligencia Artificial.** Innovación pura, eficiencia y evolución constante para el mercado inmobiliario.
     """)
 
 es_pro = False
@@ -432,14 +440,17 @@ if st.session_state['usuario_activo']:
         plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
+    # BADGE CENTRADO
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
     st.markdown('<div style="text-align:center; margin-top: 10px;"><span class="free-badge">MODO FREEMIUM</span></div>', unsafe_allow_html=True)
 
+# --- AVISO PARA ABRIR MENÚ EN MÓVIL ---
 if not es_pro:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
 
+# --- GUÍA ---
 with st.expander("📘 ¿Cómo funciona? (Guía Rápida)", expanded=False):
     st.markdown("""
     <div class="step-box"><b>1. Sube tus Fotos (Solo PRO):</b> La IA analiza las imágenes.</div>
@@ -484,7 +495,7 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
-    # --- NUEVAS ESTRATEGIAS DE NEUROVENTAS ---
+    # --- NUEVAS ESTRATEGIAS ---
     opciones_estrategia = [
         "⚖️ Equilibrado (Balanceado)",
         "🔥 Urgencia (Oportunidad Flash)",
@@ -494,7 +505,11 @@ with c1:
         "🛠️ Potencial de Reforma (Flipping)",
         "🌿 Vida Natural & Relax (Green Living)",
         "🏢 Comercial & Corporativo",
-        "🌍 Airbnb/Alquiler Temporal"
+        "🌍 Airbnb/Alquiler Temporal",
+        "💑 Recién Casados (Inicio Ideal)",       # NUEVO
+        "🔒 Barrio Cerrado/Condominio (Seguridad)", # NUEVO
+        "🎒 Estudiantes/Universitario",           # NUEVO
+        "💼 Ejecutivo/Nómada Digital"             # NUEVO
     ]
 
     if es_pro:
@@ -512,13 +527,20 @@ with c1:
 
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
+    # --- SELECTOR DE PRECIO + MONEDA ---
+    st.write("Precio:")
+    c_moneda, c_monto = st.columns([1, 2])
+    with c_moneda:
+        moneda = st.selectbox("Moneda", ["Gs.", "$us"])
+    with c_monto:
+        precio_val = st.text_input("Monto", label_visibility="collapsed")
+    
+    # --- FRECUENCIA DE ALQUILER EXPANDIDA ---
     if oper == "Alquiler":
-        cp, cf = st.columns([2, 1])
-        precio_val = cp.text_input("Precio", key="input_precio")
-        frec = cf.selectbox("Periodo", ["Mensual", "Semestral", "Anual"])
-        texto_precio = f"{precio_val} ({frec})"
+        frec = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Semestral", "Anual"])
+        texto_precio = f"{precio_val} {moneda} ({frec})"
     else:
-        texto_precio = st.text_input("Precio", key="input_precio")
+        texto_precio = f"{precio_val} {moneda}"
         
     if es_pro:
         whatsapp = st.text_input("WhatsApp (Solo números)", key="input_whatsapp")
@@ -558,7 +580,7 @@ else:
 # === GENERACIÓN ===
 # =======================================================
 if st.button("✨ Generar Estrategia", type="primary"):
-    if not ubicacion or not texto_precio:
+    if not ubicacion or not precio_val:
         st.warning("⚠️ Completa Ubicación y Precio.")
         st.stop()
         
@@ -576,15 +598,19 @@ if st.button("✨ Generar Estrategia", type="primary"):
             try:
                 # --- DICCIONARIO DE INSTRUCCIONES DE ESTRATEGIA (CEREBRO) ---
                 instrucciones_estrategia = {
-                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable. Usa palabras como 'equilibrio', 'comodidad', 'funcionalidad'.",
-                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado, última oportunidad). Frases cortas y directas. Enfócate en que 'se va rápido'.",
-                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños, cercanía a colegios. Tono emotivo y cálido. Usa palabras como 'hogar', 'familia', 'comienzo'.",
-                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium, Diseñador, Importado). Vende estatus y privacidad. Evita la urgencia barata. Describe materiales con adjetivos sofisticados.",
-                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión, demanda de alquiler en la zona. Tono racional y de negocios. Usa términos como 'capitalización', 'renta inmediata'.",
-                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad de valorizar'. Ideal para constructores o inversores que buscan remodelar.",
-                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro, jardín. Tono zen y relajado. Enfócate en la luz natural, el verde y el silencio.",
-                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas, visibilidad y éxito comercial. Ideal para locales u oficinas.",
-                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, cercanía a puntos turísticos, wifi de alta velocidad y comodidad para viajeros."
+                    "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios por igual. Tono seguro y confiable.",
+                    "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez (Tiempo limitado, precio rebajado). Frases cortas.",
+                    "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad, futuro, espacio para niños. Tono emotivo y cálido.",
+                    "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder (Exquisito, Premium). Vende estatus y privacidad.",
+                    "💰 Inversión & Rentabilidad (ROI)": "Habla de números: Plusvalía, retorno de inversión. Tono racional y de negocios.",
+                    "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura. 'Lienzo en blanco', 'Oportunidad'.",
+                    "🌿 Vida Natural & Relax (Green Living)": "Vende paz, desconexión, aire puro. Tono zen y relajado.",
+                    "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica, tráfico de personas y éxito comercial.",
+                    "🌍 Airbnb/Alquiler Temporal": "Destaca amenities, wifi, cercanía a turismo y comodidad total.",
+                    "💑 Recién Casados (Inicio Ideal)": "Enfócate en 'el comienzo de una historia', intimidad, espacio práctico y acogedor.",
+                    "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total, vigilancia 24/7, amenities compartidos y vida social segura.",
+                    "🎒 Estudiantes/Universitario": "Destaca cercanía a universidades, transporte público, bajo mantenimiento y wifi.",
+                    "💼 Ejecutivo/Nómada Digital": "Enfócate en conectividad, escritorio/home office, cercanía al centro financiero y estilo moderno."
                 }
                 
                 directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar atractiva.")
@@ -608,7 +634,7 @@ if st.button("✨ Generar Estrategia", type="primary"):
                 - ¡SI NO MENCIONAS DETALLES VISUALES ESPECÍFICOS DE LAS FOTOS, EL TRABAJO ESTÁ MAL HECHO!
                 
                 PASO 2: APLICAR ESTRATEGIA DE VENTA
-                Tu objetivo es vender usando esta estrategia específica: "{enfoque}".
+                Tu objetivo es vender/alquilar usando esta estrategia específica: "{enfoque}".
                 Instrucción de Tono y Enfoque: {directriz_seleccionada}
                 
                 PASO 3: REDACCIÓN (OUTPUT)

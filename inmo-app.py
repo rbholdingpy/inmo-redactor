@@ -14,10 +14,10 @@ st.set_page_config(
     page_title="VendeMás IA",
     page_icon="🚀",
     layout="centered",
-    initial_sidebar_state="collapsed" # En móvil siempre inicia colapsado, pero ahora el botón será visible
+    initial_sidebar_state="collapsed"
 )
 
-# --- ESTILOS CSS (MARKETING VISUAL + SOCIAL + FIX MÓVIL) ---
+# --- ESTILOS CSS (FIX MÓVIL AGRESIVO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -28,37 +28,51 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
 
-    /* --- HACK PARA EL BOTÓN DE MENÚ EN MÓVIL --- */
-    /* Hacemos el botón de colapsar la barra lateral GIGANTE y AZUL */
+    /* --- BOTÓN FLOTANTE DE MENÚ (FIX MÓVIL) --- */
+    /* Forzamos posición fija para que flote sobre todo */
     [data-testid="stSidebarCollapsedControl"] {
-        background-color: #2563EB; /* Azul fuerte */
+        position: fixed !important;
+        top: 15px !important;
+        left: 15px !important;
+        z-index: 1000001 !important; /* Por encima de todo */
+        background-color: #2563EB !important;
         color: white !important;
-        border-radius: 0 10px 10px 0;
-        padding: 10px;
-        margin-top: 10px;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
-        border: 2px solid white;
-        transition: all 0.3s ease;
-    }
-    
-    /* Agregamos la palabra "MENÚ" al lado de la flecha */
-    [data-testid="stSidebarCollapsedControl"]::after {
-        content: "MENÚ 🔓";
-        font-weight: bold;
-        font-size: 1rem;
-        margin-left: 5px;
-        color: white;
+        border: 2px solid white !important;
+        border-radius: 12px !important;
+        padding: 10px 15px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        width: auto !important;
+        height: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 5px !important;
     }
 
-    /* Animación para que llame la atención */
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+    /* Hacemos la flecha blanca y visible */
+    [data-testid="stSidebarCollapsedControl"] svg {
+        fill: white !important;
+        color: white !important;
+        width: 24px !important;
+        height: 24px !important;
     }
-    
+
+    /* Agregamos la palabra MENÚ explícitamente */
+    [data-testid="stSidebarCollapsedControl"]::after {
+        content: "MENÚ";
+        font-weight: 800;
+        font-size: 16px;
+        color: white;
+        letter-spacing: 1px;
+    }
+
+    /* Animación de latido para que se vea */
+    @keyframes pulse-blue {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
     [data-testid="stSidebarCollapsedControl"] {
-        animation: pulse 2s infinite;
+        animation: pulse-blue 2s infinite;
     }
     /* ------------------------------------------- */
 
@@ -74,7 +88,6 @@ st.markdown("""
     
     .social-area { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center; }
     .social-title { font-size: 1.2em; font-weight: bold; color: #1E293B; margin-bottom: 15px; }
-    
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
     .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
@@ -196,7 +209,7 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (CON BOTÓN FLOTANTE GESTIÓN) ===
+# === 🏗️ BARRA LATERAL (PANEL FLOTANTE) ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -542,7 +555,7 @@ if 'generated_result' in st.session_state:
 
     st.markdown("---")
     st.subheader("¿Terminaste?")
-    # Botón de limpiar extra en el footer por si acaso
+    # Botón de limpiar extra en el footer
     if st.button("🔄 Nueva Propiedad (Limpiar) ", type="secondary"):
         limpiar_formulario()
 

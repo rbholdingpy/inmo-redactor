@@ -18,7 +18,6 @@ st.set_page_config(
 )
 
 # --- TU NÚMERO DE ADMINISTRADOR ---
-# Aquí configuramos tu número para que todos los mensajes lleguen a ti
 ADMIN_WHATSAPP = "595961871700" 
 
 # --- ESTILOS CSS ---
@@ -296,10 +295,20 @@ if st.session_state.ver_planes:
             st.write("### 💳 Paso 2: Realiza el Pago")
             col_bank, col_wa = st.columns(2)
             with col_bank:
-                st.markdown('<div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;"><b>Banco:</b> ITAÚ <br><b>Titular:</b> Ricardo Blanco <br><b>C.I.:</b> 1911221 <br><b>Cuenta:</b> 320595209 <br><b>RUC:</b> 1911221-1</div>', unsafe_allow_html=True)
+                # AQUÍ SE MUESTRA EL ALIAS RUC
+                st.markdown("""
+                <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;">
+                <b>Banco:</b> ITAÚ <br>
+                <b>Titular:</b> Ricardo Blanco <br>
+                <b>Cuenta:</b> 320595209 <br>
+                <b>Alias:</b> RUC 1911221-1 <br>
+                <b>C.I.:</b> 1911221 <br>
+                <b>RUC:</b> 1911221-1
+                </div>
+                """, unsafe_allow_html=True)
             with col_wa:
                 nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
-                # MENSAJE A TU NUMERO
+                # MENSAJE A TU NUMERO DE ADMINISTRADOR
                 mensaje_wp = f"Hola, soy *{nombre_cliente}*. Ya registré mis datos en la App y realicé la transferencia para el *Plan {st.session_state.plan_seleccionado}*. Quedo a la espera de mi código."
                 mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
                 link_wp = f"https://wa.me/{ADMIN_WHATSAPP}?text={mensaje_wp_url}"

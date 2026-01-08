@@ -7,7 +7,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from openai import OpenAI
 import time
 from datetime import datetime, timedelta
-import urllib.parse # Para crear los enlaces mágicos de WhatsApp
+import urllib.parse 
 
 # --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ESTILOS CSS (MARKETING VISUAL + SOCIAL) ---
+# --- ESTILOS CSS ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -54,7 +54,6 @@ st.markdown("""
         font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* ZONA SOCIAL */
     .social-area {
         background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px;
         border-radius: 10px; margin-top: 20px; text-align: center;
@@ -85,7 +84,7 @@ def cerrar_sesion():
     st.session_state['ver_planes'] = False
     st.session_state['pedido_registrado'] = False
 
-# --- CALLBACKS DE NAVEGACIÓN ---
+# --- CALLBACKS ---
 def ir_a_planes():
     st.session_state.ver_planes = True
     st.session_state.plan_seleccionado = None
@@ -113,7 +112,6 @@ if 'ver_planes' not in st.session_state: st.session_state['ver_planes'] = False
 if 'plan_seleccionado' not in st.session_state: st.session_state['plan_seleccionado'] = None
 if 'pedido_registrado' not in st.session_state: st.session_state['pedido_registrado'] = False
 
-# --- ESTADO FREEMIUM (INVITADO) ---
 if 'guest_last_use' not in st.session_state: st.session_state['guest_last_use'] = None
 if 'guest_credits' not in st.session_state: st.session_state['guest_credits'] = 1
 
@@ -123,7 +121,7 @@ if st.session_state['guest_last_use']:
         st.session_state['guest_credits'] = 1
         st.session_state['guest_last_use'] = None
 
-# --- API KEY (OPENAI) ---
+# --- API KEY ---
 api_key = st.secrets.get("OPENAI_API_KEY")
 if not api_key:
     st.error("⚠️ Error: Falta API Key de OpenAI en Secrets.")
@@ -178,11 +176,10 @@ def registrar_pedido(nombre, apellido, email, telefono, plan):
         sheet.append_row(nueva_fila)
         return True
     except Exception as e:
-        st.error(f"Error al guardar: {e}")
         return False
 
 # =======================================================
-# === 🏗️ BARRA LATERAL (LOGIN) ===
+# === 🏗️ BARRA LATERAL ===
 # =======================================================
 with st.sidebar:
     st.header("🔐 Área de Miembros")
@@ -267,7 +264,6 @@ if st.session_state.ver_planes:
                 apellido = c_ape.text_input("Apellido")
                 email = st.text_input("Correo Electrónico")
                 telefono = st.text_input("Número de WhatsApp")
-                
                 submitted = st.form_submit_button("✅ Confirmar y Ver Datos de Pago", type="primary")
                 
                 if submitted:
@@ -281,7 +277,6 @@ if st.session_state.ver_planes:
                     else:
                         st.warning("⚠️ Completa todos los campos.")
             st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
-
         else:
             st.success("✅ **¡Datos recibidos!** Tu solicitud ha sido registrada.")
             st.write("### 💳 Paso 2: Realiza el Pago")
@@ -358,17 +353,13 @@ if es_pro:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
     
-    st.markdown(f"""
-    <div class="photo-limit-box">
-        📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="photo-limit-box">📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.</div>""", unsafe_allow_html=True)
     
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
     
     if uploaded_files:
         if len(uploaded_files) > cupo_fotos:
-            st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes. Has subido {len(uploaded_files)}.")
+            st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
         with st.expander("👁️ Ver fotos cargadas", expanded=True):
             cols = st.columns(4)
@@ -390,21 +381,18 @@ with c1:
     oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
     tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
     
-    # --- ESTRATEGIA (Para todos los PRO) ---
     if es_pro:
         enfoque = st.selectbox("🎯 Estrategia", ["Equilibrado", "🔥 Urgencia", "🔑 Primera Casa", "💎 Lujo", "💰 Inversión"])
     else:
         enfoque = st.selectbox("🎯 Estrategia", ["🔒 Estándar (Solo PRO)"], disabled=True)
         enfoque = "Venta Estándar"
 
-    # --- TONO DE VOZ (SOLO ESTÁNDAR Y AGENCIA) ---
     if es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]:
         tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"])
     else:
-        # Texto del placeholder dependiendo de si es Básico o Gratis
         msg_bloqueo = "🔒 Neutro (Requiere Plan Estándar)" if es_pro else "🔒 Neutro (Solo PRO Estándar)"
         tono = st.selectbox("🗣️ Tono de Voz", [msg_bloqueo], disabled=True)
-        tono = "Neutro y Descriptivo" # Valor por defecto
+        tono = "Neutro y Descriptivo"
 
     ubicacion = st.text_input("Ubicación", key="input_ubicacion")
     
@@ -425,7 +413,6 @@ with c2:
     habs = st.number_input("Habitaciones", 1)
     banos = st.number_input("Baños", 1)
     st.write("**Servicios y Extras:**")
-    # --- EXTRAS COMPLETOS ---
     col_ex1, col_ex2 = st.columns(2)
     with col_ex1:
         gar = st.checkbox("Garage")
@@ -443,10 +430,7 @@ st.divider()
 
 if es_pro:
     cant_fotos = len(uploaded_files) if uploaded_files else 0
-    if cant_fotos > 0:
-        st.info(f"🧠 **Neuro-Vision Activa:** Analizando {cant_fotos} fotos con potencia {plan_actual}... (Costo: 1 crédito)")
-    else:
-        st.info(f"🧠 **IA Activa (Solo Texto):** Generando sin fotos... (Costo: 1 crédito)")
+    st.info(f"🧠 **Neuro-Vision Activa:** Analizando {cant_fotos} fotos con potencia {plan_actual}... (Costo: 1 crédito)")
 else:
     creditos_guest = st.session_state['guest_credits']
     if creditos_guest > 0:
@@ -472,33 +456,57 @@ if st.button("✨ Generar Estrategia", type="primary"):
             st.stop()
 
     if puede_generar:
-        with st.spinner('🧠 Redactando estrategia...'):
+        with st.spinner('🧠 Redactando estrategia ganadora...'):
             try:
-                # --- PROMPT ACTUALIZADO ---
-                base_prompt = f"""Actúa como copywriter inmobiliario. Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
+                # --- PROMPT MARKETING AVANZADO (VISUAL) ---
+                base_prompt = f"""Actúa como copywriter inmobiliario experto. 
+                Datos: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. 
                 Características: Hab:{habs}, Baños:{banos}.
                 Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
                 
+                # INSTRUCCIONES CLAVE PARA FORMATO VISUAL
+                instrucciones_visuales = """
+                FORMATO OBLIGATORIO DE SALIDA:
+                - Usa MAYÚSCULAS para resaltar Ubicación, Precio y Call to Action (NO uses negritas markdown **).
+                - Usa EMOJIS al inicio de cada característica.
+                - Estructura en listas verticales limpias.
+                - Párrafos cortos (máximo 2 líneas) para fácil lectura en móvil.
+                - OPCIÓN 3 DEBE INCLUIR UN BLOQUE DE 10 HASHTAGS VIRALES DE NICHO AL FINAL.
+                """
+
                 if es_pro:
                     full_prompt = base_prompt + f""" 
-                    TONO DE COMUNICACIÓN: {tono}.
-                    OPCIÓN 1: Storytelling ({enfoque}). OPCIÓN 2: Venta Directa. OPCIÓN 3: Instagram. 
-                    WhatsApp: https://wa.me/595{whatsapp}. REGLAS: NO Markdown. Usa EMOJIS."""
+                    TONO: {tono}.
+                    Genera 3 opciones distintas:
+                    OPCIÓN 1: Storytelling Emotivo ({enfoque}).
+                    OPCIÓN 2: Venta Directa (Datos duros y lista de características).
+                    OPCIÓN 3: Instagram/TikTok (Viral, corto, con hashtags de Paraguay).
                     
+                    Link WhatsApp: https://wa.me/595{whatsapp}.
+                    {instrucciones_visuales}
+                    """
                     content = [{"type": "text", "text": full_prompt}]
                     if uploaded_files and len(uploaded_files) <= cupo_fotos:
                         for f in uploaded_files:
                             f.seek(0)
                             content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encode_image(Image.open(f))}"}})
                 else:
-                    full_prompt = base_prompt + """ Genera 1 Descripción de Venta atractiva y básica. REGLAS: NO Markdown. Usa EMOJIS."""
+                    full_prompt = base_prompt + f"""
+                    Genera 1 Descripción de Venta atractiva y básica.
+                    {instrucciones_visuales}
+                    """
                     content = [{"type": "text", "text": full_prompt}]
 
                 res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}])
                 generated_text = res.choices[0].message.content
 
-                cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️").replace("#", "🚀")
-                cleaned_text = cleaned_text.replace("**", "").replace("* ", "▪️ ").replace("- ", "▪️ ")
+                # LIMPIEZA INTELIGENTE (RESPETA HASHTAGS)
+                # Reemplazamos encabezados markdown por adornos, pero NO tocamos el # de hashtags
+                cleaned_text = generated_text.replace("###", "🔹").replace("##", "🏘️")
+                # Solo reemplazamos # si tiene espacio después (ej: "# Título"), no si es hashtag (ej: "#Casa")
+                cleaned_text = cleaned_text.replace("# ", "🚀 ") 
+                cleaned_text = cleaned_text.replace("**", "") # Quitamos negritas markdown para limpieza visual
+                cleaned_text = cleaned_text.replace("* ", "▪️ ").replace("- ", "▪️ ")
                 
                 if es_pro:
                     exito = descontar_credito(user['codigo'])
@@ -520,7 +528,6 @@ if 'generated_result' in st.session_state:
     texto_resultado = st.session_state['generated_result']
     st.code(texto_resultado, language=None)
     
-    # ZONA SOCIAL
     st.markdown('<div class="social-area"><div class="social-title">🚀 Acciones Rápidas (Postea Ya):</div>', unsafe_allow_html=True)
     c_wa, c_ig, c_fb = st.columns(3)
     

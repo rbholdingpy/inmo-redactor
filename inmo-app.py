@@ -39,34 +39,31 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- SISTEMA DE PERSISTENCIA ANTI-REFRESH (INVITADOS) ---
+# --- SISTEMA DE PERSISTENCIA DE CRÉDITOS ---
 @st.cache_resource
 def get_guest_db():
     return {}
 
 guest_db = get_guest_db()
 
-query_params = st.query_params
-if "gid" not in query_params:
-    guest_id = str(uuid.uuid4())[:8]
-    st.query_params["gid"] = guest_id
-else:
-    guest_id = query_params["gid"]
+# Identificación única del invitado
+if "gid" not in st.query_params:
+    st.query_params["gid"] = str(uuid.uuid4())[:8]
+guest_id = st.query_params["gid"]
 
+# Inicializar créditos si es nuevo
 if guest_id not in guest_db:
     guest_db[guest_id] = CREDITOS_INVITADO
 
-# Sincronizar siempre al inicio
+# Sincronizar session_state con la DB global
 if 'guest_credits' not in st.session_state:
-    st.session_state['guest_credits'] = guest_db[guest_id]
-else:
-    # Asegurar que la sesión visual coincida con la "base de datos"
     st.session_state['guest_credits'] = guest_db[guest_id]
 
 def consumir_credito_invitado():
+    """Descuenta 1 crédito y actualiza la sesión inmediatamente"""
     if guest_db[guest_id] > 0:
         guest_db[guest_id] -= 1
-        st.session_state['guest_credits'] = guest_db[guest_id]
+        st.session_state['guest_credits'] = guest_db[guest_id] # Actualizar estado visual
         return True
     return False
 
@@ -111,7 +108,7 @@ st.markdown("""
 
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
-    /* BOTONES SOCIALES */
+    /* --- BOTONES SOCIALES ELEGANTES (FONDO BLANCO) --- */
     .social-btn {
         display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; font-size: 0.85em; transition: all 0.2s; background-color: white; border: 2px solid #ddd;
     }
@@ -120,14 +117,25 @@ st.markdown("""
     
     .btn-wp { border-color: #25D366; color: #25D366 !important; }
     .btn-wp svg { fill: #25D366; width: 18px; height: 18px; }
+    
     .btn-ig { border-color: #E1306C; color: #E1306C !important; }
     .btn-ig svg { fill: #E1306C; width: 18px; height: 18px; }
+    
     .btn-fb { border-color: #1877F2; color: #1877F2 !important; }
     .btn-fb svg { fill: #1877F2; width: 18px; height: 18px; }
+    
     .btn-tk { border-color: #000000; color: #000000 !important; }
     .btn-tk svg { fill: #000000; width: 18px; height: 18px; }
     
-    .reel-wrapper { max-width: 350px; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background-color: #000; }
+    /* CONTENEDOR VIDEO CENTRADO */
+    .reel-wrapper {
+        max-width: 350px;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        background-color: #000;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -141,18 +149,19 @@ def encode_image(image):
 
 def format_price_display(value):
     if not value: return ""
-    try: return "{:,}".format(int(value)).replace(",", ".")
-    except: return value
+    try:
+        return "{:,}".format(int(value)).replace(",", ".")
+    except:
+        return value
 
 def limpiar_formulario():
-    # Eliminar estado
+    # Borrar keys de sesión para reiniciar
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda', 'video_path', 'video_frases']
     for key in keys_a_borrar:
         if key in st.session_state:
             del st.session_state[key]
     st.session_state['uploader_key'] += 1
-    # FORZAR RECARGA
-    st.rerun()
+    # IMPORTANTE: No usamos st.rerun() aquí directamente si es callback, pero si es llamada directa sí.
 
 def cerrar_sesion():
     st.session_state['usuario_activo'] = None
@@ -333,7 +342,17 @@ with st.sidebar:
     
     if not st.session_state['usuario_activo']:
         if MODO_LANZAMIENTO:
-            st.markdown("""<div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;"><small>Estado actual:</small><br><b>🚀 INVITADO VIP</b><br><span style="color:#B45309; font-size:0.8em;">Acceso Total (4 Créditos de Regalo)</span></div>""", unsafe_allow_html=True)
+            # MOSTRAR CREDITOS DINÁMICOS AQUÍ
+            creditos_actuales = st.session_state.get('guest_credits', CREDITOS_INVITADO)
+            
+            st.markdown(f"""
+            <div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;">
+                <small>Estado actual:</small><br><b>🚀 INVITADO VIP</b><br>
+                <span style="color:#B45309; font-size:0.9em;">
+                    Créditos disponibles: <b>{creditos_actuales}</b>
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
         else:
             st.markdown("""<div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;"><small>Estado actual:</small><br><b>👤 Invitado (Freemium)</b><br><span style="color:#64748B; font-size:0.8em;">1 Generación / 24hs</span></div>""", unsafe_allow_html=True)
             
@@ -359,16 +378,17 @@ with st.sidebar:
         color_cred = "blue" if creditos_disponibles > 0 else "red"
         st.markdown(f":{color_cred}[**🪙 Créditos: {creditos_disponibles}**]")
         
-        st.markdown("---")
-        st.markdown("### 🛠️ Gestión Rápida")
-        if st.button("🔄 Nueva Propiedad (Limpiar)", key="clean_sidebar", type="secondary"):
-            limpiar_formulario()
+    st.markdown("---")
+    st.markdown("### 🛠️ Gestión")
+    # BOTÓN PARA GENERAR NUEVA DESCRIPCIÓN EN EL SIDEBAR
+    if st.button("📝 Generar Nueva Descripción", type="primary"):
+        limpiar_formulario()
+        st.rerun()
             
-        st.markdown("---")
-        st.button("🚀 SUBE DE NIVEL\nAprovecha más", type="primary", on_click=ir_a_planes)
-        st.markdown("---")
+    if st.session_state['usuario_activo']:
         if st.button("🔒 Cerrar Sesión"):
             cerrar_sesion()
+            
     st.caption("© 2026 AppyProp IA")
 
 # =======================================================
@@ -687,20 +707,19 @@ if submitted:
                 except:
                     st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
-            # CONSUMO CRÉDITOS Y ACTUALIZACIÓN VISUAL
+            # CONSUMO CRÉDITOS
             if es_pro:
                 exito = descontar_credito(user['codigo'])
-                if exito: 
-                    st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
+                if exito: st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
             else:
                 if consumir_credito_invitado():
-                    st.toast(f"🪙 Crédito usado. Te quedan {guest_db[guest_id]}.", icon="✅")
+                    st.toast(f"🪙 Crédito usado.", icon="✅")
 
             st.session_state['generated_result'] = cleaned_text
             estado_ia.update(label="✅ ¡Terminado!", state="complete", expanded=False)
             time.sleep(1) 
             estado_ia.empty() 
-            st.rerun()
+            st.rerun() # RECARGA PARA MOSTRAR TODO Y ACTUALIZAR CREDITOS
             
         except Exception as e:
             st.error(f"Error: {e}")
@@ -727,6 +746,7 @@ if 'generated_result' in st.session_state:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- ZONA VIDEO (SI APLICA) ---
     if puede_video and uploaded_files:
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("🎬 **Video Reel**")

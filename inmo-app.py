@@ -56,7 +56,7 @@ else:
 if guest_id not in guest_db:
     guest_db[guest_id] = CREDITOS_INVITADO
 
-# Sincronizar estado inicial
+# Sincronizar
 if 'guest_credits' not in st.session_state:
     st.session_state['guest_credits'] = guest_db[guest_id]
 
@@ -108,7 +108,27 @@ st.markdown("""
 
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
-    /* VIDEO REEL CONTAINER (CENTRADO Y PEQUEÑO) */
+    /* --- BOTONES SOCIALES ELEGANTES (FONDO BLANCO) --- */
+    .social-btn {
+        display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; font-size: 0.85em; transition: all 0.2s; background-color: white; border: 2px solid #ddd;
+    }
+    .social-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .social-btn:active { transform: scale(0.98); }
+    
+    /* Estilos específicos por red */
+    .btn-wp { border-color: #25D366; color: #25D366 !important; }
+    .btn-wp svg { fill: #25D366; width: 18px; height: 18px; }
+    
+    .btn-ig { border-color: #E1306C; color: #E1306C !important; }
+    .btn-ig svg { fill: #E1306C; width: 18px; height: 18px; }
+    
+    .btn-fb { border-color: #1877F2; color: #1877F2 !important; }
+    .btn-fb svg { fill: #1877F2; width: 18px; height: 18px; }
+    
+    .btn-tk { border-color: #000000; color: #000000 !important; }
+    .btn-tk svg { fill: #000000; width: 18px; height: 18px; }
+    
+    /* CONTENEDOR VIDEO CENTRADO */
     .reel-wrapper {
         max-width: 350px;
         margin: 0 auto;
@@ -117,18 +137,6 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         background-color: #000;
     }
-
-    /* BOTONES SOCIALES */
-    .social-btn {
-        display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; color: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; font-size: 0.85em;
-    }
-    .social-btn:active { transform: scale(0.98); }
-    .social-btn svg { width: 18px; height: 18px; fill: white; }
-    .btn-wp { background-color: #25D366; }
-    .btn-ig { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); }
-    .btn-fb { background-color: #1877F2; }
-    .btn-tk { background-color: #000000; }
-    
     </style>
     """, unsafe_allow_html=True)
 
@@ -388,7 +396,7 @@ if st.session_state.ver_planes:
         st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
     with c3:
-        st.markdown("""<div style="background-color: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border:2px solid #F59E0B; padding:15px; border-radius:10px; height:100%; box-shadow:0 4px 10px rgba(0,0,0,0.1);"><div style="text-align:center; background:#F59E0B; color:white; border-radius:5px; font-size:0.7em; font-weight:bold; width:fit-content; margin:0 auto;">🔥 RECOMENDADO</div><h3 style="text-align:center; color:#B45309;">🥇 Agencia</h3><div style="text-align:center; font-size:1.4em; font-weight:bold; color:#D97706;">80.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 80 Créditos</li><li>✅ Estrategias</li><li>✅ 🎬 Video Reel</li></ul></div>""", unsafe_allow_html=True)
+        st.markdown("""<div style="background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border:2px solid #F59E0B; padding:15px; border-radius:10px; height:100%; box-shadow:0 4px 10px rgba(0,0,0,0.1);"><div style="text-align:center; background:#F59E0B; color:white; border-radius:5px; font-size:0.7em; font-weight:bold; width:fit-content; margin:0 auto;">🔥 RECOMENDADO</div><h3 style="text-align:center; color:#B45309;">🥇 Agencia</h3><div style="text-align:center; font-size:1.4em; font-weight:bold; color:#D97706;">80.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 80 Créditos</li><li>✅ Estrategias</li><li>✅ 🎬 Video Reel</li></ul></div>""", unsafe_allow_html=True)
         st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
     
     st.divider()
@@ -431,7 +439,7 @@ if st.session_state['usuario_activo']:
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
-    creditos_disponibles = st.session_state['guest_credits']
+    creditos_disponibles = st.session_state.get('guest_credits', 0)
     if MODO_LANZAMIENTO:
         plan_actual = "INVITADO VIP"
         cupo_fotos = 10
@@ -526,7 +534,6 @@ with st.form("formulario_propiedad"):
             moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed")
         
         with col_p2:
-            # VALIDACIÓN NUMÉRICA Y SIN LETRAS
             precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto")
         
         periodo_texto = ""
@@ -543,7 +550,6 @@ with st.form("formulario_propiedad"):
                 pais_code = st.selectbox("País", ["🇵🇾", "🇦🇷", "🇧🇷", "🇺🇸", "🇪🇸"], label_visibility="collapsed")
             
             with wc2:
-                # VALIDACIÓN NUMÉRICA Y SIN LETRAS
                 whatsapp_num = st.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, label_visibility="collapsed", placeholder="Ej: 961123456")
             
             codigos_map = {"🇵🇾": "+595", "🇦🇷": "+54", "🇧🇷": "+55", "🇺🇸": "+1", "🇪🇸": "+34"}
@@ -689,20 +695,20 @@ if submitted:
                 except:
                     st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
-            # CONSUMO CRÉDITOS Y ACTUALIZACIÓN VISUAL
+            # CONSUMO CRÉDITOS
             if es_pro:
                 exito = descontar_credito(user['codigo'])
-                if exito: 
-                    st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
+                if exito: st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
             else:
                 if consumir_credito_invitado():
-                    creditos_disponibles -= 1 # Actualización local inmediata
+                    # IMPORTANTE: Forzamos la actualización visual antes del rerun
+                    st.toast(f"🪙 Crédito usado. Te quedan {guest_db[guest_id]}.", icon="✅")
 
             st.session_state['generated_result'] = cleaned_text
             estado_ia.update(label="✅ ¡Terminado!", state="complete", expanded=False)
             time.sleep(1) 
             estado_ia.empty() 
-            st.rerun() # FORZAR RECARGA PARA MOSTRAR RESULTADOS Y NUEVOS CRÉDITOS
+            st.rerun()
             
         except Exception as e:
             st.error(f"Error: {e}")
@@ -713,26 +719,19 @@ if 'generated_result' in st.session_state:
     st.subheader("🎉 Estrategia Generada:")
     st.markdown(st.session_state['generated_result'])
     
-    st.markdown("---")
-    st.write("### 🚀 Publicar Ahora:")
-    
-    c_copy, c_wa = st.columns(2)
-    with c_copy:
-        st.code(st.session_state['generated_result'], language=None)
-        st.caption("👆 Toca la esquina para copiar todo")
-    
-    with c_wa:
-        msg_url = urllib.parse.quote(st.session_state['generated_result'])
-        svg_wa = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 60.2 23.5 118.5 61.9 163.9L0 512l95.4-25.2c43.4 23.6 92.6 36.1 143.3 36.1 122.4 0 222-99.6 222-222 0-59.3-23.5-115.1-65.4-157zM223.9 471.1c-44.9 0-88.7-11.8-127.7-34.2L90.2 434l-47.6 12.6 12.7-46.4-6-10.5C25.1 346.6 12 296.4 12 244.1c0-116.9 95.1-212 211.9-212 56.6 0 109.8 22 149.9 62.1 40 40.1 62.1 93.3 62.1 149.9 0 116.9-95.1 212-212 212zm112.2-157.8c-6.1-3-36.4-18-42-20.1-5.6-2.1-9.7-3-13.7 3-4 6.1-15.6 19.5-19.1 23.5-3.5 4-7 4.5-13.1 1.5-6.1-3-25.7-9.5-48.9-30.2-18.1-16.1-30.3-36-33.8-42-3.5-6.1-.3-9.4 2.7-12.4 2.8-2.8 6.1-7.3 9.1-11 3-3.6 4-6.1 6.1-10.3 2.1-4.2 1-7.9-.5-11-1.5-3-13.7-33.1-18.8-45.3-5-12.1-10.1-10.4-13.7-10.6-3.5-.2-7.5-.2-11.5-.2-4 0-10.5 1.5-15.9 7.3-5.4 5.8-20.8 20.3-20.8 49.5 0 29.2 21 57.5 23.9 61.5 3 4 41.3 63.1 100.1 88.5 14 6 24.9 9.6 33.4 12.3 14.1 4.5 26.9 3.8 37.1 2.3 11.3-1.7 36.4-14.9 41.5-29.3 5.1-14.4 5.1-26.8 3.6-29.3-1.5-2.6-5.6-4-11.6-7z"/></svg>'
-        svg_ig = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.9 0-184.9zm-49.6 259.7c-12.2 12.2-28.4 18.4-59.5 20-32.3 1.6-128.9 1.6-161.2 0-31-1.6-47.3-7.8-59.5-20-12.2-12.2-18.4-28.4-20-59.5-1.6-32.3-1.6-128.9 0-161.2 1.6-31 7.8-47.3 20-59.5 12.2-12.2 28.4-18.4 59.5-20 32.3-1.6 128.9-1.6 161.2 0 31 1.6 47.3 7.8 59.5z"/></svg>'
-        svg_fb = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M80 299.3V512H196V299.3h86.5l18-97.8H196V166.9c0-28.3 7.9-47.5 48.4-47.5h51.7V35.7c-9-1.2-39.6-3.9-75.3-3.9-74.5 0-125.5 45.5-125.5 128.9v72.8H80z"/></svg>'
-        svg_tk = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a90.92,90.92,0,1,0,90.93,90.93V0H210.16V209.91A210.26,210.26,0,1,0,448,209.91Z"/></svg>'
+    c_wa, c_ig, c_fb, c_tk = st.columns(4)
+    msg_url = urllib.parse.quote(st.session_state['generated_result'])
 
-        c_wa1, c_ig1, c_fb1, c_tk1 = st.columns(4)
-        with c_wa1: st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">{svg_wa} WhatsApp</a>''', unsafe_allow_html=True)
-        with c_ig1: st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">{svg_ig} Instagram</a>''', unsafe_allow_html=True)
-        with c_fb1: st.markdown(f'''<a href="https://facebook.com" target="_blank" class="social-btn btn-fb">{svg_fb} Facebook</a>''', unsafe_allow_html=True)
-        with c_tk1: st.markdown(f'''<a href="https://tiktok.com" target="_blank" class="social-btn btn-tk">{svg_tk} TikTok</a>''', unsafe_allow_html=True)
+    # ICONOS OFICIALES SVG
+    svg_wa = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 60.2 23.5 118.5 61.9 163.9L0 512l95.4-25.2c43.4 23.6 92.6 36.1 143.3 36.1 122.4 0 222-99.6 222-222 0-59.3-23.5-115.1-65.4-157zM223.9 471.1c-44.9 0-88.7-11.8-127.7-34.2L90.2 434l-47.6 12.6 12.7-46.4-6-10.5C25.1 346.6 12 296.4 12 244.1c0-116.9 95.1-212 211.9-212 56.6 0 109.8 22 149.9 62.1 40 40.1 62.1 93.3 62.1 149.9 0 116.9-95.1 212-212 212zm112.2-157.8c-6.1-3-36.4-18-42-20.1-5.6-2.1-9.7-3-13.7 3-4 6.1-15.6 19.5-19.1 23.5-3.5 4-7 4.5-13.1 1.5-6.1-3-25.7-9.5-48.9-30.2-18.1-16.1-30.3-36-33.8-42-3.5-6.1-.3-9.4 2.7-12.4 2.8-2.8 6.1-7.3 9.1-11 3-3.6 4-6.1 6.1-10.3 2.1-4.2 1-7.9-.5-11-1.5-3-13.7-33.1-18.8-45.3-5-12.1-10.1-10.4-13.7-10.6-3.5-.2-7.5-.2-11.5-.2-4 0-10.5 1.5-15.9 7.3-5.4 5.8-20.8 20.3-20.8 49.5 0 29.2 21 57.5 23.9 61.5 3 4 41.3 63.1 100.1 88.5 14 6 24.9 9.6 33.4 12.3 14.1 4.5 26.9 3.8 37.1 2.3 11.3-1.7 36.4-14.9 41.5-29.3 5.1-14.4 5.1-26.8 3.6-29.3-1.5-2.6-5.6-4-11.6-7z"/></svg>'
+    svg_ig = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.9 0-184.9zm-49.6 259.7c-12.2 12.2-28.4 18.4-59.5 20-32.3 1.6-128.9 1.6-161.2 0-31-1.6-47.3-7.8-59.5-20-12.2-12.2-18.4-28.4-20-59.5-1.6-32.3-1.6-128.9 0-161.2 1.6-31 7.8-47.3 20-59.5 12.2-12.2 28.4-18.4 59.5-20 32.3-1.6 128.9-1.6 161.2 0 31 1.6 47.3 7.8 59.5z"/></svg>'
+    svg_fb = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M80 299.3V512H196V299.3h86.5l18-97.8H196V166.9c0-28.3 7.9-47.5 48.4-47.5h51.7V35.7c-9-1.2-39.6-3.9-75.3-3.9-74.5 0-125.5 45.5-125.5 128.9v72.8H80z"/></svg>'
+    svg_tk = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a90.92,90.92,0,1,0,90.93,90.93V0H210.16V209.91A210.26,210.26,0,1,0,448,209.91Z"/></svg>'
+
+    with c_wa: st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">{svg_wa} WhatsApp</a>''', unsafe_allow_html=True)
+    with c_ig: st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">{svg_ig} Instagram</a>''', unsafe_allow_html=True)
+    with c_fb: st.markdown(f'''<a href="https://facebook.com" target="_blank" class="social-btn btn-fb">{svg_fb} Facebook</a>''', unsafe_allow_html=True)
+    with c_tk: st.markdown(f'''<a href="https://tiktok.com" target="_blank" class="social-btn btn-tk">{svg_tk} TikTok</a>''', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -740,8 +739,8 @@ if 'generated_result' in st.session_state:
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("🎬 **Video Reel**")
         
-        # CENTRADO DEL VIDEO (Columna central pequeña)
-        c_vid1, c_vid2, c_vid3 = st.columns([1, 3, 1]) 
+        # CENTRADO DEL VIDEO
+        c_v1, c_v2, c_v3 = st.columns([1, 2, 1]) 
         
         if 'video_path' not in st.session_state:
             if st.button("🎥 GENERAR VIDEO AHORA"):
@@ -764,7 +763,7 @@ if 'generated_result' in st.session_state:
                         st.error(f"Error video: {e}")
         
         if 'video_path' in st.session_state:
-            with c_vid2: # Video centrado
+            with c_v2:
                 st.markdown('<div class="reel-wrapper">', unsafe_allow_html=True)
                 st.video(st.session_state['video_path'])
                 st.markdown('</div>', unsafe_allow_html=True)

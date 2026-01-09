@@ -117,6 +117,18 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
+    /* --- OCULTAR FLECHAS DE NUMEROS --- */
+    /* Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    /* Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
     /* Botones Sociales */
@@ -139,11 +151,6 @@ def encode_image(image):
     image.thumbnail((800, 800))
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-def clean_only_numbers(value):
-    """Elimina cualquier caracter que no sea número"""
-    if not value: return ""
-    return re.sub(r'\D', '', str(value))
 
 def format_price_display(value):
     if not value: return ""
@@ -494,7 +501,7 @@ st.divider()
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 
-# --- SELECTOR DE OPERACIÓN FUERA DEL FORMULARIO ---
+# --- SELECTOR DE OPERACIÓN FUERA DEL FORMULARIO (CLAVE PARA REFRESH) ---
 oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
 
 with st.form("formulario_propiedad"):
@@ -532,22 +539,21 @@ with st.form("formulario_propiedad"):
         
         st.write("💰 **Detalles de Precio:**")
         
-        # DISEÑO DE COLUMNAS
+        # --- LÓGICA DE COLUMNAS SIMPLIFICADA (ESTABLE) ---
         if oper == "Alquiler":
-            col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
+            col_p1, col_p2, col_p3 = st.columns([1, 2, 2])
         else:
-            col_p1, col_p2 = st.columns([2, 8])
+            col_p1, col_p2 = st.columns([1, 4])
             
         with col_p1:
             moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed")
         
         with col_p2:
-            # TEXT INPUT CON VALIDACIÓN MANUAL (ELIMINAR LETRAS AL ESCRIBIR)
-            # Esto evita los botones + y - molestos
-            precio_raw = st.text_input("Monto (Solo números)", placeholder="1500000", key="precio_input")
-            precio_val = clean_only_numbers(precio_raw)
+            # VALIDACIÓN: number_input (Imposible letras)
+            # step=100000 para que sea fácil subir montos grandes
+            precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto")
         
-        # SELECTOR DE PERIODO (Solo si es Alquiler)
+        # SELECTOR DE PERIODO (VISIBLE SI ES ALQUILER)
         periodo_texto = ""
         if oper == "Alquiler":
             with col_p3:
@@ -556,16 +562,21 @@ with st.form("formulario_propiedad"):
             
         if es_pro or MODO_LANZAMIENTO:
             st.write("📱 **WhatsApp:**")
-            wc1, wc2 = st.columns([3, 7])
-            pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
+            wc1, wc2 = st.columns([1, 3])
             
-            # TEXT INPUT CON VALIDACIÓN MANUAL PARA WHATSAPP
-            whatsapp_raw = wc2.text_input("N° Celular (Sin 0 inicial)", placeholder="Ej: 961123456")
-            whatsapp_num = clean_only_numbers(whatsapp_raw)
+            with wc1:
+                pais_code = st.selectbox("País", ["🇵🇾", "🇦🇷", "🇧🇷", "🇺🇸", "🇪🇸"], label_visibility="collapsed")
             
-            code_val = pais_code.split(" ")[1] 
+            with wc2:
+                # VALIDACIÓN NÚMERICA ESTRICTA (number_input)
+                whatsapp_num = st.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, label_visibility="collapsed", placeholder="Ej: 961123456")
+            
+            # Mapeo de códigos
+            codigos_map = {"🇵🇾": "+595", "🇦🇷": "+54", "🇧🇷": "+55", "🇺🇸": "+1", "🇪🇸": "+34"}
+            code_val = codigos_map[pais_code]
+            
             if whatsapp_num:
-                whatsapp_full = f"{code_val}{whatsapp_num}"
+                whatsapp_full = f"{code_val}{int(whatsapp_num)}"
             else:
                 whatsapp_full = ""
         else:
@@ -597,9 +608,8 @@ with st.form("formulario_propiedad"):
 # === GENERACIÓN ===
 # =======================================================
 if submitted:
-    # 1. VALIDACIÓN FINAL DE NÚMEROS ANTES DE PROCESAR
-    if not ubicacion or not precio_val:
-        st.warning("⚠️ Completa Ubicación y Precio (solo números).")
+    if not ubicacion or precio_val == 0:
+        st.warning("⚠️ Completa Ubicación y Precio (mayor a 0).")
         st.stop()
         
     permitido = False
@@ -610,6 +620,7 @@ if submitted:
         st.stop()
 
     if permitido:
+        # === STATUS CENTRADO (MODAL) ===
         estado_ia = st.status("⏳ Cargando y preparando tu información...", expanded=True)
         
         try:

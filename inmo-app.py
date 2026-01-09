@@ -471,14 +471,11 @@ st.divider()
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 
-# --- SELECTOR DE OPERACIÓN FUERA DEL FORMULARIO ---
-oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
-
-# --- INICIO DEL FORMULARIO PARA EL RESTO ---
 with st.form("formulario_propiedad"):
     c1, c2 = st.columns([3, 1])
 
     with c1:
+        oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
         
         opciones_estrategia = [
@@ -506,16 +503,17 @@ with st.form("formulario_propiedad"):
             tono = st.selectbox("🗣️ Tono de Voz", ["Neutro y Descriptivo"], disabled=True)
             tono = "Neutro y Descriptivo"
 
-        ubicacion = st.text_input("Ubicación", key="input_ubicacion")
+        # CAMBIO DE ETIQUETA "Ubicación"
+        ubicacion = st.text_input("Indique la ubicación (ej: Ciudad, Barrio, Calle)", key="input_ubicacion")
         
         st.write("💰 **Detalles de Precio:**")
         col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
         
-        # VALIDACIÓN: SOLO NÚMEROS
+        # VALIDACIÓN: number_input (Imposible letras)
         precio_val = col_p2.number_input("Monto (Sin puntos)", min_value=0, step=100000, format="%d")
         
-        # SELECTOR DE PERIODO
+        # SELECTOR DE PERIODO (VISIBLE SI ES ALQUILER)
         periodo_texto = ""
         if oper == "Alquiler":
             periodo = col_p3.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
@@ -526,12 +524,14 @@ with st.form("formulario_propiedad"):
         if es_pro or MODO_LANZAMIENTO:
             st.write("📱 **WhatsApp:**")
             wc1, wc2 = st.columns([3, 7])
+            # Selector de País
             pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
             
-            # VALIDACIÓN ESTRICTA: NUMBER INPUT
-            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None)
+            # VALIDACIÓN: number_input (Imposible letras en el número)
+            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, placeholder="Ej: 961123456")
             
-            code_val = pais_code.split(" ")[1] 
+            # Construcción del número completo para la IA
+            code_val = pais_code.split(" ")[1] # +595
             if whatsapp_num:
                 whatsapp_full = f"{code_val}{int(whatsapp_num)}"
             else:
@@ -554,6 +554,7 @@ with st.form("formulario_propiedad"):
         agua = st.checkbox("Agua")
         luz = st.checkbox("Luz")
 
+    # BLOQUEO BOTÓN
     deshabilitar_boton = False
     if (es_pro or MODO_LANZAMIENTO) and not uploaded_files:
         deshabilitar_boton = True
@@ -577,9 +578,11 @@ if submitted:
         st.stop()
 
     if permitido:
+        # === STATUS CENTRADO (MODAL) ===
         estado_ia = st.status("⏳ Iniciando...", expanded=True)
         
         try:
+            # Formatear precio
             precio_fmt = format_price_display(precio_val)
             texto_precio_final = f"{precio_fmt} {moneda} {periodo_texto}"
 
@@ -671,7 +674,7 @@ if submitted:
                     lines = cleaned_text.split('\n')
                     for l in lines:
                         l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
-                        if 10 < len(l) < 40: frases_video.append(l)
+                        if 10 < len(l) < 40: phrases_video.append(l)
                     if len(frases_video) < 3:
                         frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
                     st.session_state['video_frases'] = frases_video[:6]

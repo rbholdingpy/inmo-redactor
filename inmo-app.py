@@ -13,11 +13,13 @@ import tempfile
 import numpy as np
 import shutil 
 import re 
+import uuid # Para generar ID de invitados
 
 # ==========================================
 # 🚀 CONFIGURACIÓN DE LANZAMIENTO
 # ==========================================
 MODO_LANZAMIENTO = True 
+CREDITOS_INVITADO = 4 # AUMENTADO A 4 CRÉDITOS
 
 # --- IMPORTACIÓN CONDICIONAL DE MOVIEPY ---
 try:
@@ -36,6 +38,39 @@ st.set_page_config(
 
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
+
+# --- SISTEMA DE PERSISTENCIA ANTI-REFRESH (INVITADOS) ---
+@st.cache_resource
+def get_guest_db():
+    """Crea una base de datos en memoria para recordar invitados aunque refresquen."""
+    return {}
+
+guest_db = get_guest_db()
+
+# Lógica de Identificación de Invitado
+query_params = st.query_params
+if "gid" not in query_params:
+    # Si no tiene ID, le creamos uno nuevo
+    guest_id = str(uuid.uuid4())[:8]
+    st.query_params["gid"] = guest_id
+else:
+    # Si ya tiene, lo recuperamos (resiste al F5)
+    guest_id = query_params["gid"]
+
+# Inicializar saldo del invitado en la memoria del servidor
+if guest_id not in guest_db:
+    guest_db[guest_id] = CREDITOS_INVITADO
+
+# Sincronizar con la sesión actual
+st.session_state['guest_credits'] = guest_db[guest_id]
+
+def consumir_credito_invitado():
+    """Resta crédito de la memoria persistente"""
+    if guest_db[guest_id] > 0:
+        guest_db[guest_id] -= 1
+        st.session_state['guest_credits'] = guest_db[guest_id]
+        return True
+    return False
 
 # --- ESTILOS CSS (MODO EXPERIENCIA PERFECTA) ---
 st.markdown("""
@@ -231,15 +266,6 @@ if 'ver_planes' not in st.session_state: st.session_state['ver_planes'] = False
 if 'plan_seleccionado' not in st.session_state: st.session_state['plan_seleccionado'] = None
 if 'pedido_registrado' not in st.session_state: st.session_state['pedido_registrado'] = False
 
-if 'guest_last_use' not in st.session_state: st.session_state['guest_last_use'] = None
-if 'guest_credits' not in st.session_state: st.session_state['guest_credits'] = 1
-
-if st.session_state['guest_last_use']:
-    tiempo_pasado = datetime.now() - st.session_state['guest_last_use']
-    if tiempo_pasado > timedelta(days=1):
-        st.session_state['guest_credits'] = 1
-        st.session_state['guest_last_use'] = None
-
 # --- API KEY ---
 api_key = st.secrets.get("OPENAI_API_KEY")
 if not api_key:
@@ -322,7 +348,7 @@ with st.sidebar:
     
     if not st.session_state['usuario_activo']:
         if MODO_LANZAMIENTO:
-            st.markdown("""<div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;"><small>Estado actual:</small><br><b>🚀 INVITADO VIP</b><br><span style="color:#B45309; font-size:0.8em;">Acceso Total (1 Crédito de Regalo)</span></div>""", unsafe_allow_html=True)
+            st.markdown("""<div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;"><small>Estado actual:</small><br><b>🚀 INVITADO VIP</b><br><span style="color:#B45309; font-size:0.8em;">Acceso Total (4 Créditos de Regalo)</span></div>""", unsafe_allow_html=True)
         else:
             st.markdown("""<div style="background-color:#F1F5F9; padding:10px; border-radius:8px; margin-bottom:15px;"><small>Estado actual:</small><br><b>👤 Invitado (Freemium)</b><br><span style="color:#64748B; font-size:0.8em;">1 Generación / 24hs</span></div>""", unsafe_allow_html=True)
             
@@ -421,7 +447,7 @@ if st.session_state['usuario_activo']:
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
 else:
     es_pro = False
-    creditos_disponibles = st.session_state['guest_credits']
+    creditos_disponibles = st.session_state.get('guest_credits', 0)
     if MODO_LANZAMIENTO:
         plan_actual = "INVITADO VIP"
         cupo_fotos = 10
@@ -471,10 +497,9 @@ st.divider()
 st.write("#### 2. 📝 Datos de la Propiedad")
 
 # --- SELECTOR DE OPERACIÓN FUERA DEL FORMULARIO ---
-# Esto es CRÍTICO para que el selector de periodo aparezca al instante
+# CRÍTICO: Esto hace que el refresh sea instantáneo al cambiar entre Venta/Alquiler
 oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
 
-# --- INICIO DEL FORMULARIO ---
 with st.form("formulario_propiedad"):
     c1, c2 = st.columns([3, 1])
 
@@ -510,21 +535,20 @@ with st.form("formulario_propiedad"):
         
         st.write("💰 **Detalles de Precio:**")
         
-        # AJUSTE DE COLUMNAS PARA MÓVIL
+        # DISEÑO DE COLUMNAS ADAPTATIVO
         if oper == "Alquiler":
             col_p1, col_p2, col_p3 = st.columns([15, 35, 50])
         else:
             col_p1, col_p2 = st.columns([15, 85])
             
-        # 1. DIVISA
         with col_p1:
             moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed")
         
-        # 2. MONTO (Solo números)
         with col_p2:
+            # VALIDACIÓN NÚMERICA (Imposible letras)
             precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto")
         
-        # 3. PERIODO (Solo si es Alquiler)
+        # SELECTOR DE PERIODO (SOLO PARA ALQUILER)
         periodo_texto = ""
         if oper == "Alquiler":
             with col_p3:
@@ -536,7 +560,7 @@ with st.form("formulario_propiedad"):
             wc1, wc2 = st.columns([3, 7])
             pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
             
-            # NUMBER INPUT PARA WHATSAPP (Solo números)
+            # VALIDACIÓN NÚMERICA (Imposible letras)
             whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None)
             
             code_val = pais_code.split(" ")[1] 
@@ -579,13 +603,12 @@ if submitted:
         
     permitido = False
     if es_pro and creditos_disponibles > 0: permitido = True
-    elif not es_pro and st.session_state['guest_credits'] > 0: permitido = True
+    elif not es_pro and creditos_disponibles > 0: permitido = True
     else:
         st.error("⛔ Sin créditos suficientes.")
         st.stop()
 
     if permitido:
-        # === STATUS CENTRADO (MODAL) ===
         estado_ia = st.status("⏳ Iniciando...", expanded=True)
         
         try:
@@ -681,12 +704,13 @@ if submitted:
                 except:
                     st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
+            # CONSUMO CRÉDITOS
             if es_pro:
                 exito = descontar_credito(user['codigo'])
                 if exito: st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
             else:
-                st.session_state['guest_credits'] = 0
-                st.session_state['guest_last_use'] = datetime.now()
+                # LÓGICA DE GUEST PERSISTENTE
+                consumir_credito_invitado()
 
             st.session_state['generated_result'] = cleaned_text
             estado_ia.update(label="✅ ¡Terminado!", state="complete", expanded=False)
@@ -750,6 +774,9 @@ if 'generated_result' in st.session_state:
     if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
         limpiar_formulario()
 
+# =======================================================
+# === ⚖️ AVISO LEGAL ===
+# =======================================================
 st.markdown("<br><br>", unsafe_allow_html=True)
 with st.expander("⚖️ Aviso Legal y Privacidad (Importante)"):
     st.markdown("""

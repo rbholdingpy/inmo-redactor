@@ -12,7 +12,7 @@ import os
 import tempfile
 import numpy as np
 import shutil 
-import re # Para formateo de precios
+import re 
 
 # ==========================================
 # 🚀 CONFIGURACIÓN DE LANZAMIENTO
@@ -37,7 +37,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL OPTIMIZADO) ---
+# --- ESTILOS CSS (MODO EXPERIENCIA PERFECTA) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -53,53 +53,52 @@ st.markdown("""
         background-color: #CBD5E1; color: #64748B; cursor: not-allowed;
     }
 
-    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA MOLESTOS --- */
-    /* Mantiene la pantalla visible siempre */
+    /* --- 1. STATUS FLOTANTE EN EL CENTRO (EL RELOJ) --- */
+    /* Esto fuerza al st.status a flotar en medio de la pantalla */
+    div[data-testid="stStatusWidget"] {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 99999;
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        border: 2px solid #3B82F6;
+        width: 80%;
+        max-width: 300px;
+        text-align: center;
+    }
+
+    /* --- 2. ELIMINAR EFECTOS DE CARGA MOLESTOS --- */
     .stApp, [data-testid="stAppViewContainer"] {
         opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important;
     }
-    /* Oculta spinner superior derecho */
-    [data-testid="stStatusWidget"] { display: none !important; }
-    /* Oculta "Press Enter" */
     [data-testid="InputInstructions"] { display: none !important; }
     /* ------------------------------------------- */
 
     .video-container { background-color: #000; border-radius: 20px; padding: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 350px; margin: 0 auto; }
-    .agency-badge { background-color: #F59E0B; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; vertical-align: middle; }
-
+    
     /* UPLOADER */
     [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
-    [data-testid='stFileUploaderDropzoneInstructions']::before { content: "Sube tus fotos aquí"; visibility: visible; display: block; text-align: center; font-weight: bold; }
-    [data-testid='stFileUploaderDropzoneInstructions']::after { content: "JPG, PNG • Máx 200MB"; visibility: visible; display: block; text-align: center; font-size: 0.8em; }
+    [data-testid='stFileUploaderDropzoneInstructions']::before { content: "📸 Toca para subir fotos"; visibility: visible; display: block; text-align: center; font-weight: bold; font-size: 1.2em; color: #2563EB; }
+    [data-testid='stFileUploaderDropzoneInstructions']::after { content: "Máx 10 fotos"; visibility: visible; display: block; text-align: center; font-size: 0.8em; }
     [data-testid='stFileUploader'] button { color: transparent !important; position: relative; }
-    [data-testid='stFileUploader'] button::after { content: "📂 Explorar"; color: #333; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; }
+    [data-testid='stFileUploader'] button::after { content: "📂 Galería"; color: #333; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; }
 
     /* BOTÓN FLOTANTE */
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
-    /* TARJETAS PLANES */
-    .plan-basic, .plan-standard, .plan-agency { text-align: left !important; padding: 20px; border-radius: 12px; margin-bottom: 10px; height: 100%; }
-    .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; }
-    .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
-    .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.03); position: relative; z-index: 10; }
+    /* TEXT AREA PRECIO (Quitar flechas de número si aparecen) */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
 
-    .feature-list { list-style-type: none; padding: 0; margin: 15px 0; }
-    .feature-list li { margin-bottom: 8px; font-size: 0.85em; display: flex; align-items: center; gap: 8px; line-height: 1.3; }
-    .check-icon { color: #16a34a; font-weight: bold; min-width: 20px; font-size: 1.1em; } 
-    .cross-icon { color: #dc2626; opacity: 0.6; min-width: 20px; font-size: 1.1em; }
-    .feature-locked { opacity: 0.5; text-decoration: line-through; color: #64748B; }
-    .plan-title-center { text-align: center; margin-bottom: 5px; font-weight: 800; font-size: 1.3em; }
-    .price-tag { font-size: 1.4em; font-weight: 800; margin: 10px 0; text-align: center; }
-    
-    .pro-badge { background-color: #DCFCE7; color: #166534; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
-    .launch-badge { background: linear-gradient(90deg, #F59E0B, #EF4444); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9em; box-shadow: 0 2px 5px rgba(0,0,0,0.2); animation: pulse 2s infinite; }
-    .free-badge { background-color: #F1F5F9; color: #64748B; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8em; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
-    
-    .photo-limit-box { background-color: #E0F2FE; border: 2px solid #0284C7; color: #0369A1; padding: 15px; border-radius: 10px; text-align: center; font-size: 1.1em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    .legal-text { font-size: 0.85em; color: #64748B; text-align: justify; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -112,16 +111,16 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def format_price(value):
-    """Limpia el input y lo formatea con separadores de miles (1.000.000)"""
+    """Elimina letras y formatea con puntos."""
     if not value: return ""
     try:
         # Eliminar todo lo que no sea número
         clean_num = re.sub(r'[^\d]', '', str(value))
-        if not clean_num: return value
+        if not clean_num: return ""
         # Formatear con puntos
         return "{:,}".format(int(clean_num)).replace(",", ".")
     except:
-        return value
+        return ""
 
 def limpiar_formulario():
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda', 'video_path', 'video_frases']
@@ -173,12 +172,11 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, status_container=None):
 
     for i, img_file in enumerate(imagenes_uploaded):
         try:
+            if status_container: status_container.update(label=f"🎞️ Procesando foto {i+1}/{num_fotos}...")
+            
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
-            
-            # Optimización
             img.thumbnail((1200, 1200)) 
-            
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 80))
             img.paste(overlay, (0, 0), overlay)
@@ -192,9 +190,6 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, status_container=None):
             img.save(temp_img_path, quality=70, optimize=True)
             clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
             clips.append(clip)
-            
-            if status_container:
-                status_container.update(label=f"🎞️ Procesando foto {i+1} de {num_fotos}...")
 
         except Exception as e:
             print(f"Error procesando imagen {i}: {e}")
@@ -205,7 +200,7 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, status_container=None):
         except: pass
         return None
 
-    if status_container: status_container.update(label="🎞️ Uniendo clips de video...")
+    if status_container: status_container.update(label="🎞️ Renderizando video final...")
     
     final_clip = concatenate_videoclips(clips, method="compose")
     if final_clip.duration > 20.0: final_clip = final_clip.subclip(0, 20.0)
@@ -362,168 +357,64 @@ with st.sidebar:
     st.caption("© 2026 AppyProp IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS (REDISEÑADA CON LISTAS) ===
+# === 💎 ZONA DE VENTAS (REDISEÑADA) ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
+    st.write("Elige la potencia que necesita tu negocio.")
+    c1, c2, c3 = st.columns(3)
     
-    plan_usuario_actual = ""
-    if st.session_state['usuario_activo']:
-        plan_usuario_actual = str(st.session_state['usuario_activo'].get('plan', '')).lower()
+    with c1:
+        st.markdown("""
+        <div style="background-color:#F8FAFC; border:2px solid #475569; padding:15px; border-radius:10px; height:100%;">
+            <h3 style="text-align:center;">🥉 Básico</h3>
+            <div style="text-align:center; font-size:1.4em; font-weight:bold;">20.000 Gs</div>
+            <ul style="padding-left:20px; font-size:0.9em;">
+                <li>✅ 10 Créditos</li>
+                <li>❌ Video Reel</li>
+                <li>❌ Estrategias</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
 
-    if st.session_state.plan_seleccionado is None:
-        st.write("Elige la potencia que necesita tu negocio.")
-        c1, c2, c3 = st.columns(3)
-        
-        with c1:
-            st.markdown("""
-            <div class="plan-basic">
-                <h3 class="plan-title-center">🥉 Básico</h3>
-                <div class="price-tag">20.000 Gs</div>
-                <ul class="feature-list">
-                    <li><span class="check-icon">✅</span> 10 Créditos</li>
-                    <li><span class="check-icon">✅</span> Operación</li>
-                    <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
-                    <li><span class="check-icon">✅</span> Ubicación</li>
-                    <li><span class="check-icon">✅</span> Detalles de Precio</li>
-                    <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> Max 3 Fotos (Visión IA)</li>
-                    <li class="feature-locked"><span class="cross-icon">❌</span> Estrategia de Venta</li>
-                    <li class="feature-locked"><span class="cross-icon">❌</span> Tono de Voz</li>
-                    <li class="feature-locked"><span class="cross-icon">❌</span> Link WhatsApp</li>
-                    <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            if 'basico' in plan_usuario_actual or 'básico' in plan_usuario_actual:
-                st.button("✅ Tu Plan Actual", disabled=True, key="btn_basico_dis")
-            else:
-                st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
+    with c2:
+        st.markdown("""
+        <div style="background-color:white; border:2px solid #3B82F6; padding:15px; border-radius:10px; height:100%;">
+            <h3 style="text-align:center;">🥈 Estándar</h3>
+            <div style="text-align:center; font-size:1.4em; font-weight:bold; color:#2563EB;">35.000 Gs</div>
+            <ul style="padding-left:20px; font-size:0.9em;">
+                <li>✅ 20 Créditos</li>
+                <li>✅ Estrategias</li>
+                <li>❌ Video Reel</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
-        with c2:
-            st.markdown("""
-            <div class="plan-standard">
-                <h3 class="plan-title-center">🥈 Estándar</h3>
-                <div class="price-tag" style="color:#2563EB;">35.000 Gs</div>
-                <ul class="feature-list">
-                    <li><span class="check-icon">✅</span> <b>20 Créditos</b></li>
-                    <li><span class="check-icon">✅</span> Operación</li>
-                    <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
-                    <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
-                    <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
-                    <li><span class="check-icon">✅</span> Ubicación</li>
-                    <li><span class="check-icon">✅</span> Detalles de Precio</li>
-                    <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
-                    <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> <b>Max 6 Fotos</b> (Visión IA)</li>
-                    <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            if 'estándar' in plan_usuario_actual or 'standar' in plan_usuario_actual:
-                st.button("✅ Tu Plan Actual", disabled=True, key="btn_estandar_dis")
-            else:
-                st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
-
-        with c3:
-            st.markdown("""
-            <div class="plan-agency">
-                <div class="agency-badge-container"><span class="agency-badge">🔥 MEJOR OPCIÓN</span></div>
-                <h3 class="plan-title-center" style="color:#B45309;">🥇 Agencia</h3>
-                <div class="price-tag" style="color:#D97706;">80.000 Gs</div>
-                <ul class="feature-list">
-                    <li><span class="check-icon">✅</span> <b>80 Créditos</b></li>
-                    <li><span class="check-icon">✅</span> Operación</li>
-                    <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
-                    <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
-                    <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
-                    <li><span class="check-icon">✅</span> Ubicación</li>
-                    <li><span class="check-icon">✅</span> Detalles de Precio</li>
-                    <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
-                    <li><span class="check-icon">✅</span> Servicios Extras</li>
-                    <li><span class="check-icon">✅</span> <b>Max 10 Fotos</b> (Visión IA)</li>
-                    <li><span class="check-icon">✅</span> 🎬 <b>Video 9:16 (Opcional)</b></li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            if 'agencia' in plan_usuario_actual:
-                st.button("✅ Tu Plan Actual", disabled=True, key="btn_agencia_dis")
-            else:
-                st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
-        
-        st.divider()
-        st.button("⬅️ Volver a la App", on_click=volver_a_app)
-
-    else:
-        # PANTALLA DE PAGO
-        st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
-        
-        if not st.session_state.pedido_registrado:
-            st.write("### 📝 Paso 1: Tus Datos")
-            
-            def_nombre = ""
-            def_email = ""
-            def_tel = ""
-            if st.session_state['usuario_activo']:
-                u = st.session_state['usuario_activo']
-                try: def_nombre = u.get('cliente', '').split(' ')[0]
-                except: pass
-                def_email = u.get('correo', '')
-                def_tel = str(u.get('telefono', ''))
-
-            with st.form("form_registro_pedido"):
-                c_nom, c_ape = st.columns(2)
-                nombre = c_nom.text_input("Nombre", value=def_nombre)
-                apellido = c_ape.text_input("Apellido")
-                email = st.text_input("Correo Electrónico (Para tu código de acceso)", value=def_email)
-                telefono = st.text_input("Número de WhatsApp", value=def_tel)
-                
-                submitted = st.form_submit_button("✅ Confirmar y Ver Datos de Pago", type="primary")
-                
-                if submitted:
-                    if nombre and apellido and email and telefono:
-                        with st.spinner("Verificando datos..."):
-                            status = registrar_pedido(nombre, apellido, email, telefono, st.session_state.plan_seleccionado)
-                            if status == "SAME_PLAN":
-                                st.error("⛔ Ya tienes este plan activo.")
-                            elif status == "ERROR":
-                                st.error("Error de conexión.")
-                            else:
-                                st.session_state.pedido_registrado = True
-                                st.session_state['temp_nombre'] = f"{nombre} {apellido}"
-                                st.session_state['tipo_pedido'] = "CAMBIO" if status == "UPDATED" else "NUEVO"
-                                st.rerun()
-                    else:
-                        st.warning("⚠️ Completa todos los campos.")
-            st.button("🔙 Volver atrás", on_click=cancelar_seleccion)
-
-        else:
-            tipo = st.session_state.get('tipo_pedido', 'PEDIDO')
-            st.success("✅ **¡Datos recibidos!** Realiza el pago para activar.")
-
-            st.write("### 💳 Paso 2: Realiza el Pago")
-            col_bank, col_wa = st.columns(2)
-            with col_bank:
-                st.markdown("""
-                <div style="background-color:white; padding:15px; border-radius:10px; border:1px solid #ddd; color: #333;">
-                <b>Banco:</b> ITAÚ <br>
-                <b>Titular:</b> Ricardo Blanco <br>
-                <b>Cuenta:</b> 320595209 <br>
-                <b>Alias:</b> RUC 1911221-1 <br>
-                <b>C.I.:</b> 1911221 <br>
-                <b>RUC:</b> 1911221-1
-                </div>
-                """, unsafe_allow_html=True)
-            with col_wa:
-                nombre_cliente = st.session_state.get('temp_nombre', 'Nuevo Cliente')
-                mensaje_wp = f"Hola, soy *{nombre_cliente}*. Adjunto comprobante para *Plan {st.session_state.plan_seleccionado}*."
-                mensaje_wp_url = mensaje_wp.replace(" ", "%20").replace("\n", "%0A")
-                link_wp = f"https://wa.me/{ADMIN_WHATSAPP}?text={mensaje_wp_url}"
-                
-                st.markdown(f'<a href="{link_wp}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366; color:white; border:none; padding:15px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; font-size:1.1em; margin-top:10px; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">📲 Enviar Comprobante por WhatsApp</button></a>', unsafe_allow_html=True)
-            st.divider()
-            if st.button("🏁 Finalizar y Volver al Inicio"):
-                volver_a_app()
+    with c3:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border:2px solid #F59E0B; padding:15px; border-radius:10px; height:100%; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+            <div style="text-align:center; background:#F59E0B; color:white; border-radius:5px; font-size:0.7em; font-weight:bold; width:fit-content; margin:0 auto;">🔥 RECOMENDADO</div>
+            <h3 style="text-align:center; color:#B45309;">🥇 Agencia</h3>
+            <div style="text-align:center; font-size:1.4em; font-weight:bold; color:#D97706;">80.000 Gs</div>
+            <ul style="padding-left:20px; font-size:0.9em;">
+                <li>✅ 80 Créditos</li>
+                <li>✅ Estrategias</li>
+                <li>✅ 🎬 Video Reel</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
+    
+    st.divider()
+    st.button("⬅️ Volver a la App", on_click=volver_a_app)
+    
+    # Lógica de pago (Oculta para brevedad, mantener la tuya anterior)
+    if st.session_state.plan_seleccionado:
+        st.info("Contacta al admin para activar.")
+        st.button("🔙 Atrás", on_click=cancelar_seleccion)
+    
     st.stop()
 
 # =======================================================
@@ -532,13 +423,6 @@ if st.session_state.ver_planes:
 c_title, c_badge = st.columns([2, 1])
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
-
-# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? ---
-with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
-    st.markdown("""
-    ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
-    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades. Una plataforma inteligente que combina **Visión Artificial** con **Psicología de Ventas**.
-    """)
 
 es_pro = False
 plan_actual = "INVITADO"
@@ -557,12 +441,9 @@ if st.session_state['usuario_activo']:
     elif 'estándar' in plan_str or 'standar' in plan_str:
         cupo_fotos = 6
         plan_actual = "ESTÁNDAR"
-    elif 'básico' in plan_str or 'basico' in plan_str:
-        cupo_fotos = 3
-        plan_actual = "BÁSICO"
     else:
         cupo_fotos = 3
-        plan_actual = "MIEMBRO"
+        plan_actual = "BÁSICO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
@@ -594,19 +475,22 @@ if es_pro or MODO_LANZAMIENTO:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
         st.stop()
     
-    st.markdown(f"""<div class="photo-limit-box">📸 Potencia {plan_actual}: Puedes subir hasta <span style="font-size:1.3em; color:#0284C7;">{cupo_fotos} FOTOS</span> por análisis.</div>""", unsafe_allow_html=True)
     uploaded_files = st.file_uploader("Subir fotos", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"uploader_{st.session_state['uploader_key']}")
+    
     if uploaded_files:
         if len(uploaded_files) > cupo_fotos:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
-        with st.expander("👁️ Vista Previa de Imágenes Seleccionadas", expanded=True):
+        
+        # MENSAJE DE CONFIRMACIÓN INMEDIATO (NO BLOQUEANTE)
+        st.success(f"✅ {len(uploaded_files)} fotos cargadas correctamente.")
+        
+        with st.expander("👁️ Ver fotos cargadas", expanded=False):
             cols = st.columns(4)
             for i, f in enumerate(uploaded_files):
                 with cols[i%4]: st.image(Image.open(f), use_container_width=True)
 else:
     st.info("🔒 **La carga de fotos y Visión IA es exclusiva para Miembros.**")
-    st.markdown('<div style="opacity:0.6; pointer-events:none; border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 10px;">📂 Subir fotos (Bloqueado)</div>', unsafe_allow_html=True)
 
 st.divider()
 
@@ -628,14 +512,11 @@ with st.form("formulario_propiedad"):
             "🔑 Primera Vivienda (Sueño Familiar)",
             "💎 Lujo & Exclusividad (High-Ticket)",
             "💰 Inversión & Rentabilidad (ROI)",
-            "🛠️ Potencial de Reforma (Flipping)",
             "🌿 Vida Natural & Relax (Green Living)",
             "🏢 Comercial & Corporativo",
             "🌍 Airbnb/Alquiler Temporal",
             "💑 Recién Casados (Inicio Ideal)",       
-            "🔒 Barrio Cerrado/Condominio (Seguridad)", 
-            "🎒 Estudiantes/Universitario",           
-            "💼 Ejecutivo/Nómada Digital"             
+            "🔒 Barrio Cerrado/Condominio"             
         ]
 
         if es_pro or MODO_LANZAMIENTO:
@@ -653,15 +534,18 @@ with st.form("formulario_propiedad"):
         ubicacion = st.text_input("Ubicación", key="input_ubicacion")
         
         st.write("💰 **Detalles de Precio:**")
-        col_p1, col_p2 = st.columns([2, 5])
+        col_p1, col_p2, col_p3 = st.columns([2, 3, 3])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
-        precio_val = col_p2.text_input("Monto (Números)", placeholder="Ej: 1500000")
+        # Input de texto que validaremos después
+        precio_input = col_p2.text_input("Monto (Solo números)")
         
-        # Periodo de alquiler (si aplica)
+        # SELECTOR DE PERIODO (SOLO SI ES ALQUILER)
         periodo_texto = ""
         if oper == "Alquiler":
-            periodo = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
+            periodo = col_p3.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
             periodo_texto = f"({periodo})"
+        else:
+            col_p3.empty() # Espacio vacío si es venta
             
         if es_pro or MODO_LANZAMIENTO:
             whatsapp = st.text_input("WhatsApp (Solo números)")
@@ -682,10 +566,8 @@ with st.form("formulario_propiedad"):
         agua = st.checkbox("Agua")
         luz = st.checkbox("Luz")
 
-    # LÓGICA DE BLOQUEO DEL BOTÓN SI FALTAN FOTOS
+    # VALIDACIÓN BOTÓN
     deshabilitar_boton = False
-    
-    # Si es PRO o LANZAMIENTO y NO ha subido fotos, bloqueamos
     if (es_pro or MODO_LANZAMIENTO) and not uploaded_files:
         deshabilitar_boton = True
         st.warning("⚠️ **El botón se activará automáticamente cuando terminen de subir las fotos.**")
@@ -696,49 +578,54 @@ with st.form("formulario_propiedad"):
 # === GENERACIÓN ===
 # =======================================================
 if submitted:
-    if not ubicacion or not precio_val:
-        st.warning("⚠️ Completa Ubicación y Precio.")
+    # 1. VALIDACIÓN PRECIO
+    precio_limpio = format_price(precio_input)
+    if not precio_limpio:
+        st.error("⚠️ El precio solo debe contener números.")
+        st.stop()
+        
+    texto_precio_final = f"{precio_limpio} {moneda} {periodo_texto}"
+
+    if not ubicacion:
+        st.warning("⚠️ Completa la Ubicación.")
         st.stop()
         
     permitido = False
     if es_pro and creditos_disponibles > 0: permitido = True
     elif not es_pro and st.session_state['guest_credits'] > 0: permitido = True
     else:
-        st.error("⛔ Sin créditos suficientes. Hazte Miembro para continuar.")
+        st.error("⛔ Sin créditos suficientes.")
         st.stop()
 
     if permitido:
-        # === ST.STATUS (RELOJ DE ARENA CENTRAL) ===
-        estado_ia = st.status("⏳ La IA está procesando tu información...", expanded=True)
+        # === AQUI ESTÁ EL RELOJ CENTRADO (POR CLASE CSS) ===
+        estado_ia = st.status("⏳ Iniciando...", expanded=True)
         
         try:
-            # 1. VISIÓN ARTIFICIAL
+            # FASE 1: VISIÓN ARTIFICIAL Y DETECCIÓN ESTRUCTURA
             estado_ia.write("👁️ **La IA está visualizando tus fotos...**")
             
-            # Formatear precio
-            precio_formateado = format_price(precio_val)
-            texto_precio_final = f"{precio_formateado} {moneda} {periodo_texto}"
-
-            # 2. INTELIGENCIA GEOGRÁFICA
-            estado_ia.write("🌍 **Detectando datos de la zona...**")
+            # FASE 2: INTELIGENCIA GEOGRÁFICA
+            estado_ia.write("🌍 **Detectando datos de la zona (Barrio, Ciudad, Puntos de interés)...**")
+            time.sleep(1) # Simulación breve para que el usuario lea
             
-            # PROMPT MAESTRO
+            # FASE 3: REDACCIÓN
+            estado_ia.write("✍️ **Redactando estrategia con Neuroventas...**")
+
+            # PROMPT MAESTRO ACTUALIZADO
             instrucciones_estrategia = {
                 "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios.",
                 "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez.",
                 "🔑 Primera Vivienda (Sueño Familiar)": "Enfócate en seguridad y futuro.",
                 "💎 Lujo & Exclusividad (High-Ticket)": "Usa palabras de poder y estatus.",
                 "💰 Inversión & Rentabilidad (ROI)": "Habla de números y retorno.",
-                "🛠️ Potencial de Reforma (Flipping)": "Vende la visión futura.",
                 "🌿 Vida Natural & Relax (Green Living)": "Vende paz y aire puro.",
                 "🏢 Comercial & Corporativo": "Prioriza ubicación estratégica.",
                 "🌍 Airbnb/Alquiler Temporal": "Destaca amenities y turismo.",
                 "💑 Recién Casados (Inicio Ideal)": "Enfócate en intimidad y comienzo.",
-                "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total.",
-                "🎒 Estudiantes/Universitario": "Destaca cercanía y transporte.",
-                "💼 Ejecutivo/Nómada Digital": "Enfócate en conectividad y estilo moderno."
+                "🔒 Barrio Cerrado/Condominio (Seguridad)": "Vende tranquilidad total."
             }
-            directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar.")
+            directriz = instrucciones_estrategia.get(enfoque, "Descripción estándar.")
 
             base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
             DATOS TÉCNICOS:
@@ -748,33 +635,32 @@ if submitted:
             - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
             
             prompt_avanzado = f"""
-            TUS INSTRUCCIONES MAESTRAS:
+            TUS INSTRUCCIONES MAESTRAS (OBLIGATORIO):
             
-            1. ANÁLISIS VISUAL DE ESTRUCTURA (OBLIGATORIO):
+            1. 👁️ ANÁLISIS VISUAL DE ESTRUCTURA:
                - Mira las fotos y DETECTA: ¿Es Mansión, Casa, Chalet, Departamento, Monoambiente, Terreno o Salón Comercial?
-               - Usa el término correcto en la descripción, corrigiendo al usuario si es necesario.
+               - Usa el término CORRECTO en la descripción. (Si eligió 'Casa' pero es 'Mansión', usa 'Mansión').
                - Describe materiales visibles (suelos, luz, acabados).
 
-            2. INTELIGENCIA GEOGRÁFICA (CRÍTICO):
+            2. 🌍 INTELIGENCIA GEOGRÁFICA (CRÍTICO):
                - Analiza la ubicación: "{ubicacion}".
                - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esta zona/ciudad/barrio? (Ej: "San Bernardino" = Lago Ypacaraí, Verano, Clubes; "Villa Morra" = Centro Financiero, Shopping).
-               - INTEGRA ESOS DATOS: "Ubicado en el corazón de [Zona], conocida por [Dato de valor]".
-               - Vende el entorno, no solo la casa.
+               - INTEGRA ESOS DATOS: "Ubicado en el corazón de [Zona], conocida por [Dato de valor]". Vende el entorno.
 
-            3. ESTRATEGIA DE VENTA:
-               - Enfoque: "{enfoque}" ({directriz_seleccionada}).
+            3. 🎯 ESTRATEGIA DE VENTA:
+               - Enfoque: "{enfoque}" ({directriz}).
                - Tono: {tono}.
             
             OUTPUT (Genera 3 opciones):
-            Opción 1: Storytelling Emotivo (Conecta con el sueño).
-            Opción 2: Venta Directa (Datos duros y precisos).
-            Opción 3: Formato Viral (Instagram/TikTok - Gancho + Cuerpo + LLamado).
+            Opción 1: Storytelling Emotivo.
+            Opción 2: Venta Directa (Datos duros).
+            Opción 3: Formato Viral (Estructura de Instagram/TikTok).
             
             REGLAS:
             - Usa Markdown (**negritas**).
             - Link WhatsApp: https://wa.me/595{whatsapp}
             - Incluye 10 hashtags relevantes a la zona detectada.
-            - PRECIO: Muestra siempre "{precio_formateado} {moneda}" (con puntos de miles).
+            - PRECIO: Muestra siempre "{texto_precio_final}".
             
             {base_prompt}
             """
@@ -792,9 +678,6 @@ if submitted:
                         }
                     })
 
-            # 3. REDACCIÓN
-            estado_ia.write("✍️ **Redactando estrategia ganadora...**")
-            
             res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) 
             generated_text = res.choices[0].message.content
 
@@ -816,14 +699,15 @@ if submitted:
 
             if es_pro:
                 exito = descontar_credito(user['codigo'])
-                if exito: 
-                    st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
+                if exito: st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
             else:
                 st.session_state['guest_credits'] = 0
                 st.session_state['guest_last_use'] = datetime.now()
 
             st.session_state['generated_result'] = cleaned_text
-            estado_ia.update(label="✅ ¡Proceso Terminado!", state="complete", expanded=False)
+            estado_ia.update(label="✅ ¡Proceso Terminado! (Desaparecerá en breve...)", state="complete", expanded=False)
+            time.sleep(1) # Dar tiempo a leer
+            estado_ia.empty() # DESAPARECER EL RELOJ
             
         except Exception as e:
             st.error(f"Error: {e}")
@@ -833,47 +717,52 @@ if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
     st.subheader("🎉 Estrategia Generada:")
     st.markdown(st.session_state['generated_result'])
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # --- FOOTER DE ACCIONES ---
     st.markdown("---")
-    st.write("### 🛠️ Herramientas de Publicación")
+    st.write("### 🚀 Acciones Rápidas")
     
-    c_copy, c_down = st.columns(2)
-    with c_copy:
-        st.info("📋 **Copiar Texto**")
-        st.code(st.session_state['generated_result'], language=None)
+    col_wa, col_copy = st.columns(2)
+    with col_wa:
+        msg_url = urllib.parse.quote(st.session_state['generated_result'])
+        st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank">
+            <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold;">
+            📲 Enviar a WhatsApp
+            </button></a>''', unsafe_allow_html=True)
     
-    with c_down:
-        # --- ZONA VIDEO (SI APLICA) ---
-        if puede_video and uploaded_files:
-            st.info("🎬 **Video Reel**")
-            if 'video_path' not in st.session_state:
-                if st.button("🎥 GENERAR VIDEO AHORA"):
-                    if not MOVIEPY_AVAILABLE:
-                        st.error("⚠️ Error librería video.")
-                    else:
-                        st_video = st.status("🎞️ Renderizando video...", expanded=True)
-                        try:
-                            frases = st.session_state.get('video_frases', ["AppyProp IA"])
-                            path_video = crear_reel_vertical(uploaded_files, frases, st_video)
-                            if path_video:
-                                st.session_state['video_path'] = path_video
-                                st_video.update(label="✅ Video Listo", state="complete", expanded=False)
-                            else:
-                                st.warning("⚠️ Error al generar video.")
-                        except Exception as e:
-                            st.error(f"Error video: {e}")
-            
-            if 'video_path' in st.session_state:
-                st.video(st.session_state['video_path'])
-                with open(st.session_state['video_path'], "rb") as file:
-                    st.download_button("⬇️ Descargar Video", file, "reel_appyprop.mp4", "video/mp4", type="primary")
-        else:
-            st.warning("Video no disponible (Faltan fotos o Plan)")
+    with col_copy:
+        st.info("📋 Copia el texto de arriba manualmente para Instagram/Facebook.")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    # --- ZONA VIDEO (SI APLICA) ---
+    if puede_video and uploaded_files:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.info("🎬 **Video Reel**")
+        if 'video_path' not in st.session_state:
+            if st.button("🎥 GENERAR VIDEO AHORA"):
+                if not MOVIEPY_AVAILABLE:
+                    st.error("⚠️ Error librería video.")
+                else:
+                    st_video = st.status("🎞️ Renderizando video...", expanded=True)
+                    try:
+                        frases = st.session_state.get('video_frases', ["AppyProp IA"])
+                        path_video = crear_reel_vertical(uploaded_files, frases, st_video)
+                        if path_video:
+                            st.session_state['video_path'] = path_video
+                            st_video.update(label="✅ Video Listo", state="complete", expanded=False)
+                            time.sleep(1)
+                            st_video.empty()
+                        else:
+                            st.warning("⚠️ Error al generar video.")
+                    except Exception as e:
+                        st.error(f"Error video: {e}")
+        
+        if 'video_path' in st.session_state:
+            st.video(st.session_state['video_path'])
+            with open(st.session_state['video_path'], "rb") as file:
+                st.download_button("⬇️ Descargar Video", file, "reel_appyprop.mp4", "video/mp4", type="primary")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
         limpiar_formulario()
 

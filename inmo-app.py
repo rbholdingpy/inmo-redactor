@@ -56,7 +56,7 @@ else:
 if guest_id not in guest_db:
     guest_db[guest_id] = CREDITOS_INVITADO
 
-# Sincronizar session_state con la DB global
+# Sincronizar session_state con la DB global al inicio
 if 'guest_credits' not in st.session_state:
     st.session_state['guest_credits'] = guest_db[guest_id]
 
@@ -156,23 +156,30 @@ def format_price_display(value):
         return value
 
 def limpiar_formulario():
-    """Borra todas las keys de los widgets para reiniciar el formulario"""
-    # Lista de todas las keys asignadas a los widgets
-    keys_widgets = [
-        'u_oper', 'u_tipo', 'u_enfoque', 'u_tono', 'u_ubicacion', 
-        'u_moneda', 'u_precio', 'u_periodo', 'u_pais', 'u_whatsapp', 
-        'u_habs', 'u_banos', 
-        'c_gar', 'c_qui', 'c_pis', 'c_aa', 'c_vent', 'c_wifi', 'c_tv', 'c_agua', 'c_luz',
-        'generated_result', 'video_path', 'video_frases'
-    ]
+    """RESETEA COMPLETAMENTE LOS CAMPOS DEL FORMULARIO"""
+    # Establecer valores por defecto en session_state para forzar el borrado visual
+    st.session_state['u_oper'] = "Venta"
+    st.session_state['u_ubicacion'] = ""
+    st.session_state['u_precio'] = 0
+    st.session_state['u_whatsapp'] = None # Number input con None se limpia
+    st.session_state['u_habs'] = 1
+    st.session_state['u_banos'] = 1
     
-    for key in keys_widgets:
-        if key in st.session_state:
-            del st.session_state[key]
+    # Checkboxes
+    checkboxes = ['c_gar', 'c_qui', 'c_pis', 'c_aa', 'c_vent', 'c_wifi', 'c_tv', 'c_agua', 'c_luz']
+    for cb in checkboxes:
+        st.session_state[cb] = False
+    
+    # Borrar resultados generados
+    keys_borrar = ['generated_result', 'video_path', 'video_frases']
+    for k in keys_borrar:
+        if k in st.session_state:
+            del st.session_state[k]
             
-    # Forzar reinicio del uploader
+    # Reiniciar uploader
     st.session_state['uploader_key'] += 1
-    # Recargar la app
+    
+    # RECARGA FORZOSA
     st.rerun()
 
 def cerrar_sesion():
@@ -354,8 +361,8 @@ with st.sidebar:
     
     if not st.session_state['usuario_activo']:
         if MODO_LANZAMIENTO:
-            # MOSTRAR CREDITOS DINÁMICOS AQUÍ
-            creditos_actuales = st.session_state.get('guest_credits', CREDITOS_INVITADO)
+            # LEER CREDITOS DESDE SESSION STATE ACTUALIZADO
+            creditos_actuales = st.session_state.get('guest_credits', 0)
             
             st.markdown(f"""
             <div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;">
@@ -392,7 +399,7 @@ with st.sidebar:
         
     st.markdown("---")
     st.markdown("### 🛠️ Gestión")
-    # BOTÓN PARA GENERAR NUEVA DESCRIPCIÓN (LIMPIAR)
+    # BOTÓN PARA GENERAR NUEVA DESCRIPCIÓN (LIMPIAR) - VISIBLE EN SIDEBAR
     if st.button("📝 Generar Nueva Descripción", type="primary"):
         limpiar_formulario()
             
@@ -511,7 +518,6 @@ st.divider()
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 
-# USAMOS KEYS PARA PODER BORRARLOS LUEGO
 oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True, key="u_oper")
 
 with st.form("formulario_propiedad"):

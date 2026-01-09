@@ -80,32 +80,15 @@ st.markdown("""
         background-color: #CBD5E1; color: #64748B; cursor: not-allowed;
     }
 
-    /* --- 1. STATUS FLOTANTE EN EL CENTRO (EL RELOJ) --- */
+    /* --- STATUS FLOTANTE --- */
     div[data-testid="stStatusWidget"] {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        z-index: 999999 !important;
-        background-color: white !important;
-        padding: 25px !important;
-        border-radius: 15px !important;
-        box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6) !important; /* Fondo oscuro */
-        border: 2px solid #2563EB !important;
-        width: 85% !important;
-        max-width: 350px !important;
-        text-align: center !important;
+        position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; z-index: 999999 !important; background-color: white !important; padding: 25px !important; border-radius: 15px !important; box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6) !important; border: 2px solid #2563EB !important; width: 85% !important; max-width: 350px !important; text-align: center !important;
     }
 
-    /* --- 2. ELIMINAR EFECTOS DE CARGA NATIVOS --- */
-    .stApp, [data-testid="stAppViewContainer"] {
-        opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important;
-    }
+    /* --- ELIMINAR EFECTOS DE CARGA --- */
+    .stApp, [data-testid="stAppViewContainer"] { opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important; }
     [data-testid="InputInstructions"] { display: none !important; }
-    /* ------------------------------------------- */
 
-    .video-container { background-color: #000; border-radius: 20px; padding: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 350px; margin: 0 auto; }
-    
     /* UPLOADER */
     [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
     [data-testid='stFileUploaderDropzoneInstructions']::before { content: "📸 Toca para subir fotos"; visibility: visible; display: block; text-align: center; font-weight: bold; font-size: 1.2em; color: #2563EB; }
@@ -118,28 +101,30 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
     /* --- OCULTAR FLECHAS DE NUMEROS --- */
-    /* Chrome, Safari, Edge, Opera */
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    /* Firefox */
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
 
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
-    /* Botones Sociales */
+    /* --- BOTONES SOCIALES ESTILIZADOS --- */
     .social-btn {
-        display: block; width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; color: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s;
+        display: flex; /* Para alinear icono y texto */
+        align-items: center;
+        justify-content: center;
+        gap: 10px; /* Espacio entre icono y texto */
+        width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; color: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s, box-shadow 0.1s; font-size: 0.9rem;
     }
-    .social-btn:active { transform: scale(0.98); }
-    .btn-wp { background-color: #25D366; }
-    .btn-ig { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); }
-    .btn-fb { background-color: #1877F2; }
-    .btn-tk { background-color: #000000; }
+    .social-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    .social-btn:active { transform: scale(0.98); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    
+    /* Estilo para los iconos SVG dentro de los botones */
+    .social-btn svg { width: 20px; height: 20px; fill: white; }
+
+    /* Colores Oficiales */
+    .btn-wp { background-color: #25D366; } /* WhatsApp */
+    .btn-ig { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); } /* Instagram Gradient */
+    .btn-fb { background-color: #1877F2; } /* Facebook */
+    .btn-tk { background-color: #000000; } /* TikTok */
     
     </style>
     """, unsafe_allow_html=True)
@@ -261,15 +246,6 @@ if 'usuario_activo' not in st.session_state: st.session_state['usuario_activo'] 
 if 'ver_planes' not in st.session_state: st.session_state['ver_planes'] = False
 if 'plan_seleccionado' not in st.session_state: st.session_state['plan_seleccionado'] = None
 if 'pedido_registrado' not in st.session_state: st.session_state['pedido_registrado'] = False
-
-if 'guest_last_use' not in st.session_state: st.session_state['guest_last_use'] = None
-if 'guest_credits' not in st.session_state: st.session_state['guest_credits'] = 1
-
-if st.session_state['guest_last_use']:
-    tiempo_pasado = datetime.now() - st.session_state['guest_last_use']
-    if tiempo_pasado > timedelta(days=1):
-        st.session_state['guest_credits'] = 1
-        st.session_state['guest_last_use'] = None
 
 # --- API KEY ---
 api_key = st.secrets.get("OPENAI_API_KEY")
@@ -737,19 +713,26 @@ if 'generated_result' in st.session_state:
     st.markdown(st.session_state['generated_result'])
     
     st.markdown("---")
-    st.write("### 🚀 Publicar Ahora:")
-    
-    c_copy, c_wa = st.columns(2)
-    with c_copy:
-        st.code(st.session_state['generated_result'], language=None)
-        st.caption("👆 Toca la esquina para copiar todo")
-    
+    # SECCIÓN "Publicar Ahora" ELIMINADA Y CÓDIGO REMOVIDO COMO SOLICITADO
+
+    # --- BOTONES SOCIALES EN FILA (4 COLUMNAS) CON ICONOS OFICIALES ---
+    c_wa, c_ig, c_fb, c_tk = st.columns(4)
+    msg_url = urllib.parse.quote(st.session_state['generated_result'])
+
+    # SVGs de los iconos oficiales
+    svg_wa = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 60.2 23.5 118.5 61.9 163.9L0 512l95.4-25.2c43.4 23.6 92.6 36.1 143.3 36.1 122.4 0 222-99.6 222-222 0-59.3-23.5-115.1-65.4-157zM223.9 471.1c-44.9 0-88.7-11.8-127.7-34.2L90.2 434l-47.6 12.6 12.7-46.4-6-10.5C25.1 346.6 12 296.4 12 244.1c0-116.9 95.1-212 211.9-212 56.6 0 109.8 22 149.9 62.1 40 40.1 62.1 93.3 62.1 149.9 0 116.9-95.1 212-212 212zm112.2-157.8c-6.1-3-36.4-18-42-20.1-5.6-2.1-9.7-3-13.7 3-4 6.1-15.6 19.5-19.1 23.5-3.5 4-7 4.5-13.1 1.5-6.1-3-25.7-9.5-48.9-30.2-18.1-16.1-30.3-36-33.8-42-3.5-6.1-.3-9.4 2.7-12.4 2.8-2.8 6.1-7.3 9.1-11 3-3.6 4-6.1 6.1-10.3 2.1-4.2 1-7.9-.5-11-1.5-3-13.7-33.1-18.8-45.3-5-12.1-10.1-10.4-13.7-10.6-3.5-.2-7.5-.2-11.5-.2-4 0-10.5 1.5-15.9 7.3-5.4 5.8-20.8 20.3-20.8 49.5 0 29.2 21 57.5 23.9 61.5 3 4 41.3 63.1 100.1 88.5 14 6 24.9 9.6 33.4 12.3 14.1 4.5 26.9 3.8 37.1 2.3 11.3-1.7 36.4-14.9 41.5-29.3 5.1-14.4 5.1-26.8 3.6-29.3-1.5-2.6-5.6-4-11.6-7z"/></svg>'
+    svg_ig = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.9 0-184.9zm-49.6 259.7c-12.2 12.2-28.4 18.4-59.5 20-32.3 1.6-128.9 1.6-161.2 0-31-1.6-47.3-7.8-59.5-20-12.2-12.2-18.4-28.4-20-59.5-1.6-32.3-1.6-128.9 0-161.2 1.6-31 7.8-47.3 20-59.5 12.2-12.2 28.4-18.4 59.5-20 32.3-1.6 128.9-1.6 161.2 0 31 1.6 47.3 7.8 59.5 20 12.2 12.2 18.4 28.4 20 59.5 1.6 32.3 1.6 128.9 0 161.2-1.6 31-7.8 47.3-20 59.5z"/></svg>'
+    svg_fb = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M80 299.3V512H196V299.3h86.5l18-97.8H196V166.9c0-28.3 7.9-47.5 48.4-47.5h51.7V35.7c-9-1.2-39.6-3.9-75.3-3.9-74.5 0-125.5 45.5-125.5 128.9v72.8H80z"/></svg>'
+    svg_tk = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a90.92,90.92,0,1,0,90.93,90.93V0H210.16V209.91A210.26,210.26,0,1,0,448,209.91Z"/></svg>'
+
     with c_wa:
-        msg_url = urllib.parse.quote(st.session_state['generated_result'])
-        st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">📲 Enviar a WhatsApp</a>''', unsafe_allow_html=True)
-        st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">📸 Abrir Instagram</a>''', unsafe_allow_html=True)
-        st.markdown(f'''<a href="https://facebook.com" target="_blank" class="social-btn btn-fb">📘 Abrir Facebook</a>''', unsafe_allow_html=True)
-        st.markdown(f'''<a href="https://tiktok.com" target="_blank" class="social-btn btn-tk">🎵 Abrir TikTok</a>''', unsafe_allow_html=True)
+         st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">{svg_wa} WhatsApp</a>''', unsafe_allow_html=True)
+    with c_ig:
+         st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">{svg_ig} Instagram</a>''', unsafe_allow_html=True)
+    with c_fb:
+         st.markdown(f'''<a href="https://facebook.com" target="_blank" class="social-btn btn-fb">{svg_fb} Facebook</a>''', unsafe_allow_html=True)
+    with c_tk:
+         st.markdown(f'''<a href="https://tiktok.com" target="_blank" class="social-btn btn-tk">{svg_tk} TikTok</a>''', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 

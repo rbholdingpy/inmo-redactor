@@ -122,7 +122,6 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
 def format_price_display(value):
-    """Formatea con puntos de miles para mostrar"""
     if not value: return ""
     try:
         return "{:,}".format(int(value)).replace(",", ".")
@@ -471,11 +470,15 @@ st.divider()
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 
+# --- SELECTOR DE OPERACIÓN FUERA DEL FORMULARIO ---
+# Esto es CRÍTICO para que el selector de periodo aparezca al instante
+oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
+
+# --- INICIO DEL FORMULARIO ---
 with st.form("formulario_propiedad"):
     c1, c2 = st.columns([3, 1])
 
     with c1:
-        oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
         tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
         
         opciones_estrategia = [
@@ -503,35 +506,40 @@ with st.form("formulario_propiedad"):
             tono = st.selectbox("🗣️ Tono de Voz", ["Neutro y Descriptivo"], disabled=True)
             tono = "Neutro y Descriptivo"
 
-        # CAMBIO DE ETIQUETA "Ubicación"
         ubicacion = st.text_input("Indique la ubicación (ej: Ciudad, Barrio, Calle)", key="input_ubicacion")
         
         st.write("💰 **Detalles de Precio:**")
-        col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
-        moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
         
-        # VALIDACIÓN: number_input (Imposible letras)
-        precio_val = col_p2.number_input("Monto (Sin puntos)", min_value=0, step=100000, format="%d")
+        # AJUSTE DE COLUMNAS PARA MÓVIL
+        if oper == "Alquiler":
+            col_p1, col_p2, col_p3 = st.columns([15, 35, 50])
+        else:
+            col_p1, col_p2 = st.columns([15, 85])
+            
+        # 1. DIVISA
+        with col_p1:
+            moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed")
         
-        # SELECTOR DE PERIODO (VISIBLE SI ES ALQUILER)
+        # 2. MONTO (Solo números)
+        with col_p2:
+            precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto")
+        
+        # 3. PERIODO (Solo si es Alquiler)
         periodo_texto = ""
         if oper == "Alquiler":
-            periodo = col_p3.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
-            periodo_texto = f"({periodo})"
-        else:
-            col_p3.empty() 
+            with col_p3:
+                periodo = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"], label_visibility="collapsed")
+                periodo_texto = f"({periodo})"
             
         if es_pro or MODO_LANZAMIENTO:
             st.write("📱 **WhatsApp:**")
             wc1, wc2 = st.columns([3, 7])
-            # Selector de País
             pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
             
-            # VALIDACIÓN: number_input (Imposible letras en el número)
-            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, placeholder="Ej: 961123456")
+            # NUMBER INPUT PARA WHATSAPP (Solo números)
+            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None)
             
-            # Construcción del número completo para la IA
-            code_val = pais_code.split(" ")[1] # +595
+            code_val = pais_code.split(" ")[1] 
             if whatsapp_num:
                 whatsapp_full = f"{code_val}{int(whatsapp_num)}"
             else:
@@ -554,7 +562,6 @@ with st.form("formulario_propiedad"):
         agua = st.checkbox("Agua")
         luz = st.checkbox("Luz")
 
-    # BLOQUEO BOTÓN
     deshabilitar_boton = False
     if (es_pro or MODO_LANZAMIENTO) and not uploaded_files:
         deshabilitar_boton = True
@@ -582,21 +589,14 @@ if submitted:
         estado_ia = st.status("⏳ Iniciando...", expanded=True)
         
         try:
-            # Formatear precio
             precio_fmt = format_price_display(precio_val)
             texto_precio_final = f"{precio_fmt} {moneda} {periodo_texto}"
 
-            # 1. VISIÓN
             estado_ia.write("👁️ **La IA está escaneando tus fotos...**")
-            
-            # 2. GEO
             estado_ia.write("🌍 **Detectando datos de la zona (Barrio, Ciudad)...**")
             time.sleep(1) 
-            
-            # 3. REDACCIÓN
             estado_ia.write("✍️ **Redactando estrategia con Neuroventas...**")
 
-            # PROMPT
             instrucciones_estrategia = {
                 "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios.",
                 "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez.",
@@ -702,7 +702,6 @@ if 'generated_result' in st.session_state:
     st.subheader("🎉 Estrategia Generada:")
     st.markdown(st.session_state['generated_result'])
     
-    # --- FOOTER DE ACCIONES REDES SOCIALES ---
     st.markdown("---")
     st.write("### 🚀 Publicar Ahora:")
     
@@ -712,7 +711,6 @@ if 'generated_result' in st.session_state:
         st.caption("👆 Toca la esquina para copiar todo")
     
     with c_wa:
-        # Codificar texto para URL de WhatsApp
         msg_url = urllib.parse.quote(st.session_state['generated_result'])
         st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">📲 Enviar a WhatsApp</a>''', unsafe_allow_html=True)
         st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">📸 Abrir Instagram</a>''', unsafe_allow_html=True)
@@ -721,7 +719,6 @@ if 'generated_result' in st.session_state:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- ZONA VIDEO (SI APLICA) ---
     if puede_video and uploaded_files:
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("🎬 **Video Reel**")
@@ -753,9 +750,6 @@ if 'generated_result' in st.session_state:
     if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
         limpiar_formulario()
 
-# =======================================================
-# === ⚖️ AVISO LEGAL ===
-# =======================================================
 st.markdown("<br><br>", unsafe_allow_html=True)
 with st.expander("⚖️ Aviso Legal y Privacidad (Importante)"):
     st.markdown("""

@@ -61,7 +61,7 @@ st.markdown("""
         transform: translate(-50%, -50%) !important;
         z-index: 999999 !important;
         background-color: white !important;
-        padding: 20px !important;
+        padding: 25px !important;
         border-radius: 15px !important;
         box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6) !important; /* Fondo oscuro */
         border: 2px solid #2563EB !important;
@@ -90,7 +90,7 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
-    /* Ocultar flechas de los campos numéricos para que parezcan texto normal */
+    /* Ocultar flechas de los campos numéricos (PRECIO y WHATSAPP) */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -120,11 +120,6 @@ def encode_image(image):
     image.thumbnail((800, 800))
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
-
-def clean_only_numbers(value):
-    """Elimina cualquier caracter que no sea número"""
-    if not value: return ""
-    return re.sub(r'\D', '', str(value))
 
 def format_price_display(value):
     """Formatea con puntos de miles para mostrar"""
@@ -514,7 +509,7 @@ with st.form("formulario_propiedad"):
         col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
         
-        # VALIDACIÓN NÚMERICA ESTRICTA (IMPOSIBLE ESCRIBIR LETRAS)
+        # VALIDACIÓN: number_input (Imposible letras)
         precio_val = col_p2.number_input("Monto (Sin puntos)", min_value=0, step=100000, format="%d")
         
         # SELECTOR DE PERIODO (VISIBLE SI ES ALQUILER)
@@ -528,15 +523,19 @@ with st.form("formulario_propiedad"):
         if es_pro or MODO_LANZAMIENTO:
             st.write("📱 **WhatsApp:**")
             wc1, wc2 = st.columns([3, 7])
-            # Default Paraguay +595
+            # Selector de País
             pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
-            # Validación: Texto que limpiaremos por código
-            whatsapp_input = wc2.text_input("N° Celular (Sin 0 inicial)", placeholder="Ej: 961123456")
             
-            # Limpieza y combinación
-            code_val = pais_code.split(" ")[1] # Extrae "+595"
-            clean_num = clean_only_numbers(whatsapp_input)
-            whatsapp_full = f"{code_val}{clean_num}" if clean_num else ""
+            # VALIDACIÓN: number_input (Imposible letras en el número)
+            # value=None permite que empiece vacío
+            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, placeholder="Ej: 961123456")
+            
+            # Construcción del número completo para la IA
+            code_val = pais_code.split(" ")[1] # +595
+            if whatsapp_num:
+                whatsapp_full = f"{code_val}{int(whatsapp_num)}"
+            else:
+                whatsapp_full = ""
         else:
             whatsapp_full = ""
             st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True)

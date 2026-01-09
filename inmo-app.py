@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL BLINDADO) ---
+# --- ESTILOS CSS (MODO MÓVIL PERFECTO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -47,19 +47,14 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); }
     
-    /* Botón deshabilitado (cuando faltan fotos) */
+    /* Botón deshabilitado */
     .stButton>button:disabled {
-        background-color: #CBD5E1;
-        color: #64748B;
-        cursor: not-allowed;
+        background-color: #CBD5E1; color: #64748B; cursor: not-allowed;
     }
 
     /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA --- */
     .stApp, [data-testid="stAppViewContainer"] {
-        opacity: 1 !important;
-        filter: none !important;
-        transition: none !important;
-        will-change: auto !important;
+        opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important;
     }
     [data-testid="stStatusWidget"] { display: none !important; }
     [data-testid="InputInstructions"] { display: none !important; }
@@ -108,8 +103,7 @@ st.markdown("""
 def encode_image(image):
     buffered = io.BytesIO()
     if image.mode in ("RGBA", "P"): image = image.convert("RGB")
-    # COMPRESIÓN AGRESIVA (Velocidad para video y análisis)
-    image.thumbnail((800, 800))
+    image.thumbnail((800, 800)) # Optimización de tamaño
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
@@ -168,10 +162,7 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
         try:
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
-            
-            # OPTIMIZACIÓN PREVIA
             img.thumbnail((1200, 1200)) 
-            
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 80))
             img.paste(overlay, (0, 0), overlay)
@@ -183,7 +174,6 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
             
             temp_img_path = os.path.join(temp_dir, f"temp_frame_{i}.jpg")
             img.save(temp_img_path, quality=70, optimize=True)
-            
             clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
             clips.append(clip)
             
@@ -369,7 +359,6 @@ if st.session_state.ver_planes:
         st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
         
-        # --- PLAN BÁSICO ---
         with c1:
             st.markdown("""
             <div class="plan-basic">
@@ -395,7 +384,6 @@ if st.session_state.ver_planes:
             else:
                 st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
 
-        # --- PLAN ESTÁNDAR ---
         with c2:
             st.markdown("""
             <div class="plan-standard">
@@ -421,7 +409,6 @@ if st.session_state.ver_planes:
             else:
                 st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
-        # --- PLAN AGENCIA ---
         with c3:
             st.markdown("""
             <div class="plan-agency">
@@ -527,7 +514,6 @@ if st.session_state.ver_planes:
 # === APP PRINCIPAL ===
 # =======================================================
 c_title, c_badge = st.columns([2, 1])
-# --- TITULO PRINCIPAL CENTRADO ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
@@ -582,12 +568,11 @@ if not es_pro and not MODO_LANZAMIENTO:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
 
 # =======================================================
-# === 1. GALERÍA (FUERA DEL FORM PARA ACTUALIZAR ESTADO) ===
+# === 1. GALERÍA ===
 # =======================================================
 st.write("#### 1. 📸 Galería")
 uploaded_files = []
 
-# Permitir carga si es PRO o está en MODO LANZAMIENTO
 if es_pro or MODO_LANZAMIENTO:
     if creditos_disponibles <= 0:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
@@ -639,9 +624,13 @@ with st.form("formulario_propiedad"):
 
         if es_pro or MODO_LANZAMIENTO:
             enfoque = st.selectbox("🎯 Estrategia de Venta", opciones_estrategia)
+            # --- NUEVO SELECTOR DE REDES SOCIALES ---
+            red_social = st.selectbox("📱 Red Social Principal", ["Instagram/TikTok (Viral)", "Facebook Marketplace (Ventas)", "WhatsApp (Estados/Grupos)", "LinkedIn (Corporativo)"])
         else:
             enfoque = st.selectbox("🎯 Estrategia de Venta", ["🔒 Estándar (Solo PRO)"], disabled=True)
+            red_social = st.selectbox("📱 Red Social Principal", ["🔒 General"], disabled=True)
             enfoque = "Venta Estándar"
+            red_social = "General"
 
         if (es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]) or MODO_LANZAMIENTO:
             tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"])
@@ -709,7 +698,7 @@ if submitted:
         try:
             my_bar.progress(20, text="📸 Optimizando imágenes...")
             
-            # PROMPT (Igual que antes)
+            # PROMPT
             instrucciones_estrategia = {
                 "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios.",
                 "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez.",
@@ -736,11 +725,12 @@ if submitted:
             1. ANÁLISIS VISUAL: Describe suelos, luz, materiales.
             2. GEO-INTELIGENCIA PARAGUAY: Analiza "{ubicacion}". Si es conocida, menciona un dato de valor (historia, naturaleza, zona top).
             3. ESTRATEGIA: "{enfoque}" - {directriz_seleccionada}
+            4. RED SOCIAL PRINCIPAL: {red_social} (Adapta el formato a esta red).
             
             OUTPUT:
             Opción 1: Storytelling Emotivo.
             Opción 2: Venta Directa (Datos).
-            Opción 3: Viral (Instagram/TikTok).
+            Opción 3: Viral para {red_social} (Estructura de gancho + cuerpo + llamado a la acción).
             
             FORMATO: Markdown, Link WhatsApp: https://wa.me/595{whatsapp}, 10 Hashtags.
             TONO: {tono}
@@ -807,41 +797,45 @@ if 'generated_result' in st.session_state:
     st.markdown('</div>', unsafe_allow_html=True)
     
     # --- ZONA VIDEO ---
-    if puede_video and uploaded_files:
+    if puede_video:
         st.markdown("---")
         st.subheader("🎬 Video Reel Automático")
-        st.markdown("""<div style="background-color:#F3E8FF; padding:15px; border-radius:10px; margin-bottom:15px;">
-        <h4 style="margin:0; color:#6B21A8;">¿Te gustaría que genere un video con tus fotos? 🎥</h4>
-        <p style="margin:5px 0 0 0; font-size:0.9em;">Crea un Reel vertical automático de 20 segundos.</p></div>""", unsafe_allow_html=True)
+        
+        if uploaded_files:
+            st.markdown("""<div style="background-color:#F3E8FF; padding:15px; border-radius:10px; margin-bottom:15px;">
+            <h4 style="margin:0; color:#6B21A8;">¿Te gustaría que genere un video con tus fotos? 🎥</h4>
+            <p style="margin:5px 0 0 0; font-size:0.9em;">Crea un Reel vertical automático de 20 segundos.</p></div>""", unsafe_allow_html=True)
 
-        if 'video_path' not in st.session_state:
-            if st.button("🎥 SÍ, GENERAR VIDEO REEL"):
-                if not MOVIEPY_AVAILABLE:
-                    st.error("⚠️ Error librería video.")
-                else:
-                    st.toast("🎞️ Renderizando video...", icon="🎬")
-                    try:
-                        frases = st.session_state.get('video_frases', ["AppyProp IA"])
-                        path_video = crear_reel_vertical(uploaded_files, frases)
-                        if path_video:
-                            st.session_state['video_path'] = path_video
-                        else:
-                            st.warning("⚠️ Error al generar video.")
-                    except Exception as e:
-                        st.error(f"Error video: {e}")
+            if 'video_path' not in st.session_state:
+                if st.button("🎥 SÍ, GENERAR VIDEO REEL"):
+                    if not MOVIEPY_AVAILABLE:
+                        st.error("⚠️ Error librería video.")
+                    else:
+                        st.toast("🎞️ Renderizando video...", icon="🎬")
+                        try:
+                            frases = st.session_state.get('video_frases', ["AppyProp IA"])
+                            path_video = crear_reel_vertical(uploaded_files, frases)
+                            if path_video:
+                                st.session_state['video_path'] = path_video
+                            else:
+                                st.warning("⚠️ Error al generar video.")
+                        except Exception as e:
+                            st.error(f"Error video: {e}")
 
-        if 'video_path' in st.session_state:
-            st.success("✅ Video Reel generado.")
-            c_vid = st.columns([1, 2, 1])
-            with c_vid[1]:
-                st.markdown('<div class="video-container">', unsafe_allow_html=True)
-                st.video(st.session_state['video_path'])
-                st.markdown('</div>', unsafe_allow_html=True)
-                with open(st.session_state['video_path'], "rb") as file:
-                    st.download_button("⬇️ Descargar MP4", file, "reel.mp4", "video/mp4", type="primary")
+            if 'video_path' in st.session_state:
+                st.success("✅ Video Reel generado.")
+                c_vid = st.columns([1, 2, 1])
+                with c_vid[1]:
+                    st.markdown('<div class="video-container">', unsafe_allow_html=True)
+                    st.video(st.session_state['video_path'])
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    with open(st.session_state['video_path'], "rb") as file:
+                        st.download_button("⬇️ Descargar MP4", file, "reel.mp4", "video/mp4", type="primary")
+        else:
+            st.info("📸 **Sube fotos en la galería (arriba)** para habilitar el Generador de Video.")
 
     st.markdown("---")
-    if st.button("🔄 Nueva Propiedad (Limpiar) ", type="secondary"):
+    if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
         limpiar_formulario()
 
 # =======================================================

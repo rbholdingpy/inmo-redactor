@@ -54,24 +54,23 @@ st.markdown("""
     }
 
     /* --- 1. STATUS FLOTANTE EN EL CENTRO (EL RELOJ) --- */
-    /* Esto fuerza al st.status a flotar en medio de la pantalla */
     div[data-testid="stStatusWidget"] {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 99999;
-        background-color: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 0 50px rgba(0,0,0,0.5);
-        border: 2px solid #3B82F6;
-        width: 80%;
-        max-width: 300px;
-        text-align: center;
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        z-index: 999999 !important;
+        background-color: white !important;
+        padding: 20px !important;
+        border-radius: 15px !important;
+        box-shadow: 0 0 0 1000px rgba(0,0,0,0.5) !important; /* Oscurece el fondo */
+        border: 2px solid #2563EB !important;
+        width: 85% !important;
+        max-width: 350px !important;
+        text-align: center !important;
     }
 
-    /* --- 2. ELIMINAR EFECTOS DE CARGA MOLESTOS --- */
+    /* --- 2. ELIMINAR EFECTOS DE CARGA NATIVOS --- */
     .stApp, [data-testid="stAppViewContainer"] {
         opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important;
     }
@@ -91,7 +90,7 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
-    /* TEXT AREA PRECIO (Quitar flechas de número si aparecen) */
+    /* Validacion numerica visual */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -99,6 +98,16 @@ st.markdown("""
     }
 
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    
+    /* Botones Sociales */
+    .social-btn {
+        display: block; width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; color: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .btn-wp { background-color: #25D366; }
+    .btn-ig { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); }
+    .btn-fb { background-color: #1877F2; }
+    .btn-tk { background-color: #000000; }
+    
     </style>
     """, unsafe_allow_html=True)
 
@@ -106,21 +115,22 @@ st.markdown("""
 def encode_image(image):
     buffered = io.BytesIO()
     if image.mode in ("RGBA", "P"): image = image.convert("RGB")
-    image.thumbnail((800, 800)) # Optimización de tamaño
+    image.thumbnail((800, 800))
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-def format_price(value):
-    """Elimina letras y formatea con puntos."""
+def clean_number_input(value):
+    """Elimina todo lo que no sea número del string"""
+    if not value: return ""
+    return re.sub(r'\D', '', str(value))
+
+def format_price_display(value):
+    """Formatea con puntos de miles para mostrar"""
     if not value: return ""
     try:
-        # Eliminar todo lo que no sea número
-        clean_num = re.sub(r'[^\d]', '', str(value))
-        if not clean_num: return ""
-        # Formatear con puntos
-        return "{:,}".format(int(clean_num)).replace(",", ".")
+        return "{:,}".format(int(value)).replace(",", ".")
     except:
-        return ""
+        return value
 
 def limpiar_formulario():
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda', 'video_path', 'video_frases']
@@ -158,8 +168,7 @@ def cancelar_seleccion():
 
 # --- FUNCIÓN GENERADORA DE VIDEO REEL ---
 def crear_reel_vertical(imagenes_uploaded, textos_clave, status_container=None):
-    if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
-        return None
+    if not MOVIEPY_AVAILABLE or not imagenes_uploaded: return None
     
     num_fotos = len(imagenes_uploaded)
     duracion_por_foto = 20.0 / num_fotos
@@ -357,7 +366,7 @@ with st.sidebar:
     st.caption("© 2026 AppyProp IA")
 
 # =======================================================
-# === 💎 ZONA DE VENTAS (REDISEÑADA) ===
+# === 💎 ZONA DE VENTAS ===
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
@@ -365,56 +374,23 @@ if st.session_state.ver_planes:
     c1, c2, c3 = st.columns(3)
     
     with c1:
-        st.markdown("""
-        <div style="background-color:#F8FAFC; border:2px solid #475569; padding:15px; border-radius:10px; height:100%;">
-            <h3 style="text-align:center;">🥉 Básico</h3>
-            <div style="text-align:center; font-size:1.4em; font-weight:bold;">20.000 Gs</div>
-            <ul style="padding-left:20px; font-size:0.9em;">
-                <li>✅ 10 Créditos</li>
-                <li>❌ Video Reel</li>
-                <li>❌ Estrategias</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div style="background-color:#F8FAFC; border:2px solid #475569; padding:15px; border-radius:10px; height:100%;"><h3 style="text-align:center;">🥉 Básico</h3><div style="text-align:center; font-size:1.4em; font-weight:bold;">20.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 10 Créditos</li><li>❌ Video Reel</li><li>❌ Estrategias</li></ul></div>""", unsafe_allow_html=True)
         st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
 
     with c2:
-        st.markdown("""
-        <div style="background-color:white; border:2px solid #3B82F6; padding:15px; border-radius:10px; height:100%;">
-            <h3 style="text-align:center;">🥈 Estándar</h3>
-            <div style="text-align:center; font-size:1.4em; font-weight:bold; color:#2563EB;">35.000 Gs</div>
-            <ul style="padding-left:20px; font-size:0.9em;">
-                <li>✅ 20 Créditos</li>
-                <li>✅ Estrategias</li>
-                <li>❌ Video Reel</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div style="background-color:white; border:2px solid #3B82F6; padding:15px; border-radius:10px; height:100%;"><h3 style="text-align:center;">🥈 Estándar</h3><div style="text-align:center; font-size:1.4em; font-weight:bold; color:#2563EB;">35.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 20 Créditos</li><li>✅ Estrategias</li><li>❌ Video Reel</li></ul></div>""", unsafe_allow_html=True)
         st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
     with c3:
-        st.markdown("""
-        <div style="background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border:2px solid #F59E0B; padding:15px; border-radius:10px; height:100%; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
-            <div style="text-align:center; background:#F59E0B; color:white; border-radius:5px; font-size:0.7em; font-weight:bold; width:fit-content; margin:0 auto;">🔥 RECOMENDADO</div>
-            <h3 style="text-align:center; color:#B45309;">🥇 Agencia</h3>
-            <div style="text-align:center; font-size:1.4em; font-weight:bold; color:#D97706;">80.000 Gs</div>
-            <ul style="padding-left:20px; font-size:0.9em;">
-                <li>✅ 80 Créditos</li>
-                <li>✅ Estrategias</li>
-                <li>✅ 🎬 Video Reel</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div style="background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border:2px solid #F59E0B; padding:15px; border-radius:10px; height:100%; box-shadow:0 4px 10px rgba(0,0,0,0.1);"><div style="text-align:center; background:#F59E0B; color:white; border-radius:5px; font-size:0.7em; font-weight:bold; width:fit-content; margin:0 auto;">🔥 RECOMENDADO</div><h3 style="text-align:center; color:#B45309;">🥇 Agencia</h3><div style="text-align:center; font-size:1.4em; font-weight:bold; color:#D97706;">80.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 80 Créditos</li><li>✅ Estrategias</li><li>✅ 🎬 Video Reel</li></ul></div>""", unsafe_allow_html=True)
         st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
     
     st.divider()
     st.button("⬅️ Volver a la App", on_click=volver_a_app)
     
-    # Lógica de pago (Oculta para brevedad, mantener la tuya anterior)
     if st.session_state.plan_seleccionado:
         st.info("Contacta al admin para activar.")
         st.button("🔙 Atrás", on_click=cancelar_seleccion)
-    
     st.stop()
 
 # =======================================================
@@ -423,6 +399,13 @@ if st.session_state.ver_planes:
 c_title, c_badge = st.columns([2, 1])
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
+
+# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? ---
+with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
+    st.markdown("""
+    ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
+    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades.
+    """)
 
 es_pro = False
 plan_actual = "INVITADO"
@@ -441,9 +424,12 @@ if st.session_state['usuario_activo']:
     elif 'estándar' in plan_str or 'standar' in plan_str:
         cupo_fotos = 6
         plan_actual = "ESTÁNDAR"
-    else:
+    elif 'básico' in plan_str or 'basico' in plan_str:
         cupo_fotos = 3
         plan_actual = "BÁSICO"
+    else:
+        cupo_fotos = 3
+        plan_actual = "MIEMBRO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
@@ -482,7 +468,6 @@ if es_pro or MODO_LANZAMIENTO:
             st.error(f"⛔ **¡Demasiadas fotos!** Tu plan {plan_actual} solo permite {cupo_fotos} imágenes.")
             st.stop()
         
-        # MENSAJE DE CONFIRMACIÓN INMEDIATO (NO BLOQUEANTE)
         st.success(f"✅ {len(uploaded_files)} fotos cargadas correctamente.")
         
         with st.expander("👁️ Ver fotos cargadas", expanded=False):
@@ -536,19 +521,22 @@ with st.form("formulario_propiedad"):
         st.write("💰 **Detalles de Precio:**")
         col_p1, col_p2, col_p3 = st.columns([2, 3, 3])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
-        # Input de texto que validaremos después
-        precio_input = col_p2.text_input("Monto (Solo números)")
         
-        # SELECTOR DE PERIODO (SOLO SI ES ALQUILER)
+        # VALIDACIÓN: Usamos number_input para forzar números
+        precio_val = col_p2.number_input("Monto", min_value=0, step=100000, format="%d")
+        
+        # SELECTOR DE PERIODO (VISIBLE SI ES ALQUILER)
         periodo_texto = ""
         if oper == "Alquiler":
             periodo = col_p3.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
             periodo_texto = f"({periodo})"
         else:
-            col_p3.empty() # Espacio vacío si es venta
+            col_p3.empty() 
             
         if es_pro or MODO_LANZAMIENTO:
-            whatsapp = st.text_input("WhatsApp (Solo números)")
+            # VALIDACIÓN: WhatsApp numérico limpio
+            whatsapp_raw = st.text_input("WhatsApp (Solo números)")
+            whatsapp = clean_number_input(whatsapp_raw)
         else:
             whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True)
 
@@ -566,11 +554,11 @@ with st.form("formulario_propiedad"):
         agua = st.checkbox("Agua")
         luz = st.checkbox("Luz")
 
-    # VALIDACIÓN BOTÓN
+    # BLOQUEO BOTÓN
     deshabilitar_boton = False
     if (es_pro or MODO_LANZAMIENTO) and not uploaded_files:
         deshabilitar_boton = True
-        st.warning("⚠️ **El botón se activará automáticamente cuando terminen de subir las fotos.**")
+        st.warning("⚠️ **El botón se activará cuando subas fotos.**")
     
     submitted = st.form_submit_button("✨ Generar Redacción Estratégica", type="primary", disabled=deshabilitar_boton)
 
@@ -578,16 +566,8 @@ with st.form("formulario_propiedad"):
 # === GENERACIÓN ===
 # =======================================================
 if submitted:
-    # 1. VALIDACIÓN PRECIO
-    precio_limpio = format_price(precio_input)
-    if not precio_limpio:
-        st.error("⚠️ El precio solo debe contener números.")
-        st.stop()
-        
-    texto_precio_final = f"{precio_limpio} {moneda} {periodo_texto}"
-
-    if not ubicacion:
-        st.warning("⚠️ Completa la Ubicación.")
+    if not ubicacion or precio_val == 0:
+        st.warning("⚠️ Completa Ubicación y Precio (mayor a 0).")
         st.stop()
         
     permitido = False
@@ -598,21 +578,25 @@ if submitted:
         st.stop()
 
     if permitido:
-        # === AQUI ESTÁ EL RELOJ CENTRADO (POR CLASE CSS) ===
+        # === STATUS CENTRADO (MODAL) ===
         estado_ia = st.status("⏳ Iniciando...", expanded=True)
         
         try:
-            # FASE 1: VISIÓN ARTIFICIAL Y DETECCIÓN ESTRUCTURA
-            estado_ia.write("👁️ **La IA está visualizando tus fotos...**")
+            # Formatear precio
+            precio_fmt = format_price_display(precio_val)
+            texto_precio_final = f"{precio_fmt} {moneda} {periodo_texto}"
+
+            # 1. VISIÓN
+            estado_ia.write("👁️ **La IA está escaneando tus fotos...**")
             
-            # FASE 2: INTELIGENCIA GEOGRÁFICA
-            estado_ia.write("🌍 **Detectando datos de la zona (Barrio, Ciudad, Puntos de interés)...**")
-            time.sleep(1) # Simulación breve para que el usuario lea
+            # 2. GEO
+            estado_ia.write("🌍 **Detectando datos de la zona (Barrio, Ciudad)...**")
+            time.sleep(1) 
             
-            # FASE 3: REDACCIÓN
+            # 3. REDACCIÓN
             estado_ia.write("✍️ **Redactando estrategia con Neuroventas...**")
 
-            # PROMPT MAESTRO ACTUALIZADO
+            # PROMPT
             instrucciones_estrategia = {
                 "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios.",
                 "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez.",
@@ -639,12 +623,12 @@ if submitted:
             
             1. 👁️ ANÁLISIS VISUAL DE ESTRUCTURA:
                - Mira las fotos y DETECTA: ¿Es Mansión, Casa, Chalet, Departamento, Monoambiente, Terreno o Salón Comercial?
-               - Usa el término CORRECTO en la descripción. (Si eligió 'Casa' pero es 'Mansión', usa 'Mansión').
+               - Usa el término CORRECTO en la descripción.
                - Describe materiales visibles (suelos, luz, acabados).
 
             2. 🌍 INTELIGENCIA GEOGRÁFICA (CRÍTICO):
                - Analiza la ubicación: "{ubicacion}".
-               - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esta zona/ciudad/barrio? (Ej: "San Bernardino" = Lago Ypacaraí, Verano, Clubes; "Villa Morra" = Centro Financiero, Shopping).
+               - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esta zona/ciudad/barrio? (Ej: "San Bernardino" = Lago Ypacaraí, Verano; "Villa Morra" = Centro Financiero).
                - INTEGRA ESOS DATOS: "Ubicado en el corazón de [Zona], conocida por [Dato de valor]". Vende el entorno.
 
             3. 🎯 ESTRATEGIA DE VENTA:
@@ -659,7 +643,7 @@ if submitted:
             REGLAS:
             - Usa Markdown (**negritas**).
             - Link WhatsApp: https://wa.me/595{whatsapp}
-            - Incluye 10 hashtags relevantes a la zona detectada.
+            - Incluye 10 hashtags relevantes.
             - PRECIO: Muestra siempre "{texto_precio_final}".
             
             {base_prompt}
@@ -705,9 +689,9 @@ if submitted:
                 st.session_state['guest_last_use'] = datetime.now()
 
             st.session_state['generated_result'] = cleaned_text
-            estado_ia.update(label="✅ ¡Proceso Terminado! (Desaparecerá en breve...)", state="complete", expanded=False)
-            time.sleep(1) # Dar tiempo a leer
-            estado_ia.empty() # DESAPARECER EL RELOJ
+            estado_ia.update(label="✅ ¡Terminado!", state="complete", expanded=False)
+            time.sleep(1) 
+            estado_ia.empty() 
             
         except Exception as e:
             st.error(f"Error: {e}")
@@ -717,22 +701,24 @@ if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
     st.subheader("🎉 Estrategia Generada:")
     st.markdown(st.session_state['generated_result'])
-    st.markdown('</div>', unsafe_allow_html=True)
     
-    # --- FOOTER DE ACCIONES ---
+    # --- FOOTER DE ACCIONES REDES SOCIALES ---
     st.markdown("---")
-    st.write("### 🚀 Acciones Rápidas")
+    st.write("### 🚀 Publicar Ahora:")
     
-    col_wa, col_copy = st.columns(2)
-    with col_wa:
+    c_copy, c_wa = st.columns(2)
+    with c_copy:
+        st.code(st.session_state['generated_result'], language=None)
+        st.caption("👆 Toca la esquina para copiar todo")
+    
+    with c_wa:
         msg_url = urllib.parse.quote(st.session_state['generated_result'])
-        st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank">
-            <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold;">
-            📲 Enviar a WhatsApp
-            </button></a>''', unsafe_allow_html=True)
-    
-    with col_copy:
-        st.info("📋 Copia el texto de arriba manualmente para Instagram/Facebook.")
+        st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">📲 Enviar a WhatsApp</a>''', unsafe_allow_html=True)
+        st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">📸 Abrir Instagram</a>''', unsafe_allow_html=True)
+        st.markdown(f'''<a href="https://facebook.com" target="_blank" class="social-btn btn-fb">📘 Abrir Facebook</a>''', unsafe_allow_html=True)
+        st.markdown(f'''<a href="https://tiktok.com" target="_blank" class="social-btn btn-tk">🎵 Abrir TikTok</a>''', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- ZONA VIDEO (SI APLICA) ---
     if puede_video and uploaded_files:

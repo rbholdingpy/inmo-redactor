@@ -12,6 +12,7 @@ import os
 import tempfile
 import numpy as np
 import shutil 
+import re # Para formateo de precios
 
 # ==========================================
 # 🚀 CONFIGURACIÓN DE LANZAMIENTO
@@ -36,7 +37,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL PERFECTO) ---
+# --- ESTILOS CSS (MODO MÓVIL OPTIMIZADO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -52,11 +53,14 @@ st.markdown("""
         background-color: #CBD5E1; color: #64748B; cursor: not-allowed;
     }
 
-    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA --- */
+    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA MOLESTOS --- */
+    /* Mantiene la pantalla visible siempre */
     .stApp, [data-testid="stAppViewContainer"] {
         opacity: 1 !important; filter: none !important; transition: none !important; will-change: auto !important;
     }
+    /* Oculta spinner superior derecho */
     [data-testid="stStatusWidget"] { display: none !important; }
+    /* Oculta "Press Enter" */
     [data-testid="InputInstructions"] { display: none !important; }
     /* ------------------------------------------- */
 
@@ -65,7 +69,7 @@ st.markdown("""
 
     /* UPLOADER */
     [data-testid='stFileUploaderDropzoneInstructions'] > div:first-child { display: none; }
-    [data-testid='stFileUploaderDropzoneInstructions']::before { content: "Arrastra tus fotos aquí"; visibility: visible; display: block; text-align: center; font-weight: bold; }
+    [data-testid='stFileUploaderDropzoneInstructions']::before { content: "Sube tus fotos aquí"; visibility: visible; display: block; text-align: center; font-weight: bold; }
     [data-testid='stFileUploaderDropzoneInstructions']::after { content: "JPG, PNG • Máx 200MB"; visibility: visible; display: block; text-align: center; font-size: 0.8em; }
     [data-testid='stFileUploader'] button { color: transparent !important; position: relative; }
     [data-testid='stFileUploader'] button::after { content: "📂 Explorar"; color: #333; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 14px; }
@@ -107,6 +111,18 @@ def encode_image(image):
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
+def format_price(value):
+    """Limpia el input y lo formatea con separadores de miles (1.000.000)"""
+    if not value: return ""
+    try:
+        # Eliminar todo lo que no sea número
+        clean_num = re.sub(r'[^\d]', '', str(value))
+        if not clean_num: return value
+        # Formatear con puntos
+        return "{:,}".format(int(clean_num)).replace(",", ".")
+    except:
+        return value
+
 def limpiar_formulario():
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda', 'video_path', 'video_frases']
     for key in keys_a_borrar:
@@ -142,7 +158,7 @@ def cancelar_seleccion():
     st.session_state.pedido_registrado = False
 
 # --- FUNCIÓN GENERADORA DE VIDEO REEL ---
-def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
+def crear_reel_vertical(imagenes_uploaded, textos_clave, status_container=None):
     if not MOVIEPY_AVAILABLE or not imagenes_uploaded:
         return None
     
@@ -155,14 +171,14 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
     font = ImageFont.load_default()
     temp_dir = tempfile.mkdtemp()
 
-    total_steps = len(imagenes_uploaded) + 2
-    current_step = 0
-
     for i, img_file in enumerate(imagenes_uploaded):
         try:
             img_file.seek(0)
             img = Image.open(img_file).convert("RGB")
+            
+            # Optimización
             img.thumbnail((1200, 1200)) 
+            
             img = ImageOps.fit(img, (W, H), method=Image.Resampling.LANCZOS)
             overlay = Image.new('RGBA', (W, H), (0, 0, 0, 80))
             img.paste(overlay, (0, 0), overlay)
@@ -177,8 +193,8 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
             clip = ImageClip(temp_img_path).set_duration(duracion_por_foto)
             clips.append(clip)
             
-            current_step += 1
-            if progress_bar: progress_bar.progress(int((current_step / total_steps) * 100))
+            if status_container:
+                status_container.update(label=f"🎞️ Procesando foto {i+1} de {num_fotos}...")
 
         except Exception as e:
             print(f"Error procesando imagen {i}: {e}")
@@ -189,6 +205,8 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
         except: pass
         return None
 
+    if status_container: status_container.update(label="🎞️ Uniendo clips de video...")
+    
     final_clip = concatenate_videoclips(clips, method="compose")
     if final_clip.duration > 20.0: final_clip = final_clip.subclip(0, 20.0)
 
@@ -200,8 +218,6 @@ def crear_reel_vertical(imagenes_uploaded, textos_clave, progress_bar=None):
         output_path, codec="libx264", audio=False, fps=15, preset='ultrafast',
         ffmpeg_params=['-pix_fmt', 'yuv420p'], threads=1, logger=None
     )
-    
-    if progress_bar: progress_bar.progress(100)
     
     try: shutil.rmtree(temp_dir)
     except: pass
@@ -624,13 +640,9 @@ with st.form("formulario_propiedad"):
 
         if es_pro or MODO_LANZAMIENTO:
             enfoque = st.selectbox("🎯 Estrategia de Venta", opciones_estrategia)
-            # --- NUEVO SELECTOR DE REDES SOCIALES ---
-            red_social = st.selectbox("📱 Red Social Principal", ["Instagram/TikTok (Viral)", "Facebook Marketplace (Ventas)", "WhatsApp (Estados/Grupos)", "LinkedIn (Corporativo)"])
         else:
             enfoque = st.selectbox("🎯 Estrategia de Venta", ["🔒 Estándar (Solo PRO)"], disabled=True)
-            red_social = st.selectbox("📱 Red Social Principal", ["🔒 General"], disabled=True)
             enfoque = "Venta Estándar"
-            red_social = "General"
 
         if (es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]) or MODO_LANZAMIENTO:
             tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"])
@@ -643,8 +655,13 @@ with st.form("formulario_propiedad"):
         st.write("💰 **Detalles de Precio:**")
         col_p1, col_p2 = st.columns([2, 5])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
-        precio_val = col_p2.text_input("Monto")
-        texto_precio = f"{precio_val} {moneda}"
+        precio_val = col_p2.text_input("Monto (Números)", placeholder="Ej: 1500000")
+        
+        # Periodo de alquiler (si aplica)
+        periodo_texto = ""
+        if oper == "Alquiler":
+            periodo = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
+            periodo_texto = f"({periodo})"
             
         if es_pro or MODO_LANZAMIENTO:
             whatsapp = st.text_input("WhatsApp (Solo números)")
@@ -691,14 +708,21 @@ if submitted:
         st.stop()
 
     if permitido:
-        st.toast("⏳ La IA está pensando...", icon="🧠")
-        progress_text = "🧠 Analizando propiedad..."
-        my_bar = st.progress(0, text=progress_text)
+        # === ST.STATUS (RELOJ DE ARENA CENTRAL) ===
+        estado_ia = st.status("⏳ La IA está procesando tu información...", expanded=True)
         
         try:
-            my_bar.progress(20, text="📸 Optimizando imágenes...")
+            # 1. VISIÓN ARTIFICIAL
+            estado_ia.write("👁️ **La IA está visualizando tus fotos...**")
             
-            # PROMPT
+            # Formatear precio
+            precio_formateado = format_price(precio_val)
+            texto_precio_final = f"{precio_formateado} {moneda} {periodo_texto}"
+
+            # 2. INTELIGENCIA GEOGRÁFICA
+            estado_ia.write("🌍 **Detectando datos de la zona...**")
+            
+            # PROMPT MAESTRO
             instrucciones_estrategia = {
                 "⚖️ Equilibrado (Balanceado)": "Destaca características y beneficios.",
                 "🔥 Urgencia (Oportunidad Flash)": "Usa gatillos de escasez.",
@@ -717,23 +741,41 @@ if submitted:
             directriz_seleccionada = instrucciones_estrategia.get(enfoque, "Descripción estándar.")
 
             base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
-            DATOS: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. {habs} Habs, {banos} Baños.
-            Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
+            DATOS TÉCNICOS:
+            - {oper} en {ubicacion}.
+            - Precio: {texto_precio_final}.
+            - {habs} Habitaciones, {banos} Baños.
+            - Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
             
             prompt_avanzado = f"""
-            TUS INSTRUCCIONES:
-            1. ANÁLISIS VISUAL: Describe suelos, luz, materiales.
-            2. GEO-INTELIGENCIA PARAGUAY: Analiza "{ubicacion}". Si es conocida, menciona un dato de valor (historia, naturaleza, zona top).
-            3. ESTRATEGIA: "{enfoque}" - {directriz_seleccionada}
-            4. RED SOCIAL PRINCIPAL: {red_social} (Adapta el formato a esta red).
+            TUS INSTRUCCIONES MAESTRAS:
             
-            OUTPUT:
-            Opción 1: Storytelling Emotivo.
-            Opción 2: Venta Directa (Datos).
-            Opción 3: Viral para {red_social} (Estructura de gancho + cuerpo + llamado a la acción).
+            1. ANÁLISIS VISUAL DE ESTRUCTURA (OBLIGATORIO):
+               - Mira las fotos y DETECTA: ¿Es Mansión, Casa, Chalet, Departamento, Monoambiente, Terreno o Salón Comercial?
+               - Usa el término correcto en la descripción, corrigiendo al usuario si es necesario.
+               - Describe materiales visibles (suelos, luz, acabados).
+
+            2. INTELIGENCIA GEOGRÁFICA (CRÍTICO):
+               - Analiza la ubicación: "{ubicacion}".
+               - BUSCA EN TU CONOCIMIENTO: ¿Qué caracteriza a esta zona/ciudad/barrio? (Ej: "San Bernardino" = Lago Ypacaraí, Verano, Clubes; "Villa Morra" = Centro Financiero, Shopping).
+               - INTEGRA ESOS DATOS: "Ubicado en el corazón de [Zona], conocida por [Dato de valor]".
+               - Vende el entorno, no solo la casa.
+
+            3. ESTRATEGIA DE VENTA:
+               - Enfoque: "{enfoque}" ({directriz_seleccionada}).
+               - Tono: {tono}.
             
-            FORMATO: Markdown, Link WhatsApp: https://wa.me/595{whatsapp}, 10 Hashtags.
-            TONO: {tono}
+            OUTPUT (Genera 3 opciones):
+            Opción 1: Storytelling Emotivo (Conecta con el sueño).
+            Opción 2: Venta Directa (Datos duros y precisos).
+            Opción 3: Formato Viral (Instagram/TikTok - Gancho + Cuerpo + LLamado).
+            
+            REGLAS:
+            - Usa Markdown (**negritas**).
+            - Link WhatsApp: https://wa.me/595{whatsapp}
+            - Incluye 10 hashtags relevantes a la zona detectada.
+            - PRECIO: Muestra siempre "{precio_formateado} {moneda}" (con puntos de miles).
+            
             {base_prompt}
             """
 
@@ -750,7 +792,8 @@ if submitted:
                         }
                     })
 
-            my_bar.progress(60, text="🤖 Redactando textos...")
+            # 3. REDACCIÓN
+            estado_ia.write("✍️ **Redactando estrategia ganadora...**")
             
             res = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": content}], temperature=0.8) 
             generated_text = res.choices[0].message.content
@@ -775,66 +818,62 @@ if submitted:
                 exito = descontar_credito(user['codigo'])
                 if exito: 
                     st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
-                    st.toast("✅ Crédito descontado", icon="🪙")
             else:
                 st.session_state['guest_credits'] = 0
                 st.session_state['guest_last_use'] = datetime.now()
-                st.toast("✅ Crédito gratis usado", icon="🎁")
 
             st.session_state['generated_result'] = cleaned_text
-            my_bar.progress(100, text="✨ ¡Listo!")
-            time.sleep(0.5)
-            my_bar.empty()
+            estado_ia.update(label="✅ ¡Proceso Terminado!", state="complete", expanded=False)
             
         except Exception as e:
             st.error(f"Error: {e}")
-            my_bar.empty()
+            estado_ia.update(label="❌ Error", state="error")
 
 if 'generated_result' in st.session_state:
     st.markdown('<div class="output-box">', unsafe_allow_html=True)
     st.subheader("🎉 Estrategia Generada:")
     st.markdown(st.session_state['generated_result'])
-    st.markdown('</div>', unsafe_allow_html=True)
     
-    # --- ZONA VIDEO ---
-    if puede_video:
-        st.markdown("---")
-        st.subheader("🎬 Video Reel Automático")
-        
-        if uploaded_files:
-            st.markdown("""<div style="background-color:#F3E8FF; padding:15px; border-radius:10px; margin-bottom:15px;">
-            <h4 style="margin:0; color:#6B21A8;">¿Te gustaría que genere un video con tus fotos? 🎥</h4>
-            <p style="margin:5px 0 0 0; font-size:0.9em;">Crea un Reel vertical automático de 20 segundos.</p></div>""", unsafe_allow_html=True)
-
+    # --- FOOTER DE ACCIONES ---
+    st.markdown("---")
+    st.write("### 🛠️ Herramientas de Publicación")
+    
+    c_copy, c_down = st.columns(2)
+    with c_copy:
+        st.info("📋 **Copiar Texto**")
+        st.code(st.session_state['generated_result'], language=None)
+    
+    with c_down:
+        # --- ZONA VIDEO (SI APLICA) ---
+        if puede_video and uploaded_files:
+            st.info("🎬 **Video Reel**")
             if 'video_path' not in st.session_state:
-                if st.button("🎥 SÍ, GENERAR VIDEO REEL"):
+                if st.button("🎥 GENERAR VIDEO AHORA"):
                     if not MOVIEPY_AVAILABLE:
                         st.error("⚠️ Error librería video.")
                     else:
-                        st.toast("🎞️ Renderizando video...", icon="🎬")
+                        st_video = st.status("🎞️ Renderizando video...", expanded=True)
                         try:
                             frases = st.session_state.get('video_frases', ["AppyProp IA"])
-                            path_video = crear_reel_vertical(uploaded_files, frases)
+                            path_video = crear_reel_vertical(uploaded_files, frases, st_video)
                             if path_video:
                                 st.session_state['video_path'] = path_video
+                                st_video.update(label="✅ Video Listo", state="complete", expanded=False)
                             else:
                                 st.warning("⚠️ Error al generar video.")
                         except Exception as e:
                             st.error(f"Error video: {e}")
-
+            
             if 'video_path' in st.session_state:
-                st.success("✅ Video Reel generado.")
-                c_vid = st.columns([1, 2, 1])
-                with c_vid[1]:
-                    st.markdown('<div class="video-container">', unsafe_allow_html=True)
-                    st.video(st.session_state['video_path'])
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    with open(st.session_state['video_path'], "rb") as file:
-                        st.download_button("⬇️ Descargar MP4", file, "reel.mp4", "video/mp4", type="primary")
+                st.video(st.session_state['video_path'])
+                with open(st.session_state['video_path'], "rb") as file:
+                    st.download_button("⬇️ Descargar Video", file, "reel_appyprop.mp4", "video/mp4", type="primary")
         else:
-            st.info("📸 **Sube fotos en la galería (arriba)** para habilitar el Generador de Video.")
+            st.warning("Video no disponible (Faltan fotos o Plan)")
 
-    st.markdown("---")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
         limpiar_formulario()
 

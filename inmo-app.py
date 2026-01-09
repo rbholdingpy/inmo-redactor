@@ -109,7 +109,7 @@ st.markdown("""
 
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
-    /* --- BOTONES SOCIALES ELEGANTES (FONDO BLANCO) --- */
+    /* --- BOTONES SOCIALES ELEGANTES --- */
     .social-btn {
         display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; font-size: 0.85em; transition: all 0.2s; background-color: white; border: 2px solid #ddd;
     }
@@ -118,25 +118,29 @@ st.markdown("""
     
     .btn-wp { border-color: #25D366; color: #25D366 !important; }
     .btn-wp svg { fill: #25D366; width: 18px; height: 18px; }
-    
     .btn-ig { border-color: #E1306C; color: #E1306C !important; }
     .btn-ig svg { fill: #E1306C; width: 18px; height: 18px; }
-    
     .btn-fb { border-color: #1877F2; color: #1877F2 !important; }
     .btn-fb svg { fill: #1877F2; width: 18px; height: 18px; }
-    
     .btn-tk { border-color: #000000; color: #000000 !important; }
     .btn-tk svg { fill: #000000; width: 18px; height: 18px; }
     
-    /* CONTENEDOR VIDEO CENTRADO */
-    .reel-wrapper {
-        max-width: 350px;
-        margin: 0 auto;
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        background-color: #000;
-    }
+    .reel-wrapper { max-width: 350px; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background-color: #000; }
+
+    /* --- TARJETAS DE PLANES DETALLADAS --- */
+    .plan-basic, .plan-standard, .plan-agency { text-align: left !important; padding: 20px; border-radius: 12px; margin-bottom: 10px; height: 100%; }
+    .plan-basic { background-color: #F8FAFC; border: 2px solid #475569; color: #334155; }
+    .plan-standard { background-color: white; border: 2px solid #3B82F6; color: #0F172A; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1); }
+    .plan-agency { background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border: 2px solid #F59E0B; color: #0F172A; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.25); transform: scale(1.03); position: relative; z-index: 10; }
+
+    .feature-list { list-style-type: none; padding: 0; margin: 15px 0; }
+    .feature-list li { margin-bottom: 8px; font-size: 0.85em; display: flex; align-items: center; gap: 8px; line-height: 1.3; }
+    .check-icon { color: #16a34a; font-weight: bold; min-width: 20px; font-size: 1.1em; } 
+    .cross-icon { color: #dc2626; opacity: 0.6; min-width: 20px; font-size: 1.1em; }
+    .feature-locked { opacity: 0.5; text-decoration: line-through; color: #64748B; }
+    .plan-title-center { text-align: center; margin-bottom: 5px; font-weight: 800; font-size: 1.3em; }
+    .price-tag { font-size: 1.4em; font-weight: 800; margin: 10px 0; text-align: center; }
+    
     </style>
     """, unsafe_allow_html=True)
 
@@ -161,7 +165,7 @@ def limpiar_formulario():
     st.session_state['u_oper'] = "Venta"
     st.session_state['u_ubicacion'] = ""
     st.session_state['u_precio'] = 0
-    st.session_state['u_whatsapp'] = None # Number input con None se limpia
+    st.session_state['u_whatsapp'] = None 
     st.session_state['u_habs'] = 1
     st.session_state['u_banos'] = 1
     
@@ -361,8 +365,8 @@ with st.sidebar:
     
     if not st.session_state['usuario_activo']:
         if MODO_LANZAMIENTO:
-            # LEER CREDITOS DESDE SESSION STATE ACTUALIZADO
-            creditos_actuales = st.session_state.get('guest_credits', 0)
+            # MOSTRAR CREDITOS DINÁMICOS AQUÍ
+            creditos_actuales = st.session_state.get('guest_credits', CREDITOS_INVITADO)
             
             st.markdown(f"""
             <div style="background-color:#FEF3C7; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #F59E0B;">
@@ -414,19 +418,74 @@ with st.sidebar:
 # =======================================================
 if st.session_state.ver_planes:
     st.title("💎 Escala tus Ventas")
-    st.write("Elige la potencia que necesita tu negocio.")
+    
+    # DETALLES COMPLETOS DE PLANES RESTAURADOS
     c1, c2, c3 = st.columns(3)
     
     with c1:
-        st.markdown("""<div style="background-color:#F8FAFC; border:2px solid #475569; padding:15px; border-radius:10px; height:100%;"><h3 style="text-align:center;">🥉 Básico</h3><div style="text-align:center; font-size:1.4em; font-weight:bold;">20.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 10 Créditos</li><li>❌ Video Reel</li><li>❌ Estrategias</li></ul></div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="plan-basic">
+            <h3 class="plan-title-center">🥉 Básico</h3>
+            <div class="price-tag">20.000 Gs</div>
+            <ul class="feature-list">
+                <li><span class="check-icon">✅</span> 10 Créditos</li>
+                <li><span class="check-icon">✅</span> Operación</li>
+                <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
+                <li><span class="check-icon">✅</span> Ubicación</li>
+                <li><span class="check-icon">✅</span> Detalles de Precio</li>
+                <li><span class="check-icon">✅</span> Servicios Extras</li>
+                <li><span class="check-icon">✅</span> Max 3 Fotos (Visión IA)</li>
+                <li class="feature-locked"><span class="cross-icon">❌</span> Estrategia de Venta</li>
+                <li class="feature-locked"><span class="cross-icon">❌</span> Tono de Voz</li>
+                <li class="feature-locked"><span class="cross-icon">❌</span> Link WhatsApp</li>
+                <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
 
     with c2:
-        st.markdown("""<div style="background-color:white; border:2px solid #3B82F6; padding:15px; border-radius:10px; height:100%;"><h3 style="text-align:center;">🥈 Estándar</h3><div style="text-align:center; font-size:1.4em; font-weight:bold; color:#2563EB;">35.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 20 Créditos</li><li>✅ Estrategias</li><li>❌ Video Reel</li></ul></div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="plan-standard">
+            <h3 class="plan-title-center">🥈 Estándar</h3>
+            <div class="price-tag" style="color:#2563EB;">35.000 Gs</div>
+            <ul class="feature-list">
+                <li><span class="check-icon">✅</span> <b>20 Créditos</b></li>
+                <li><span class="check-icon">✅</span> Operación</li>
+                <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
+                <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
+                <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
+                <li><span class="check-icon">✅</span> Ubicación</li>
+                <li><span class="check-icon">✅</span> Detalles de Precio</li>
+                <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
+                <li><span class="check-icon">✅</span> Servicios Extras</li>
+                <li><span class="check-icon">✅</span> <b>Max 6 Fotos</b> (Visión IA)</li>
+                <li class="feature-locked"><span class="cross-icon">❌</span> Generador de Video</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
     with c3:
-        st.markdown("""<div style="background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%); border:2px solid #F59E0B; padding:15px; border-radius:10px; height:100%; box-shadow:0 4px 10px rgba(0,0,0,0.1);"><div style="text-align:center; background:#F59E0B; color:white; border-radius:5px; font-size:0.7em; font-weight:bold; width:fit-content; margin:0 auto;">🔥 RECOMENDADO</div><h3 style="text-align:center; color:#B45309;">🥇 Agencia</h3><div style="text-align:center; font-size:1.4em; font-weight:bold; color:#D97706;">80.000 Gs</div><ul style="padding-left:20px; font-size:0.9em;"><li>✅ 80 Créditos</li><li>✅ Estrategias</li><li>✅ 🎬 Video Reel</li></ul></div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="plan-agency">
+            <h3 class="plan-title-center" style="color:#B45309;">🥇 Agencia</h3>
+            <div class="price-tag" style="color:#D97706;">80.000 Gs</div>
+            <ul class="feature-list">
+                <li><span class="check-icon">✅</span> <b>80 Créditos</b></li>
+                <li><span class="check-icon">✅</span> Operación</li>
+                <li><span class="check-icon">✅</span> Tipo de Propiedad</li>
+                <li><span class="check-icon">✅</span> <b>Estrategia de Venta</b></li>
+                <li><span class="check-icon">✅</span> <b>Tono de Voz</b></li>
+                <li><span class="check-icon">✅</span> Ubicación</li>
+                <li><span class="check-icon">✅</span> Detalles de Precio</li>
+                <li><span class="check-icon">✅</span> <b>Link WhatsApp</b></li>
+                <li><span class="check-icon">✅</span> Servicios Extras</li>
+                <li><span class="check-icon">✅</span> <b>Max 10 Fotos</b> (Visión IA)</li>
+                <li><span class="check-icon">✅</span> 🎬 <b>Video 9:16 (Opcional)</b></li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
         st.button("👑 ELEGIR AGENCIA", key="btn_agencia", type="primary", on_click=seleccionar_plan, args=("Agencia",))
     
     st.divider()
@@ -443,6 +502,22 @@ if st.session_state.ver_planes:
 c_title, c_badge = st.columns([2, 1])
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
+
+# --- GUÍA PASO A PASO RECUPERADA ---
+with st.expander("ℹ️ ¿Cómo funciona AppyProp IA? (Guía Rápida)"):
+    st.markdown("""
+    ### 🏠 Tu Copiloto Inmobiliario
+    
+    **1. 📸 Sube Fotos:** Carga hasta 10 fotos. La IA "mirará" los detalles (suelos, luz, espacios) para describirlos mejor que nadie.
+    
+    **2. 📝 Completa los Datos:** Rellena los datos básicos. La IA usará la ubicación para añadir datos de valor sobre la zona (colegios, parques, seguridad).
+    
+    **3. ✨ Genera Estrategia:** Pulsa el botón y obtendrás:
+    * Redacción persuasiva (Neuroventas).
+    * Enfoque para Instagram/TikTok.
+    * Hashtags optimizados.
+    * *(Plan Agencia)* Video Reel automático.
+    """)
 
 es_pro = False
 plan_actual = "INVITADO"

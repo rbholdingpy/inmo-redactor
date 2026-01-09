@@ -39,19 +39,20 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- SISTEMA DE PERSISTENCIA DE CRÉDITOS ---
+# --- SISTEMA DE PERSISTENCIA ANTI-REFRESH (INVITADOS) ---
 @st.cache_resource
 def get_guest_db():
     return {}
 
 guest_db = get_guest_db()
 
-# Identificación única del invitado
-if "gid" not in st.query_params:
-    st.query_params["gid"] = str(uuid.uuid4())[:8]
-guest_id = st.query_params["gid"]
+query_params = st.query_params
+if "gid" not in query_params:
+    guest_id = str(uuid.uuid4())[:8]
+    st.query_params["gid"] = guest_id
+else:
+    guest_id = query_params["gid"]
 
-# Inicializar créditos si es nuevo
 if guest_id not in guest_db:
     guest_db[guest_id] = CREDITOS_INVITADO
 
@@ -63,7 +64,7 @@ def consumir_credito_invitado():
     """Descuenta 1 crédito y actualiza la sesión inmediatamente"""
     if guest_db[guest_id] > 0:
         guest_db[guest_id] -= 1
-        st.session_state['guest_credits'] = guest_db[guest_id] # Actualizar estado visual
+        st.session_state['guest_credits'] = guest_db[guest_id] 
         return True
     return False
 
@@ -155,13 +156,24 @@ def format_price_display(value):
         return value
 
 def limpiar_formulario():
-    # Borrar keys de sesión para reiniciar
-    keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda', 'video_path', 'video_frases']
-    for key in keys_a_borrar:
+    """Borra todas las keys de los widgets para reiniciar el formulario"""
+    # Lista de todas las keys asignadas a los widgets
+    keys_widgets = [
+        'u_oper', 'u_tipo', 'u_enfoque', 'u_tono', 'u_ubicacion', 
+        'u_moneda', 'u_precio', 'u_periodo', 'u_pais', 'u_whatsapp', 
+        'u_habs', 'u_banos', 
+        'c_gar', 'c_qui', 'c_pis', 'c_aa', 'c_vent', 'c_wifi', 'c_tv', 'c_agua', 'c_luz',
+        'generated_result', 'video_path', 'video_frases'
+    ]
+    
+    for key in keys_widgets:
         if key in st.session_state:
             del st.session_state[key]
+            
+    # Forzar reinicio del uploader
     st.session_state['uploader_key'] += 1
-    # IMPORTANTE: No usamos st.rerun() aquí directamente si es callback, pero si es llamada directa sí.
+    # Recargar la app
+    st.rerun()
 
 def cerrar_sesion():
     st.session_state['usuario_activo'] = None
@@ -380,10 +392,9 @@ with st.sidebar:
         
     st.markdown("---")
     st.markdown("### 🛠️ Gestión")
-    # BOTÓN PARA GENERAR NUEVA DESCRIPCIÓN EN EL SIDEBAR
+    # BOTÓN PARA GENERAR NUEVA DESCRIPCIÓN (LIMPIAR)
     if st.button("📝 Generar Nueva Descripción", type="primary"):
         limpiar_formulario()
-        st.rerun()
             
     if st.session_state['usuario_activo']:
         if st.button("🔒 Cerrar Sesión"):
@@ -500,13 +511,14 @@ st.divider()
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 
-oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True)
+# USAMOS KEYS PARA PODER BORRARLOS LUEGO
+oper = st.radio("Operación", ["Venta", "Alquiler"], horizontal=True, key="u_oper")
 
 with st.form("formulario_propiedad"):
     c1, c2 = st.columns([3, 1])
 
     with c1:
-        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"])
+        tipo = st.selectbox("Tipo", ["Casa", "Departamento", "Terreno", "Local", "Duplex"], key="u_tipo")
         
         opciones_estrategia = [
             "⚖️ Equilibrado (Balanceado)",
@@ -522,18 +534,18 @@ with st.form("formulario_propiedad"):
         ]
 
         if es_pro or MODO_LANZAMIENTO:
-            enfoque = st.selectbox("🎯 Estrategia de Venta", opciones_estrategia)
+            enfoque = st.selectbox("🎯 Estrategia de Venta", opciones_estrategia, key="u_enfoque")
         else:
-            enfoque = st.selectbox("🎯 Estrategia de Venta", ["🔒 Estándar (Solo PRO)"], disabled=True)
+            enfoque = st.selectbox("🎯 Estrategia de Venta", ["🔒 Estándar (Solo PRO)"], disabled=True, key="u_enfoque")
             enfoque = "Venta Estándar"
 
         if (es_pro and plan_actual in ["ESTÁNDAR", "AGENCIA"]) or MODO_LANZAMIENTO:
-            tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"])
+            tono = st.selectbox("🗣️ Tono de Voz", ["Amable y Cercano", "Profesional y Serio", "Persuasivo y Energético", "Sofisticado y Elegante", "Urgente (Oportunidad)"], key="u_tono")
         else:
-            tono = st.selectbox("🗣️ Tono de Voz", ["Neutro y Descriptivo"], disabled=True)
+            tono = st.selectbox("🗣️ Tono de Voz", ["Neutro y Descriptivo"], disabled=True, key="u_tono")
             tono = "Neutro y Descriptivo"
 
-        ubicacion = st.text_input("Indique la ubicación (ej: Ciudad, Barrio, Calle)", key="input_ubicacion")
+        ubicacion = st.text_input("Indique la ubicación (ej: Ciudad, Barrio, Calle)", key="u_ubicacion")
         
         st.write("💰 **Detalles de Precio:**")
         
@@ -543,15 +555,15 @@ with st.form("formulario_propiedad"):
             col_p1, col_p2 = st.columns([1, 4])
             
         with col_p1:
-            moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed")
+            moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed", key="u_moneda")
         
         with col_p2:
-            precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto")
+            precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto", key="u_precio")
         
         periodo_texto = ""
         if oper == "Alquiler":
             with col_p3:
-                periodo = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"], label_visibility="collapsed")
+                periodo = st.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"], label_visibility="collapsed", key="u_periodo")
                 periodo_texto = f"({periodo})"
             
         if es_pro or MODO_LANZAMIENTO:
@@ -559,10 +571,10 @@ with st.form("formulario_propiedad"):
             wc1, wc2 = st.columns([1, 3])
             
             with wc1:
-                pais_code = st.selectbox("País", ["🇵🇾", "🇦🇷", "🇧🇷", "🇺🇸", "🇪🇸"], label_visibility="collapsed")
+                pais_code = st.selectbox("País", ["🇵🇾", "🇦🇷", "🇧🇷", "🇺🇸", "🇪🇸"], label_visibility="collapsed", key="u_pais")
             
             with wc2:
-                whatsapp_num = st.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, label_visibility="collapsed", placeholder="Ej: 961123456")
+                whatsapp_num = st.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, label_visibility="collapsed", placeholder="Ej: 961123456", key="u_whatsapp")
             
             codigos_map = {"🇵🇾": "+595", "🇦🇷": "+54", "🇧🇷": "+55", "🇺🇸": "+1", "🇪🇸": "+34"}
             code_val = codigos_map[pais_code]
@@ -573,21 +585,21 @@ with st.form("formulario_propiedad"):
                 whatsapp_full = ""
         else:
             whatsapp_full = ""
-            st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True)
+            st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True, key="u_whatsapp_lock")
 
     with c2:
-        habs = st.number_input("Habitaciones", 1)
-        banos = st.number_input("Baños", 1)
+        habs = st.number_input("Habitaciones", 1, key="u_habs")
+        banos = st.number_input("Baños", 1, key="u_banos")
         st.write("**Servicios:**")
-        gar = st.checkbox("Garage")
-        qui = st.checkbox("Quincho")
-        pis = st.checkbox("Piscina")
-        aa = st.checkbox("Aire Acond.")
-        vent = st.checkbox("Ventilador")
-        wifi = st.checkbox("Wifi")
-        tv = st.checkbox("TV Cable")
-        agua = st.checkbox("Agua")
-        luz = st.checkbox("Luz")
+        gar = st.checkbox("Garage", key="c_gar")
+        qui = st.checkbox("Quincho", key="c_qui")
+        pis = st.checkbox("Piscina", key="c_pis")
+        aa = st.checkbox("Aire Acond.", key="c_aa")
+        vent = st.checkbox("Ventilador", key="c_vent")
+        wifi = st.checkbox("Wifi", key="c_wifi")
+        tv = st.checkbox("TV Cable", key="c_tv")
+        agua = st.checkbox("Agua", key="c_agua")
+        luz = st.checkbox("Luz", key="c_luz")
 
     deshabilitar_boton = False
     if (es_pro or MODO_LANZAMIENTO) and not uploaded_files:
@@ -707,7 +719,7 @@ if submitted:
                 except:
                     st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
-            # CONSUMO CRÉDITOS
+            # CONSUMO CRÉDITOS Y ACTUALIZACIÓN VISUAL
             if es_pro:
                 exito = descontar_credito(user['codigo'])
                 if exito: st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
@@ -735,7 +747,7 @@ if 'generated_result' in st.session_state:
     msg_url = urllib.parse.quote(st.session_state['generated_result'])
 
     svg_wa = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 60.2 23.5 118.5 61.9 163.9L0 512l95.4-25.2c43.4 23.6 92.6 36.1 143.3 36.1 122.4 0 222-99.6 222-222 0-59.3-23.5-115.1-65.4-157zM223.9 471.1c-44.9 0-88.7-11.8-127.7-34.2L90.2 434l-47.6 12.6 12.7-46.4-6-10.5C25.1 346.6 12 296.4 12 244.1c0-116.9 95.1-212 211.9-212 56.6 0 109.8 22 149.9 62.1 40 40.1 62.1 93.3 62.1 149.9 0 116.9-95.1 212-212 212zm112.2-157.8c-6.1-3-36.4-18-42-20.1-5.6-2.1-9.7-3-13.7 3-4 6.1-15.6 19.5-19.1 23.5-3.5 4-7 4.5-13.1 1.5-6.1-3-25.7-9.5-48.9-30.2-18.1-16.1-30.3-36-33.8-42-3.5-6.1-.3-9.4 2.7-12.4 2.8-2.8 6.1-7.3 9.1-11 3-3.6 4-6.1 6.1-10.3 2.1-4.2 1-7.9-.5-11-1.5-3-13.7-33.1-18.8-45.3-5-12.1-10.1-10.4-13.7-10.6-3.5-.2-7.5-.2-11.5-.2-4 0-10.5 1.5-15.9 7.3-5.4 5.8-20.8 20.3-20.8 49.5 0 29.2 21 57.5 23.9 61.5 3 4 41.3 63.1 100.1 88.5 14 6 24.9 9.6 33.4 12.3 14.1 4.5 26.9 3.8 37.1 2.3 11.3-1.7 36.4-14.9 41.5-29.3 5.1-14.4 5.1-26.8 3.6-29.3-1.5-2.6-5.6-4-11.6-7z"/></svg>'
-    svg_ig = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.9 0-184.9zm-49.6 259.7c-12.2 12.2-28.4 18.4-59.5 20-32.3 1.6-128.9 1.6-161.2 0-31-1.6-47.3-7.8-59.5-20-12.2-12.2-18.4-28.4-20-59.5-1.6-32.3-1.6-128.9 0-161.2 1.6-31 7.8-47.3 20-59.5 12.2-12.2 28.4-18.4 59.5-20 32.3-1.6 128.9-1.6 161.2 0 31 1.6 47.3 7.8 59.5z"/></svg>'
+    svg_ig = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.9 0-184.9zm-49.6 259.7c-12.2 12.2-28.4 18.4-59.5 20-32.3 1.6-128.9 1.6-161.2 0-31-1.6-47.3-7.8-59.5-20-12.2-12.2-18.4-28.4-20-59.5-1.6-32.3-1.6-128.9 0-161.2 1.6-31 7.8-47.3 20-59.5 12.2-12.2 28.4-18.4 59.5-20 32.3-1.6 128.9-1.6 161.2 0 31 1.6 47.3 7.8 59.5 20 12.2 12.2 18.4 28.4 20 59.5 1.6 32.3 1.6 128.9 0 161.2-1.6 31-7.8 47.3-20 59.5z"/></svg>'
     svg_fb = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M80 299.3V512H196V299.3h86.5l18-97.8H196V166.9c0-28.3 7.9-47.5 48.4-47.5h51.7V35.7c-9-1.2-39.6-3.9-75.3-3.9-74.5 0-125.5 45.5-125.5 128.9v72.8H80z"/></svg>'
     svg_tk = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a90.92,90.92,0,1,0,90.93,90.93V0H210.16V209.91A210.26,210.26,0,1,0,448,209.91Z"/></svg>'
 
@@ -746,7 +758,6 @@ if 'generated_result' in st.session_state:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- ZONA VIDEO (SI APLICA) ---
     if puede_video and uploaded_files:
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("🎬 **Video Reel**")

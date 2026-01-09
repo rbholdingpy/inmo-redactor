@@ -90,7 +90,7 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
-    /* Ocultar flechas de los campos numéricos (PRECIO y WHATSAPP) */
+    /* Ocultar flechas de los campos numéricos */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -509,10 +509,10 @@ with st.form("formulario_propiedad"):
         col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
         
-        # VALIDACIÓN: number_input (Imposible letras)
-        precio_val = col_p2.number_input("Monto (Sin puntos)", min_value=0, step=100000, format="%d")
+        # VALIDACIÓN ESTRICTA: SOLO NÚMEROS (NUMBER INPUT)
+        precio_val = col_p2.number_input("Monto", min_value=0, step=100000, format="%d")
         
-        # SELECTOR DE PERIODO (VISIBLE SI ES ALQUILER)
+        # SELECTOR DE PERIODO (SOLO PARA ALQUILER)
         periodo_texto = ""
         if oper == "Alquiler":
             periodo = col_p3.selectbox("Periodo", ["Mensual", "Diario", "Semanal", "Anual"])
@@ -526,9 +526,8 @@ with st.form("formulario_propiedad"):
             # Selector de País
             pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
             
-            # VALIDACIÓN: number_input (Imposible letras en el número)
-            # value=None permite que empiece vacío
-            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None, placeholder="Ej: 961123456")
+            # VALIDACIÓN ESTRICTA: NUMBER INPUT
+            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None)
             
             # Construcción del número completo para la IA
             code_val = pais_code.split(" ")[1] # +595

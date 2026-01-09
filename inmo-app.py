@@ -56,8 +56,11 @@ else:
 if guest_id not in guest_db:
     guest_db[guest_id] = CREDITOS_INVITADO
 
-# Sincronizar
+# Sincronizar siempre al inicio
 if 'guest_credits' not in st.session_state:
+    st.session_state['guest_credits'] = guest_db[guest_id]
+else:
+    # Asegurar que la sesión visual coincida con la "base de datos"
     st.session_state['guest_credits'] = guest_db[guest_id]
 
 def consumir_credito_invitado():
@@ -108,35 +111,23 @@ st.markdown("""
 
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
-    /* --- BOTONES SOCIALES ELEGANTES (FONDO BLANCO) --- */
+    /* BOTONES SOCIALES */
     .social-btn {
         display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; font-size: 0.85em; transition: all 0.2s; background-color: white; border: 2px solid #ddd;
     }
     .social-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     .social-btn:active { transform: scale(0.98); }
     
-    /* Estilos específicos por red */
     .btn-wp { border-color: #25D366; color: #25D366 !important; }
     .btn-wp svg { fill: #25D366; width: 18px; height: 18px; }
-    
     .btn-ig { border-color: #E1306C; color: #E1306C !important; }
     .btn-ig svg { fill: #E1306C; width: 18px; height: 18px; }
-    
     .btn-fb { border-color: #1877F2; color: #1877F2 !important; }
     .btn-fb svg { fill: #1877F2; width: 18px; height: 18px; }
-    
     .btn-tk { border-color: #000000; color: #000000 !important; }
     .btn-tk svg { fill: #000000; width: 18px; height: 18px; }
     
-    /* CONTENEDOR VIDEO CENTRADO */
-    .reel-wrapper {
-        max-width: 350px;
-        margin: 0 auto;
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        background-color: #000;
-    }
+    .reel-wrapper { max-width: 350px; margin: 0 auto; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); background-color: #000; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -150,23 +141,25 @@ def encode_image(image):
 
 def format_price_display(value):
     if not value: return ""
-    try:
-        return "{:,}".format(int(value)).replace(",", ".")
-    except:
-        return value
+    try: return "{:,}".format(int(value)).replace(",", ".")
+    except: return value
 
 def limpiar_formulario():
+    # Eliminar estado
     keys_a_borrar = ['input_ubicacion', 'input_precio', 'input_whatsapp', 'generated_result', 'input_monto', 'input_moneda', 'video_path', 'video_frases']
     for key in keys_a_borrar:
         if key in st.session_state:
             del st.session_state[key]
     st.session_state['uploader_key'] += 1
+    # FORZAR RECARGA
+    st.rerun()
 
 def cerrar_sesion():
     st.session_state['usuario_activo'] = None
     st.session_state['plan_seleccionado'] = None
     st.session_state['ver_planes'] = False
     st.session_state['pedido_registrado'] = False
+    st.rerun()
 
 # --- CALLBACKS ---
 def ir_a_planes():
@@ -368,7 +361,7 @@ with st.sidebar:
         
         st.markdown("---")
         st.markdown("### 🛠️ Gestión Rápida")
-        if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
+        if st.button("🔄 Nueva Propiedad (Limpiar)", key="clean_sidebar", type="secondary"):
             limpiar_formulario()
             
         st.markdown("---")
@@ -376,7 +369,6 @@ with st.sidebar:
         st.markdown("---")
         if st.button("🔒 Cerrar Sesión"):
             cerrar_sesion()
-            st.rerun()
     st.caption("© 2026 AppyProp IA")
 
 # =======================================================
@@ -695,13 +687,13 @@ if submitted:
                 except:
                     st.session_state['video_frases'] = ["AppyProp IA", "Oportunidad", "Contactar"]
 
-            # CONSUMO CRÉDITOS
+            # CONSUMO CRÉDITOS Y ACTUALIZACIÓN VISUAL
             if es_pro:
                 exito = descontar_credito(user['codigo'])
-                if exito: st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
+                if exito: 
+                    st.session_state['usuario_activo']['limite'] = creditos_disponibles - 1
             else:
                 if consumir_credito_invitado():
-                    # IMPORTANTE: Forzamos la actualización visual antes del rerun
                     st.toast(f"🪙 Crédito usado. Te quedan {guest_db[guest_id]}.", icon="✅")
 
             st.session_state['generated_result'] = cleaned_text
@@ -719,10 +711,10 @@ if 'generated_result' in st.session_state:
     st.subheader("🎉 Estrategia Generada:")
     st.markdown(st.session_state['generated_result'])
     
+    # --- BOTONES SOCIALES ELEGANTES ---
     c_wa, c_ig, c_fb, c_tk = st.columns(4)
     msg_url = urllib.parse.quote(st.session_state['generated_result'])
 
-    # ICONOS OFICIALES SVG
     svg_wa = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 60.2 23.5 118.5 61.9 163.9L0 512l95.4-25.2c43.4 23.6 92.6 36.1 143.3 36.1 122.4 0 222-99.6 222-222 0-59.3-23.5-115.1-65.4-157zM223.9 471.1c-44.9 0-88.7-11.8-127.7-34.2L90.2 434l-47.6 12.6 12.7-46.4-6-10.5C25.1 346.6 12 296.4 12 244.1c0-116.9 95.1-212 211.9-212 56.6 0 109.8 22 149.9 62.1 40 40.1 62.1 93.3 62.1 149.9 0 116.9-95.1 212-212 212zm112.2-157.8c-6.1-3-36.4-18-42-20.1-5.6-2.1-9.7-3-13.7 3-4 6.1-15.6 19.5-19.1 23.5-3.5 4-7 4.5-13.1 1.5-6.1-3-25.7-9.5-48.9-30.2-18.1-16.1-30.3-36-33.8-42-3.5-6.1-.3-9.4 2.7-12.4 2.8-2.8 6.1-7.3 9.1-11 3-3.6 4-6.1 6.1-10.3 2.1-4.2 1-7.9-.5-11-1.5-3-13.7-33.1-18.8-45.3-5-12.1-10.1-10.4-13.7-10.6-3.5-.2-7.5-.2-11.5-.2-4 0-10.5 1.5-15.9 7.3-5.4 5.8-20.8 20.3-20.8 49.5 0 29.2 21 57.5 23.9 61.5 3 4 41.3 63.1 100.1 88.5 14 6 24.9 9.6 33.4 12.3 14.1 4.5 26.9 3.8 37.1 2.3 11.3-1.7 36.4-14.9 41.5-29.3 5.1-14.4 5.1-26.8 3.6-29.3-1.5-2.6-5.6-4-11.6-7z"/></svg>'
     svg_ig = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.9 0-184.9zm-49.6 259.7c-12.2 12.2-28.4 18.4-59.5 20-32.3 1.6-128.9 1.6-161.2 0-31-1.6-47.3-7.8-59.5-20-12.2-12.2-18.4-28.4-20-59.5-1.6-32.3-1.6-128.9 0-161.2 1.6-31 7.8-47.3 20-59.5 12.2-12.2 28.4-18.4 59.5-20 32.3-1.6 128.9-1.6 161.2 0 31 1.6 47.3 7.8 59.5z"/></svg>'
     svg_fb = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M80 299.3V512H196V299.3h86.5l18-97.8H196V166.9c0-28.3 7.9-47.5 48.4-47.5h51.7V35.7c-9-1.2-39.6-3.9-75.3-3.9-74.5 0-125.5 45.5-125.5 128.9v72.8H80z"/></svg>'
@@ -739,7 +731,6 @@ if 'generated_result' in st.session_state:
         st.markdown("<br>", unsafe_allow_html=True)
         st.info("🎬 **Video Reel**")
         
-        # CENTRADO DEL VIDEO
         c_v1, c_v2, c_v3 = st.columns([1, 2, 1]) 
         
         if 'video_path' not in st.session_state:
@@ -771,7 +762,7 @@ if 'generated_result' in st.session_state:
                     st.download_button("⬇️ Descargar Video", file, "reel_appyprop.mp4", "video/mp4", type="primary")
 
     st.markdown("<br><br>", unsafe_allow_html=True)
-    if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
+    if st.button("🔄 Nueva Propiedad (Limpiar)", key="clean_bottom", type="secondary"):
         limpiar_formulario()
 
 # =======================================================

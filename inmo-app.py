@@ -53,7 +53,8 @@ st.markdown("""
         background-color: #CBD5E1; color: #64748B; cursor: not-allowed;
     }
 
-    /* --- 1. STATUS FLOTANTE EN EL CENTRO (EL RELOJ) --- */
+    /* --- 1. STATUS FLOTANTE CENTRADO (MODAL) --- */
+    /* Fuerza al cuadro de carga a estar en el centro con fondo oscuro */
     div[data-testid="stStatusWidget"] {
         position: fixed !important;
         top: 50% !important;
@@ -61,11 +62,11 @@ st.markdown("""
         transform: translate(-50%, -50%) !important;
         z-index: 999999 !important;
         background-color: white !important;
-        padding: 20px !important;
+        padding: 25px !important;
         border-radius: 15px !important;
-        box-shadow: 0 0 0 1000px rgba(0,0,0,0.5) !important; /* Oscurece el fondo */
+        box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6) !important; /* Fondo oscuro que cubre todo */
         border: 2px solid #2563EB !important;
-        width: 85% !important;
+        width: 80% !important;
         max-width: 350px !important;
         text-align: center !important;
     }
@@ -90,7 +91,7 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
-    /* Validacion numerica visual */
+    /* Validacion numerica visual (ocultar flechas) */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
         -webkit-appearance: none; 
@@ -101,8 +102,9 @@ st.markdown("""
     
     /* Botones Sociales */
     .social-btn {
-        display: block; width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; color: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: block; width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; color: white !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s;
     }
+    .social-btn:active { transform: scale(0.98); }
     .btn-wp { background-color: #25D366; }
     .btn-ig { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); }
     .btn-fb { background-color: #1877F2; }
@@ -119,7 +121,7 @@ def encode_image(image):
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-def clean_number_input(value):
+def clean_phone_number(value):
     """Elimina todo lo que no sea número del string"""
     if not value: return ""
     return re.sub(r'\D', '', str(value))
@@ -400,13 +402,6 @@ c_title, c_badge = st.columns([2, 1])
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
-# --- SECCIÓN: ¿QUÉ ES APPYPROP IA? ---
-with st.expander("ℹ️ ¿Qué es AppyProp IA? (Click para desplegar)"):
-    st.markdown("""
-    ### 🏠 Tu Copiloto Experto en Neuroventas Inmobiliarias
-    **AppyProp IA** no es solo una herramienta; es la evolución de cómo se venden propiedades.
-    """)
-
 es_pro = False
 plan_actual = "INVITADO"
 cupo_fotos = 0
@@ -424,12 +419,9 @@ if st.session_state['usuario_activo']:
     elif 'estándar' in plan_str or 'standar' in plan_str:
         cupo_fotos = 6
         plan_actual = "ESTÁNDAR"
-    elif 'básico' in plan_str or 'basico' in plan_str:
-        cupo_fotos = 3
-        plan_actual = "BÁSICO"
     else:
         cupo_fotos = 3
-        plan_actual = "MIEMBRO"
+        plan_actual = "BÁSICO"
 
     creditos_disponibles = int(user.get('limite', 0) if user.get('limite') != "" else 0)
     st.markdown(f'<div style="text-align:center; margin-top: 10px;"><span class="pro-badge">PLAN {plan_actual}</span></div>', unsafe_allow_html=True)
@@ -519,7 +511,7 @@ with st.form("formulario_propiedad"):
         ubicacion = st.text_input("Ubicación", key="input_ubicacion")
         
         st.write("💰 **Detalles de Precio:**")
-        col_p1, col_p2, col_p3 = st.columns([2, 3, 3])
+        col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
         moneda = col_p1.selectbox("Divisa", ["Gs.", "$us"])
         
         # VALIDACIÓN: Usamos number_input para forzar números
@@ -534,11 +526,19 @@ with st.form("formulario_propiedad"):
             col_p3.empty() 
             
         if es_pro or MODO_LANZAMIENTO:
-            # VALIDACIÓN: WhatsApp numérico limpio
-            whatsapp_raw = st.text_input("WhatsApp (Solo números)")
-            whatsapp = clean_number_input(whatsapp_raw)
+            st.write("📱 **WhatsApp:**")
+            wc1, wc2 = st.columns([3, 7])
+            pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
+            # Validación: Texto que limpiaremos por código
+            whatsapp_input = wc2.text_input("N° Celular (Sin 0 inicial)", placeholder="Ej: 961123456")
+            
+            # Limpieza y combinación
+            code_val = pais_code.split(" ")[1] # Extrae "+595"
+            clean_num = clean_phone_number(whatsapp_input)
+            whatsapp_full = f"{code_val}{clean_num}" if clean_num else ""
         else:
-            whatsapp = st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True)
+            whatsapp_full = ""
+            st.text_input("WhatsApp", placeholder="🔒 Solo Miembros PRO", disabled=True)
 
     with c2:
         habs = st.number_input("Habitaciones", 1)
@@ -642,7 +642,7 @@ if submitted:
             
             REGLAS:
             - Usa Markdown (**negritas**).
-            - Link WhatsApp: https://wa.me/595{whatsapp}
+            - Link WhatsApp: https://wa.me/{whatsapp_full.replace("+","")}
             - Incluye 10 hashtags relevantes.
             - PRECIO: Muestra siempre "{texto_precio_final}".
             
@@ -712,6 +712,7 @@ if 'generated_result' in st.session_state:
         st.caption("👆 Toca la esquina para copiar todo")
     
     with c_wa:
+        # Codificar texto para URL de WhatsApp
         msg_url = urllib.parse.quote(st.session_state['generated_result'])
         st.markdown(f'''<a href="https://wa.me/?text={msg_url}" target="_blank" class="social-btn btn-wp">📲 Enviar a WhatsApp</a>''', unsafe_allow_html=True)
         st.markdown(f'''<a href="https://instagram.com" target="_blank" class="social-btn btn-ig">📸 Abrir Instagram</a>''', unsafe_allow_html=True)

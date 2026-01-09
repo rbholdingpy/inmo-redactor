@@ -36,7 +36,7 @@ st.set_page_config(
 # --- TU NÚMERO DE ADMINISTRADOR ---
 ADMIN_WHATSAPP = "595961871700" 
 
-# --- ESTILOS CSS (MODO MÓVIL FLUIDO) ---
+# --- ESTILOS CSS (MODO MÓVIL BLINDADO) ---
 st.markdown("""
     <style>
     .main { background-color: #F8FAFC; }
@@ -46,9 +46,15 @@ st.markdown("""
         border-radius: 8px; border: none; padding: 12px; font-weight: bold; width: 100%; transition: all 0.2s;
     }
     .stButton>button:hover { transform: scale(1.02); }
+    
+    /* Botón deshabilitado (cuando faltan fotos) */
+    .stButton>button:disabled {
+        background-color: #CBD5E1;
+        color: #64748B;
+        cursor: not-allowed;
+    }
 
-    /* --- ELIMINAR EFECTOS MOLESTOS --- */
-    /* Evita que la pantalla se ponga gris al interactuar */
+    /* --- NUCLEAR: ELIMINAR EFECTOS DE CARGA --- */
     .stApp, [data-testid="stAppViewContainer"] {
         opacity: 1 !important;
         filter: none !important;
@@ -57,11 +63,9 @@ st.markdown("""
     }
     [data-testid="stStatusWidget"] { display: none !important; }
     [data-testid="InputInstructions"] { display: none !important; }
-    
-    /* ---------------------------------- */
+    /* ------------------------------------------- */
 
     .video-container { background-color: #000; border-radius: 20px; padding: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 350px; margin: 0 auto; }
-    .video-box { border: 2px solid #8B5CF6; background-color: #F3E8FF; padding: 20px; border-radius: 15px; text-align: center; margin-top: 30px; }
     .agency-badge { background-color: #F59E0B; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7em; font-weight: bold; vertical-align: middle; }
 
     /* UPLOADER */
@@ -365,6 +369,7 @@ if st.session_state.ver_planes:
         st.write("Elige la potencia que necesita tu negocio.")
         c1, c2, c3 = st.columns(3)
         
+        # --- PLAN BÁSICO ---
         with c1:
             st.markdown("""
             <div class="plan-basic">
@@ -390,6 +395,7 @@ if st.session_state.ver_planes:
             else:
                 st.button("Elegir Básico", key="btn_basico", on_click=seleccionar_plan, args=("Básico",))
 
+        # --- PLAN ESTÁNDAR ---
         with c2:
             st.markdown("""
             <div class="plan-standard">
@@ -415,6 +421,7 @@ if st.session_state.ver_planes:
             else:
                 st.button("Elegir Estándar", key="btn_estandar", type="primary", on_click=seleccionar_plan, args=("Estándar",))
 
+        # --- PLAN AGENCIA ---
         with c3:
             st.markdown("""
             <div class="plan-agency">
@@ -445,6 +452,7 @@ if st.session_state.ver_planes:
         st.button("⬅️ Volver a la App", on_click=volver_a_app)
 
     else:
+        # PANTALLA DE PAGO
         st.info(f"🚀 Excelente elección: **Plan {st.session_state.plan_seleccionado}**")
         
         if not st.session_state.pedido_registrado:
@@ -519,6 +527,7 @@ if st.session_state.ver_planes:
 # === APP PRINCIPAL ===
 # =======================================================
 c_title, c_badge = st.columns([2, 1])
+# --- TITULO PRINCIPAL CENTRADO ---
 st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>AppyProp IA 🚀</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #1E293B; font-weight: 600; margin-top: 0; font-size: 1.2rem;'>Experto en Neuroventas Inmobiliarias</h3>", unsafe_allow_html=True)
 
@@ -573,11 +582,12 @@ if not es_pro and not MODO_LANZAMIENTO:
     st.info("👈 **¿Ya eres miembro?** Toca el botón azul **'MENÚ'** arriba a la izquierda para iniciar sesión.")
 
 # =======================================================
-# === 1. GALERÍA ===
+# === 1. GALERÍA (FUERA DEL FORM PARA ACTUALIZAR ESTADO) ===
 # =======================================================
 st.write("#### 1. 📸 Galería")
 uploaded_files = []
 
+# Permitir carga si es PRO o está en MODO LANZAMIENTO
 if es_pro or MODO_LANZAMIENTO:
     if creditos_disponibles <= 0:
         st.error("⛔ **Sin créditos.** Recarga tu plan para usar la IA.")
@@ -604,7 +614,6 @@ st.divider()
 # =======================================================
 st.write("#### 2. 📝 Datos de la Propiedad")
 
-# --- AQUÍ LA MAGIA: USAR ST.FORM PARA EVITAR RERUNS MIENTRAS ESCRIBES ---
 with st.form("formulario_propiedad"):
     c1, c2 = st.columns([3, 1])
 
@@ -640,7 +649,7 @@ with st.form("formulario_propiedad"):
             tono = st.selectbox("🗣️ Tono de Voz", ["Neutro y Descriptivo"], disabled=True)
             tono = "Neutro y Descriptivo"
 
-        ubicacion = st.text_input("Ubicación")
+        ubicacion = st.text_input("Ubicación", key="input_ubicacion")
         
         st.write("💰 **Detalles de Precio:**")
         col_p1, col_p2 = st.columns([2, 5])
@@ -667,8 +676,15 @@ with st.form("formulario_propiedad"):
         agua = st.checkbox("Agua")
         luz = st.checkbox("Luz")
 
-    # BOTÓN DE ENVÍO DENTRO DEL FORMULARIO
-    submitted = st.form_submit_button("✨ Generar Redacción Estratégica", type="primary")
+    # LÓGICA DE BLOQUEO DEL BOTÓN SI FALTAN FOTOS
+    deshabilitar_boton = False
+    
+    # Si es PRO o LANZAMIENTO y NO ha subido fotos, bloqueamos
+    if (es_pro or MODO_LANZAMIENTO) and not uploaded_files:
+        deshabilitar_boton = True
+        st.warning("⚠️ **El botón se activará automáticamente cuando terminen de subir las fotos.**")
+    
+    submitted = st.form_submit_button("✨ Generar Redacción Estratégica", type="primary", disabled=deshabilitar_boton)
 
 # =======================================================
 # === GENERACIÓN ===
@@ -713,7 +729,7 @@ if submitted:
 
             base_prompt = f"""Eres un Copywriter Inmobiliario de Élite.
             DATOS: {oper} {tipo} en {ubicacion}. Precio: {texto_precio}. {habs} Habs, {banos} Baños.
-            Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Wifi={wifi}."""
+            Extras: Garage={gar}, Quincho={qui}, Piscina={pis}, AA={aa}, Ventilador={vent}, Wifi={wifi}, TV={tv}, Agua={agua}, Luz={luz}."""
             
             prompt_avanzado = f"""
             TUS INSTRUCCIONES:
@@ -758,7 +774,7 @@ if submitted:
                     lines = cleaned_text.split('\n')
                     for l in lines:
                         l = l.strip().replace("*", "").replace("#", "").replace("🔹", "").replace("🚀", "")
-                        if 10 < len(l) < 40: phrases_video.append(l)
+                        if 10 < len(l) < 40: frases_video.append(l)
                     if len(frases_video) < 3:
                         frases_video = ["Propiedad Destacada", f"Ubicación: {ubicacion}", "Contáctanos"]
                     st.session_state['video_frases'] = frases_video[:6]
@@ -825,7 +841,7 @@ if 'generated_result' in st.session_state:
                     st.download_button("⬇️ Descargar MP4", file, "reel.mp4", "video/mp4", type="primary")
 
     st.markdown("---")
-    if st.button("🔄 Nueva Propiedad (Limpiar)", type="secondary"):
+    if st.button("🔄 Nueva Propiedad (Limpiar) ", type="secondary"):
         limpiar_formulario()
 
 # =======================================================

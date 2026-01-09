@@ -117,14 +117,6 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"] { background-color: #2563EB !important; color: white !important; border-radius: 8px !important; padding: 5px !important; }
     [data-testid="stSidebarCollapsedControl"] svg { fill: white !important; color: white !important; }
 
-    /* Ocultar flechas de los campos numéricos */
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; 
-        margin: 0; 
-    }
-    input[type=number] { -moz-appearance: textfield; }
-
     .output-box { background-color: white; padding: 25px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     
     /* Botones Sociales */
@@ -147,6 +139,11 @@ def encode_image(image):
     image.thumbnail((800, 800))
     image.save(buffered, format="JPEG", quality=70)
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+def clean_only_numbers(value):
+    """Elimina cualquier caracter que no sea número"""
+    if not value: return ""
+    return re.sub(r'\D', '', str(value))
 
 def format_price_display(value):
     if not value: return ""
@@ -535,17 +532,20 @@ with st.form("formulario_propiedad"):
         
         st.write("💰 **Detalles de Precio:**")
         
-        # DISEÑO DE COLUMNAS ADAPTATIVO
+        # DISEÑO DE COLUMNAS
         if oper == "Alquiler":
-            col_p1, col_p2, col_p3 = st.columns([15, 35, 50])
+            col_p1, col_p2, col_p3 = st.columns([2, 4, 3])
         else:
-            col_p1, col_p2 = st.columns([15, 85])
+            col_p1, col_p2 = st.columns([2, 8])
             
         with col_p1:
             moneda = st.selectbox("Divisa", ["Gs.", "$us"], label_visibility="collapsed")
         
         with col_p2:
-            precio_val = st.number_input("Monto", min_value=0, step=100000, format="%d", label_visibility="collapsed", placeholder="Monto")
+            # TEXT INPUT CON VALIDACIÓN MANUAL (ELIMINAR LETRAS AL ESCRIBIR)
+            # Esto evita los botones + y - molestos
+            precio_raw = st.text_input("Monto (Solo números)", placeholder="1500000", key="precio_input")
+            precio_val = clean_only_numbers(precio_raw)
         
         # SELECTOR DE PERIODO (Solo si es Alquiler)
         periodo_texto = ""
@@ -559,11 +559,13 @@ with st.form("formulario_propiedad"):
             wc1, wc2 = st.columns([3, 7])
             pais_code = wc1.selectbox("País", ["🇵🇾 +595", "🇦🇷 +54", "🇧🇷 +55", "🇺🇸 +1", "🇪🇸 +34"])
             
-            whatsapp_num = wc2.number_input("N° Celular (Sin 0 inicial)", min_value=0, step=1, format="%d", value=None)
+            # TEXT INPUT CON VALIDACIÓN MANUAL PARA WHATSAPP
+            whatsapp_raw = wc2.text_input("N° Celular (Sin 0 inicial)", placeholder="Ej: 961123456")
+            whatsapp_num = clean_only_numbers(whatsapp_raw)
             
             code_val = pais_code.split(" ")[1] 
             if whatsapp_num:
-                whatsapp_full = f"{code_val}{int(whatsapp_num)}"
+                whatsapp_full = f"{code_val}{whatsapp_num}"
             else:
                 whatsapp_full = ""
         else:
@@ -595,8 +597,9 @@ with st.form("formulario_propiedad"):
 # === GENERACIÓN ===
 # =======================================================
 if submitted:
-    if not ubicacion or precio_val == 0:
-        st.warning("⚠️ Completa Ubicación y Precio (mayor a 0).")
+    # 1. VALIDACIÓN FINAL DE NÚMEROS ANTES DE PROCESAR
+    if not ubicacion or not precio_val:
+        st.warning("⚠️ Completa Ubicación y Precio (solo números).")
         st.stop()
         
     permitido = False
@@ -607,7 +610,6 @@ if submitted:
         st.stop()
 
     if permitido:
-        # === MENSAJE DE CARGA ACTUALIZADO ===
         estado_ia = st.status("⏳ Cargando y preparando tu información...", expanded=True)
         
         try:
